@@ -69,13 +69,23 @@ def main():
     # 选择运行模式
     print("\n运行模式:")
     print("1. 立即执行一次")
-    print("2. 定时执行（每天早上8点）")
+    print("2. 每小时执行一次")
+    print("3. 每天早上8点执行")
     
-    choice = input("\n请选择 (1/2): ").strip()
+    choice = input("\n请选择 (1/2/3): ").strip()
     
     if choice == '1':
         run_daily_report()
     elif choice == '2':
+        schedule.every().hour.do(run_daily_report)
+        print("\n已设置定时任务：每小时执行一次")
+        print("按 Ctrl+C 停止\n")
+        run_daily_report()  # 立即执行一次
+        
+        while True:
+            schedule.run_pending()
+            time.sleep(60)
+    elif choice == '3':
         schedule.every().day.at("08:00").do(run_daily_report)
         print("\n已设置定时任务：每天 08:00 执行")
         print("按 Ctrl+C 停止\n")
