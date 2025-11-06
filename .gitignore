@@ -1,0 +1,8 @@
+.env
+__pycache__/
+*.pyc
+data/raw/*
+data/reports/*
+*.log
+.vscode/
+.idea/
