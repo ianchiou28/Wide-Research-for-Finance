@@ -1,106 +1,194 @@
-# Wide Research for Finance - MVP v1.0
+# 📊 Wide Research for Finance
 
-自动化财经新闻分析与每日简报系统
+> **让AI每小时为你读遍全球财经，抓住每一个市场信号**
 
-## 功能特性
+一个基于AI的自动化财经情报系统，每小时从17个主流源采集200+条新闻，智能分析情绪、识别热点、提醒重大事件。
 
-- ✅ 自动采集5个主流财经RSS源
-- ✅ AI驱动的新闻摘要与情感分析
-- ✅ 实体识别与事件分类
-- ✅ 每日自动生成简报
-- ✅ 邮件发送或本地保存
+[![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![DeepSeek](https://img.shields.io/badge/AI-DeepSeek-orange.svg)](https://www.deepseek.com/)
 
-## 快速开始
+---
 
-### 1. 安装依赖
+## ✨ 为什么需要它？
 
+📈 **信息过载时代**：每天有数千条财经新闻，你无法逐一阅读  
+🤖 **AI助手**：自动筛选、分析、摘要，只给你最重要的  
+🔔 **零延迟**：重大事件第一时间提醒，不错过任何机会  
+💰 **极低成本**：每天仅需$0.3，相当于一杯咖啡的价格  
+
+---
+
+## 🚀 核心功能
+
+### 📡 全球数据采集
+- **17个主流财经源**：Bloomberg, WSJ, CNBC, Forbes, Financial Times...
+- **多维度覆盖**：国际市场 + 专业分析 + 科技/加密货币
+- **实时爬取**：每小时自动更新，永不错过突发新闻
+
+### 🧠 AI智能分析
+- **情绪识别**：自动判断市场情绪（积极/中性/消极）
+- **实体提取**：识别公司、人物、政策、行业等关键信息
+- **事件分类**：财报/并购/政策/IPO等类型自动标记
+- **影响评估**：智能评估事件对市场的影响程度
+
+### 📊 精美报告
+```
+【市场情绪总览】
+- 共分析 197 条新闻
+- 整体情绪: 积极 (情绪指数: 0.46)
+
+【热点追踪】
+  • 特朗普 (11次)  • 中国 (5次)  • AI (4次)
+
+【重大事件】
+  [Bloomberg] IPO
+  Jio估值或达1700亿美元
+  情绪: 积极 | 影响: 高
+```
+
+---
+
+## ⚡ 快速开始
+
+### 1️⃣ 克隆仓库
+```bash
+git clone https://github.com/ianchiou28/Wide-Research-for-Finance.git
+cd Wide-Research-for-Finance
+```
+
+### 2️⃣ 安装依赖
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. 配置环境变量
-
-复制 `.env.example` 为 `.env` 并填写：
-
-```
-DEEPSEEK_API_KEY=sk-xxx                  # 必填
-EMAIL_FROM=your_email@gmail.com          # 可选
-EMAIL_PASSWORD=your_app_password         # 可选
-EMAIL_TO=recipient@email.com             # 可选
+### 3️⃣ 配置 API 密钥
+```bash
+cp .env.example .env
+# 编辑 .env 文件，填入你的 DeepSeek API Key
+DEEPSEEK_API_KEY=sk-your-key-here
 ```
 
-**注意**: 
-- Gmail需要使用应用专用密码（不是账户密码）
-- 如不配置邮件，报告将保存到 `data/reports/` 目录
+> 🔑 获取 DeepSeek API: [https://platform.deepseek.com](https://platform.deepseek.com)
 
-### 3. 运行程序
-
+### 4️⃣ 运行
 ```bash
 python main.py
 ```
 
 选择运行模式：
-- **模式1**: 立即执行一次（测试用）
-- **模式2**: 每小时自动执行
-- **模式3**: 每天早上8点自动执行
+- **模式 1**: 立即执行一次（测试）
+- **模式 2**: 每小时自动运行 ⭐
+- **模式 3**: 每天早上8点运行
 
-## 数据源
+---
 
-当前配置的RSS源：
-- Reuters Business & Markets
-- Bloomberg Markets
-- CNBC Top News
-- Financial Times
+## 📊 数据源覆盖
 
-可在 `config/sources.yaml` 中自定义添加更多源。
+| 类别 | 数据源 | 数量 |
+|------|------|------|
+| 🌎 **国际财经** | Bloomberg, WSJ, CNBC, MarketWatch, Forbes, FT, Yahoo Finance, Investing.com | 9 |
+| 📊 **专业分析** | Seeking Alpha, 雪球, Benzinga, The Motley Fool | 4 |
+| 🔐 **加密/科技** | CoinDesk, TechCrunch, VentureBeat | 3 |
+| 🏦**官方机构** | 美联储, SEC, 央行, 证监会 | 4 |
 
-## 报告示例
+---
 
+## 💸 成本分析
+
+| 项目 | 每天 | 每月 |
+|------|------|------|
+| DeepSeek API | $0.20-0.30 | ~$10 |
+| 服务器 | 免费（本地） | $0 |
+| **总计** | **$0.30** | **$10** |
+
+🎉 **相比Bloomberg Terminal ($2,000/月)，节省 99.5%**
+
+---
+
+## 🛠️ 高级配置
+
+### 邮件推送（可选）
+```env
+EMAIL_FROM=your_email@gmail.com
+EMAIL_PASSWORD=your_app_password  # Gmail应用专用密码
+EMAIL_TO=recipient@email.com
 ```
-============================================================
-财经新闻每日简报 - 2024年01月15日
-============================================================
 
-【市场情绪总览】
-- 共分析 45 条新闻
-- 整体情绪: 中性 (情绪指数: 0.12)
-
-【热点追踪】
-今日最受关注的主体：
-  • 美联储 (提及12次)
-  • 苹果 (提及8次)
-  • 特斯拉 (提及6次)
-
-【重大事件提醒】
-  [Reuters] 政策
-  标题: Fed signals potential rate cuts in 2024
-  摘要: 美联储暗示2024年可能降息
-  情绪: 积极
-  ...
+### 自定义数据源
+编辑 `config/sources.yaml` 添加你关注的RSS源：
+```yaml
+rss_sources:
+  - name: "你的源"
+    url: "https://example.com/rss"
+    category: "custom"
 ```
 
-## 成本估算
+---
 
-- GPT-4o-mini: 约 $0.30/天（处理100篇文章）
-- 月成本: ~$10
+## 📈 路线图
 
-## 下一步优化
+- [x] 基础RSS采集与分析
+- [x] 每小时自动运行
+- [x] 官方网站爬虫
+- [ ] SQLite历史数据存储
+- [ ] 情绪指数时间序列图表
+- [ ] 模式识别与投资建议
+- [ ] Web仪表盘 (Streamlit)
+- [ ] 知识图谱 (Neo4j)
 
-- [ ] 添加SQLite数据库存储历史数据
-- [ ] 生成情绪指数时间序列图表
-- [ ] 添加网页爬虫（公司公告等）
-- [ ] 实现模式识别与投资建议
+---
 
-## 故障排查
+## 👥 适用人群
 
-**问题**: RSS源无法访问
-- 检查网络连接
-- 某些源可能需要VPN
+✅ **个人投资者** - 每天获取精炼的市场情报  
+✅ **量化交易员** - 实时捕捉市场情绪变化  
+✅ **财经分析师** - 自动化信息收集与整理  
+✅ **创业者** - 关注行业动态与竞争对手  
 
-**问题**: DeepSeek API错误
-- 确认API密钥正确
-- 检查账户余额
+---
 
-**问题**: 邮件发送失败
-- Gmail需启用"两步验证"并生成应用专用密码
-- 或直接查看 `data/reports/` 目录中的本地报告
+## ❓ 常见问题
+
+<details>
+<summary><b>Q: 为什么选择DeepSeek而不是GPT-4？</b></summary>
+<br>
+DeepSeek性价比极高，成本仅为GPT-4的10%，且在中文财经分析上表现优秀。
+</details>
+
+<details>
+<summary><b>Q: 需要VPN吗？</b></summary>
+<br>
+国际源（Bloomberg, WSJ）可能需要，但系统已内置容错机制，单个源失败不影响整体运行。
+</details>
+
+<details>
+<summary><b>Q: 可以商用吗？</b></summary>
+<br>
+MIT协议开源，可自由使用和修改。但请注意数据源的版权政策。
+</details>
+
+---
+
+## 👏 贡献
+
+欢迎 PR! 如果你有好的想法或发现了bug，请提交 Issue。
+
+---
+
+## 📝 许可证
+
+MIT License - 详见 [LICENSE](LICENSE)
+
+---
+
+## ⭐ Star History
+
+如果这个项目对你有帮助，请给个 Star ⭐！
+
+---
+
+<p align="center">
+  <b>由 <a href="https://github.com/ianchiou28">@ianchiou28</a> 开发维护</b><br>
+  <sub>基于 DeepSeek AI 驱动 | 每天仅需 $0.3</sub>
+</p>
