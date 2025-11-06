@@ -19,9 +19,6 @@ class ReportGenerator:
             all_entities.extend(news.get('entities', []))
         top_entities = Counter(all_entities).most_common(10)
         
-        # 高影响事件
-        high_impact = [n for n in processed_news if n.get('impact_level') == '高']
-        
         # 生成报告
         report = f"""
 {'='*60}
@@ -35,29 +32,40 @@ class ReportGenerator:
 【热点追踪】
 今日最受关注的主体：
 """
-        for entity, count in top_entities[:5]:
+        for entity, count in top_entities[:10]:
             report += f"  • {entity} (提及{count}次)\n"
+        
+        # 高影响事件
+        high_impact = [n for n in processed_news if n.get('impact_level') == '高']
         
         report += f"\n【重大事件提醒】\n"
         if high_impact:
-            for news in high_impact[:5]:
+            for news in high_impact:
+                sentiment_text = '积极' if news['sentiment'] > 0.3 else '消极' if news['sentiment'] < -0.3 else '中性'
                 report += f"""
   [{news['source']}] {news['event_type']}
   标题: {news['title']}
   摘要: {news['summary']}
-  情绪: {'积极' if news['sentiment'] > 0.3 else '消极' if news['sentiment'] < -0.3 else '中性'}
+  情绪: {sentiment_text}
   链接: {news['url']}
 """
         else:
             report += "  今日暂无高影响力事件\n"
         
-        report += f"\n【情绪分布】\n"
+        # 其他新闻
+        other_news = [n for n in processed_news if n.get('impact_level') != '高']
+        report += f"\n【其他新闻 ({len(other_news)}条)】\n"
+        for i, news in enumerate(other_news, 1):
+            report += f"  {i}. [{news['source']}] {news['title']}\n"
+        
+        report += f"\n\n【情绪分布】\n"
         positive = sum(1 for n in processed_news if n['sentiment'] > 0.3)
         negative = sum(1 for n in processed_news if n['sentiment'] < -0.3)
         neutral = total - positive - negative
         report += f"  积极: {positive} | 中性: {neutral} | 消极: {negative}\n"
         
         report += f"\n{'='*60}\n"
+        report += f"报告生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
         report += "本报告由AI自动生成，仅供参考\n"
         
         return report
