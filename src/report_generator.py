@@ -4,9 +4,9 @@ from collections import Counter
 
 class ReportGenerator:
     def generate(self, processed_news: List[Dict]) -> str:
-        """生成每日报告"""
+        """生成每小时报告"""
         if not processed_news:
-            return "今日无新闻数据"
+            return "无新闻数据"
         
         # 统计分析
         total = len(processed_news)
@@ -22,7 +22,7 @@ class ReportGenerator:
         # 生成报告
         report = f"""
 {'='*60}
-财经新闻每日简报 - {datetime.now().strftime('%Y年%m月%d日')}
+财经新闻每小时简报 - {datetime.now().strftime('%Y年%m月%d日 %H时')}
 {'='*60}
 
 【市场情绪总览】
@@ -30,7 +30,7 @@ class ReportGenerator:
 - 整体情绪: {sentiment_label} (情绪指数: {avg_sentiment:.2f})
 
 【热点追踪】
-今日最受关注的主体：
+本小时最受关注的主体：
 """
         for entity, count in top_entities[:10]:
             report += f"  • {entity} (提及{count}次)\n"
@@ -50,7 +50,7 @@ class ReportGenerator:
   链接: {news['url']}
 """
         else:
-            report += "  今日暂无高影响力事件\n"
+            report += "  本小时暂无高影响力事件\n"
         
         # 其他新闻
         other_news = [n for n in processed_news if n.get('impact_level') != '高']
