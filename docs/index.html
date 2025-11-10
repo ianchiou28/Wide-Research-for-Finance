@@ -3,239 +3,611 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wide Research for Finance - 项目结构说明</title>
+    <title>Wide Research for Finance - 完整项目说明</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, "Microsoft YaHei", sans-serif;
+            line-height: 1.8;
+            color: #2c3e50;
+            background: #f5f7fa;
         }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            overflow: hidden;
-        }
+        .container { max-width: 1400px; margin: 0 auto; background: white; }
         header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 40px;
+            padding: 60px 40px;
             text-align: center;
         }
-        h1 { font-size: 2.5em; margin-bottom: 10px; }
-        .subtitle { font-size: 1.2em; opacity: 0.9; }
-        .content { padding: 40px; }
-        .section {
-            margin-bottom: 40px;
-            padding: 30px;
-            background: #f8f9fa;
-            border-radius: 15px;
-            border-left: 5px solid #667eea;
+        h1 { font-size: 3em; margin-bottom: 15px; font-weight: 300; }
+        .tagline { font-size: 1.3em; opacity: 0.95; font-weight: 300; }
+        nav {
+            background: #2c3e50;
+            padding: 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
+        nav ul {
+            list-style: none;
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        nav a {
+            display: block;
+            color: white;
+            padding: 18px 30px;
+            text-decoration: none;
+            transition: background 0.3s;
+        }
+        nav a:hover { background: #34495e; }
+        .content { padding: 50px 60px; }
+        section {
+            margin-bottom: 60px;
+            padding-bottom: 40px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+        section:last-child { border-bottom: none; }
         h2 {
             color: #667eea;
-            margin-bottom: 20px;
-            font-size: 1.8em;
-            display: flex;
-            align-items: center;
-            gap: 10px;
+            font-size: 2.2em;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #667eea;
         }
-        .tree {
-            background: #2d3748;
-            color: #a0aec0;
-            padding: 20px;
-            border-radius: 10px;
-            font-family: 'Courier New', monospace;
-            font-size: 14px;
-            overflow-x: auto;
-            line-height: 1.8;
+        h3 {
+            color: #34495e;
+            font-size: 1.6em;
+            margin: 30px 0 20px 0;
         }
-        .tree .folder { color: #63b3ed; font-weight: bold; }
-        .tree .file { color: #68d391; }
-        .tree .comment { color: #718096; }
-        .flow {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            align-items: center;
-        }
-        .flow-box {
-            background: white;
-            border: 3px solid #667eea;
-            border-radius: 10px;
-            padding: 20px 40px;
-            min-width: 300px;
-            text-align: center;
-            font-weight: bold;
-            color: #667eea;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        .arrow {
-            font-size: 2em;
-            color: #667eea;
-        }
-        .tech-grid {
+        .grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin: 30px 0;
         }
-        .tech-card {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            border: 2px solid #e2e8f0;
+        .card {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
             transition: transform 0.3s, box-shadow 0.3s;
         }
-        .tech-card:hover {
+        .card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
         }
-        .tech-card h3 {
+        .card h4 {
             color: #667eea;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
+            font-size: 1.3em;
         }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+        }
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+        th {
+            background: #667eea;
+            color: white;
+            font-weight: 600;
+        }
+        tr:nth-child(even) { background: #f8f9fa; }
+        .code-block {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 25px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            margin: 20px 0;
+        }
+        .highlight { background: #fff3cd; padding: 2px 6px; border-radius: 3px; }
         .badge {
             display: inline-block;
             background: #667eea;
             color: white;
-            padding: 5px 15px;
+            padding: 6px 14px;
             border-radius: 20px;
-            font-size: 0.9em;
-            margin: 5px;
+            font-size: 0.85em;
+            margin: 5px 5px 5px 0;
         }
+        .flow-diagram {
+            background: #f8f9fa;
+            padding: 40px;
+            border-radius: 8px;
+            text-align: center;
+            margin: 30px 0;
+        }
+        .flow-step {
+            background: white;
+            border: 2px solid #667eea;
+            padding: 20px 30px;
+            margin: 15px auto;
+            max-width: 500px;
+            border-radius: 8px;
+            font-weight: 600;
+            color: #667eea;
+        }
+        .arrow { font-size: 2em; color: #667eea; margin: 10px 0; }
+        ul, ol { margin: 20px 0 20px 40px; }
+        li { margin: 10px 0; }
         footer {
-            background: #2d3748;
+            background: #2c3e50;
             color: white;
             text-align: center;
-            padding: 20px;
+            padding: 40px;
         }
-        .emoji { font-size: 1.5em; }
+        footer a { color: #667eea; text-decoration: none; }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        .stat-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-number { font-size: 2.5em; font-weight: bold; margin-bottom: 10px; }
+        .stat-label { font-size: 1.1em; opacity: 0.9; }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>📊 Wide Research for Finance</h1>
-            <p class="subtitle">基于AI的自动化财经情报系统 - 项目结构说明</p>
+            <h1>Wide Research for Finance</h1>
+            <p class="tagline">基于AI的自动化财经情报系统 - 完整项目说明文档</p>
         </header>
 
+        <nav>
+            <ul>
+                <li><a href="#overview">项目概述</a></li>
+                <li><a href="#features">核心功能</a></li>
+                <li><a href="#architecture">技术架构</a></li>
+                <li><a href="#structure">项目结构</a></li>
+                <li><a href="#installation">安装部署</a></li>
+                <li><a href="#usage">使用说明</a></li>
+                <li><a href="#datasources">数据源</a></li>
+                <li><a href="#cost">成本分析</a></li>
+            </ul>
+        </nav>
+
         <div class="content">
-            <div class="section">
-                <h2><span class="emoji">📁</span> 项目目录结构</h2>
-                <div class="tree">
+            <section id="overview">
+                <h2>项目概述</h2>
+                <p>Wide Research for Finance 是一个基于人工智能的自动化财经情报系统，旨在帮助投资者、分析师和金融从业者高效获取和分析全球财经资讯。</p>
+                
+                <div class="stats">
+                    <div class="stat-box">
+                        <div class="stat-number">17+</div>
+                        <div class="stat-label">数据源</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-number">200+</div>
+                        <div class="stat-label">新闻/小时</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-number">$0.3</div>
+                        <div class="stat-label">每天成本</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-number">&lt;30s</div>
+                        <div class="stat-label">报告生成</div>
+                    </div>
+                </div>
+
+                <h3>核心价值</h3>
+                <ul>
+                    <li><strong>信息聚合</strong>：自动从17个主流财经媒体和官方机构采集新闻</li>
+                    <li><strong>智能分析</strong>：使用DeepSeek AI进行情感分析、实体识别和事件分类</li>
+                    <li><strong>实时监控</strong>：每小时自动运行，第一时间捕捉市场动态</li>
+                    <li><strong>成本优化</strong>：相比Bloomberg Terminal节省99.5%成本</li>
+                </ul>
+            </section>
+
+            <section id="features">
+                <h2>核心功能</h2>
+                
+                <div class="grid">
+                    <div class="card">
+                        <h4>全球数据采集</h4>
+                        <p>支持17个RSS源和4个官方网站的自动爬取，覆盖国际财经、专业分析、科技加密等多个领域。</p>
+                        <span class="badge">RSS订阅</span>
+                        <span class="badge">网页爬虫</span>
+                    </div>
+                    
+                    <div class="card">
+                        <h4>AI智能分析</h4>
+                        <p>基于DeepSeek大语言模型，自动进行情感分析、实体提取、事件分类和影响力评估。</p>
+                        <span class="badge">情感识别</span>
+                        <span class="badge">实体提取</span>
+                        <span class="badge">事件分类</span>
+                    </div>
+                    
+                    <div class="card">
+                        <h4>知识整合</h4>
+                        <p>计算情绪指数、统计热点实体、评估事件影响力，生成结构化的市场洞察。</p>
+                        <span class="badge">情绪指数</span>
+                        <span class="badge">热点统计</span>
+                    </div>
+                    
+                    <div class="card">
+                        <h4>自动化报告</h4>
+                        <p>每小时自动生成简报，支持邮件推送或本地存储，确保信息及时触达。</p>
+                        <span class="badge">定时任务</span>
+                        <span class="badge">邮件推送</span>
+                    </div>
+                </div>
+            </section>
+
+            <section id="architecture">
+                <h2>技术架构</h2>
+                
+                <h3>四层架构设计</h3>
+                <div class="flow-diagram">
+                    <div class="flow-step">数据源层<br><small>17个RSS源 + 4个官方网站</small></div>
+                    <div class="arrow">↓</div>
+                    <div class="flow-step">数据采集层<br><small>feedparser + BeautifulSoup</small></div>
+                    <div class="arrow">↓</div>
+                    <div class="flow-step">信息处理层<br><small>DeepSeek AI 分析</small></div>
+                    <div class="arrow">↓</div>
+                    <div class="flow-step">知识整合层<br><small>指标计算与聚合</small></div>
+                    <div class="arrow">↓</div>
+                    <div class="flow-step">分析建议层<br><small>报告生成与推送</small></div>
+                </div>
+
+                <h3>技术栈</h3>
+                <table>
+                    <tr>
+                        <th>层级</th>
+                        <th>技术选型</th>
+                        <th>说明</th>
+                    </tr>
+                    <tr>
+                        <td>数据采集</td>
+                        <td>feedparser, requests, BeautifulSoup4</td>
+                        <td>RSS订阅解析和网页内容提取</td>
+                    </tr>
+                    <tr>
+                        <td>任务调度</td>
+                        <td>schedule</td>
+                        <td>轻量级定时任务管理</td>
+                    </tr>
+                    <tr>
+                        <td>AI处理</td>
+                        <td>DeepSeek API (OpenAI兼容)</td>
+                        <td>情感分析、实体识别、事件分类</td>
+                    </tr>
+                    <tr>
+                        <td>数据存储</td>
+                        <td>文件系统</td>
+                        <td>报告本地保存（未来支持SQLite）</td>
+                    </tr>
+                    <tr>
+                        <td>通知推送</td>
+                        <td>smtplib</td>
+                        <td>Gmail邮件发送</td>
+                    </tr>
+                </table>
+            </section>
+
+            <section id="structure">
+                <h2>项目结构</h2>
+                
+                <div class="code-block">
 wide-research-for-finance/
-├── <span class="folder">config/</span>                      <span class="comment"># 配置文件</span>
-│   └── sources.yaml            <span class="comment"># 数据源配置（17个RSS源）</span>
-├── <span class="folder">src/</span>                         <span class="comment"># 源代码</span>
-│   ├── <span class="file">collector.py</span>              <span class="comment"># 数据采集器（RSS）</span>
-│   ├── <span class="file">web_scraper.py</span>            <span class="comment"># 网页爬虫（官方网站）</span>
-│   ├── <span class="file">processor.py</span>              <span class="comment"># AI处理器（DeepSeek）</span>
-│   ├── <span class="file">report_generator.py</span>       <span class="comment"># 报告生成器</span>
-│   └── <span class="file">email_sender.py</span>           <span class="comment"># 邮件发送器</span>
-├── <span class="folder">data/</span>                        <span class="comment"># 数据存储</span>
-│   ├── raw/                    <span class="comment"># 原始数据</span>
-│   └── reports/                <span class="comment"># 生成的报告</span>
-├── <span class="file">main.py</span>                       <span class="comment"># 主程序入口</span>
-├── <span class="file">requirements.txt</span>              <span class="comment"># Python依赖</span>
-├── <span class="file">.env</span>                          <span class="comment"># 环境变量（API密钥）</span>
-└── <span class="file">README.md</span>                     <span class="comment"># 项目文档</span>
+├── config/
+│   └── sources.yaml            # 数据源配置文件
+├── src/
+│   ├── collector.py            # RSS数据采集器
+│   ├── web_scraper.py          # 官方网站爬虫
+│   ├── processor.py            # AI分析处理器
+│   ├── report_generator.py     # 报告生成器
+│   └── email_sender.py         # 邮件发送器
+├── data/
+│   ├── raw/                    # 原始数据存储
+│   └── reports/                # 生成的报告
+├── docs/
+│   └── index.html              # 项目文档
+├── main.py                     # 主程序入口
+├── requirements.txt            # Python依赖
+├── .env                        # 环境变量配置
+└── README.md                   # 项目说明
                 </div>
-            </div>
 
-            <div class="section">
-                <h2><span class="emoji">🔄</span> 数据处理流程</h2>
-                <div class="flow">
-                    <div class="flow-box">📡 数据采集<br><small>17个RSS源 + 4个官方网站</small></div>
-                    <div class="arrow">↓</div>
-                    <div class="flow-box">📝 原始文本<br><small>200-300条新闻/小时</small></div>
-                    <div class="arrow">↓</div>
-                    <div class="flow-box">🤖 AI分析<br><small>DeepSeek: 情感+实体+事件</small></div>
-                    <div class="arrow">↓</div>
-                    <div class="flow-box">📊 指标计算<br><small>情绪指数 + 热点统计</small></div>
-                    <div class="arrow">↓</div>
-                    <div class="flow-box">📄 生成报告<br><small>每小时简报</small></div>
-                    <div class="arrow">↓</div>
-                    <div class="flow-box">📧 推送/保存<br><small>邮件 或 本地存储</small></div>
-                </div>
-            </div>
+                <h3>核心模块说明</h3>
+                <table>
+                    <tr>
+                        <th>模块</th>
+                        <th>功能</th>
+                        <th>关键技术</th>
+                    </tr>
+                    <tr>
+                        <td>collector.py</td>
+                        <td>从17个RSS源采集新闻数据</td>
+                        <td>feedparser, yaml</td>
+                    </tr>
+                    <tr>
+                        <td>web_scraper.py</td>
+                        <td>爬取美联储、SEC等官方网站</td>
+                        <td>BeautifulSoup, requests</td>
+                    </tr>
+                    <tr>
+                        <td>processor.py</td>
+                        <td>AI批量分析新闻内容</td>
+                        <td>DeepSeek API, 批量处理</td>
+                    </tr>
+                    <tr>
+                        <td>report_generator.py</td>
+                        <td>生成结构化报告</td>
+                        <td>情绪统计, 热点提取</td>
+                    </tr>
+                    <tr>
+                        <td>email_sender.py</td>
+                        <td>邮件推送或本地保存</td>
+                        <td>smtplib, Gmail SMTP</td>
+                    </tr>
+                    <tr>
+                        <td>main.py</td>
+                        <td>主程序和任务调度</td>
+                        <td>schedule, 多模式运行</td>
+                    </tr>
+                </table>
+            </section>
 
-            <div class="section">
-                <h2><span class="emoji">⚙️</span> 核心模块说明</h2>
-                <div class="tech-grid">
-                    <div class="tech-card">
-                        <h3>collector.py</h3>
-                        <p>从17个RSS源采集新闻</p>
-                        <span class="badge">feedparser</span>
-                        <span class="badge">yaml</span>
-                    </div>
-                    <div class="tech-card">
-                        <h3>web_scraper.py</h3>
-                        <p>爬取官方机构网站</p>
-                        <span class="badge">BeautifulSoup</span>
-                        <span class="badge">requests</span>
-                    </div>
-                    <div class="tech-card">
-                        <h3>processor.py</h3>
-                        <p>AI智能分析新闻内容</p>
-                        <span class="badge">DeepSeek API</span>
-                        <span class="badge">批量处理</span>
-                    </div>
-                    <div class="tech-card">
-                        <h3>report_generator.py</h3>
-                        <p>生成结构化报告</p>
-                        <span class="badge">情绪统计</span>
-                        <span class="badge">热点提取</span>
-                    </div>
-                    <div class="tech-card">
-                        <h3>email_sender.py</h3>
-                        <p>邮件推送或本地保存</p>
-                        <span class="badge">smtplib</span>
-                        <span class="badge">Gmail</span>
-                    </div>
-                    <div class="tech-card">
-                        <h3>main.py</h3>
-                        <p>主程序与任务调度</p>
-                        <span class="badge">schedule</span>
-                        <span class="badge">每小时执行</span>
-                    </div>
-                </div>
-            </div>
+            <section id="installation">
+                <h2>安装部署</h2>
+                
+                <h3>环境要求</h3>
+                <ul>
+                    <li>Python 3.8 或更高版本</li>
+                    <li>DeepSeek API密钥（从 <a href="https://platform.deepseek.com" target="_blank">platform.deepseek.com</a> 获取）</li>
+                    <li>可选：Gmail账户（用于邮件推送）</li>
+                </ul>
 
-            <div class="section">
-                <h2><span class="emoji">🛠️</span> 技术栈</h2>
-                <p><strong>语言：</strong> Python 3.8+</p>
-                <p><strong>数据采集：</strong> feedparser, requests, BeautifulSoup4</p>
-                <p><strong>AI处理：</strong> DeepSeek API (OpenAI兼容)</p>
-                <p><strong>任务调度：</strong> schedule</p>
-                <p><strong>配置管理：</strong> python-dotenv, PyYAML</p>
-                <p><strong>成本：</strong> ~$0.3/天 (~$10/月)</p>
-            </div>
-
-            <div class="section">
-                <h2><span class="emoji">🚀</span> 快速开始</h2>
-                <ol style="line-height: 2;">
-                    <li><strong>安装依赖：</strong> <code>pip install -r requirements.txt</code></li>
-                    <li><strong>配置API：</strong> 复制 <code>.env.example</code> 为 <code>.env</code>，填入DeepSeek API密钥</li>
-                    <li><strong>运行程序：</strong> <code>python main.py</code></li>
-                    <li><strong>选择模式：</strong> 
-                        <ul>
-                            <li>模式1: 立即执行一次（测试）</li>
-                            <li>模式2: 每小时自动运行 ⭐</li>
-                            <li>模式3: 每天早上8点运行</li>
-                        </ul>
+                <h3>安装步骤</h3>
+                <ol>
+                    <li><strong>克隆仓库</strong>
+                        <div class="code-block">git clone https://github.com/ianchiou28/Wide-Research-for-Finance.git
+cd Wide-Research-for-Finance</div>
+                    </li>
+                    
+                    <li><strong>安装依赖</strong>
+                        <div class="code-block">pip install -r requirements.txt</div>
+                    </li>
+                    
+                    <li><strong>配置环境变量</strong>
+                        <div class="code-block">cp .env.example .env
+# 编辑 .env 文件，填入以下配置：
+DEEPSEEK_API_KEY=sk-your-key-here
+EMAIL_FROM=your_email@gmail.com          # 可选
+EMAIL_PASSWORD=your_app_password         # 可选
+EMAIL_TO=recipient@email.com             # 可选</div>
+                    </li>
+                    
+                    <li><strong>运行程序</strong>
+                        <div class="code-block">python main.py</div>
                     </li>
                 </ol>
-            </div>
+            </section>
+
+            <section id="usage">
+                <h2>使用说明</h2>
+                
+                <h3>运行模式</h3>
+                <p>程序启动后会提示选择运行模式：</p>
+                
+                <table>
+                    <tr>
+                        <th>模式</th>
+                        <th>说明</th>
+                        <th>适用场景</th>
+                    </tr>
+                    <tr>
+                        <td>模式1</td>
+                        <td>立即执行一次</td>
+                        <td>测试功能、查看效果</td>
+                    </tr>
+                    <tr>
+                        <td>模式2</td>
+                        <td>每小时自动执行</td>
+                        <td>实时监控市场动态（推荐）</td>
+                    </tr>
+                    <tr>
+                        <td>模式3</td>
+                        <td>每天早上8点执行</td>
+                        <td>每日晨报</td>
+                    </tr>
+                </table>
+
+                <h3>报告示例</h3>
+                <div class="code-block">============================================================
+财经新闻每小时简报 - 2025年11月06日 17时
+============================================================
+
+【市场情绪总览】
+- 共分析 197 条新闻
+- 整体情绪: 积极 (情绪指数: 0.46)
+
+【热点追踪】
+本小时最受关注的主体：
+  • 特朗普 (11次)
+  • 中国 (5次)
+  • AI (4次)
+
+【重大事件提醒】
+  [Bloomberg Markets] IPO
+  标题: Bankers Said to See Reliance's Jio Value as High as $170 Billion
+  摘要: 信实Jio估值或达1700亿美元
+  情绪: 积极
+  链接: https://www.bloomberg.com/news/...
+
+【情绪分布】
+  积极: 120 | 中性: 60 | 消极: 17</div>
+
+                <h3>自定义配置</h3>
+                <p>编辑 <span class="highlight">config/sources.yaml</span> 可以添加自定义数据源：</p>
+                <div class="code-block">rss_sources:
+  - name: "你的数据源"
+    url: "https://example.com/rss"
+    category: "custom"</div>
+            </section>
+
+            <section id="datasources">
+                <h2>数据源</h2>
+                
+                <h3>RSS订阅源（17个）</h3>
+                <table>
+                    <tr>
+                        <th>类别</th>
+                        <th>数据源</th>
+                        <th>数量</th>
+                    </tr>
+                    <tr>
+                        <td>国际财经</td>
+                        <td>Bloomberg, WSJ, CNBC, MarketWatch, Forbes, Financial Times, Yahoo Finance, Investing.com, CNBC World</td>
+                        <td>9</td>
+                    </tr>
+                    <tr>
+                        <td>专业分析</td>
+                        <td>Seeking Alpha, 雪球, Benzinga, The Motley Fool</td>
+                        <td>4</td>
+                    </tr>
+                    <tr>
+                        <td>科技/加密</td>
+                        <td>CoinDesk, TechCrunch, VentureBeat</td>
+                        <td>3</td>
+                    </tr>
+                </table>
+
+                <h3>官方机构网站（4个）</h3>
+                <ul>
+                    <li>美联储 (Federal Reserve)</li>
+                    <li>美国证券交易委员会 (SEC)</li>
+                    <li>中国人民银行</li>
+                    <li>中国证监会</li>
+                </ul>
+            </section>
+
+            <section id="cost">
+                <h2>成本分析</h2>
+                
+                <table>
+                    <tr>
+                        <th>项目</th>
+                        <th>每小时</th>
+                        <th>每天</th>
+                        <th>每月</th>
+                    </tr>
+                    <tr>
+                        <td>DeepSeek API</td>
+                        <td>$0.01-0.02</td>
+                        <td>$0.20-0.30</td>
+                        <td>~$10</td>
+                    </tr>
+                    <tr>
+                        <td>服务器</td>
+                        <td>$0</td>
+                        <td>$0</td>
+                        <td>$0（本地运行）</td>
+                    </tr>
+                    <tr>
+                        <td><strong>总计</strong></td>
+                        <td><strong>$0.01-0.02</strong></td>
+                        <td><strong>$0.30</strong></td>
+                        <td><strong>$10</strong></td>
+                    </tr>
+                </table>
+
+                <h3>成本对比</h3>
+                <ul>
+                    <li>Bloomberg Terminal: $2,000/月</li>
+                    <li>Wide Research for Finance: $10/月</li>
+                    <li><strong>节省: 99.5%</strong></li>
+                </ul>
+            </section>
+
+            <section id="roadmap">
+                <h2>开发路线图</h2>
+                
+                <h3>已完成 (v1.0)</h3>
+                <ul>
+                    <li>基础RSS采集与分析</li>
+                    <li>每小时自动运行</li>
+                    <li>官方网站爬虫</li>
+                    <li>DeepSeek AI集成</li>
+                    <li>情感分析与实体识别</li>
+                    <li>自动报告生成</li>
+                </ul>
+
+                <h3>进行中 (v1.1)</h3>
+                <ul>
+                    <li>SQLite历史数据存储</li>
+                    <li>情绪指数时间序列图表</li>
+                    <li>数据去重与增量更新</li>
+                </ul>
+
+                <h3>未来计划 (v2.0)</h3>
+                <ul>
+                    <li>模式识别与投资建议</li>
+                    <li>Web仪表盘 (Streamlit)</li>
+                    <li>知识图谱 (Neo4j)</li>
+                    <li>多语言支持</li>
+                    <li>自定义告警规则</li>
+                </ul>
+            </section>
+
+            <section id="performance">
+                <h2>性能指标</h2>
+                
+                <table>
+                    <tr>
+                        <th>指标</th>
+                        <th>数值</th>
+                    </tr>
+                    <tr>
+                        <td>数据源数量</td>
+                        <td>17个RSS + 4个网站</td>
+                    </tr>
+                    <tr>
+                        <td>每小时采集量</td>
+                        <td>200-300条新闻</td>
+                    </tr>
+                    <tr>
+                        <td>AI处理速度</td>
+                        <td>~20条/批次</td>
+                    </tr>
+                    <tr>
+                        <td>报告生成时间</td>
+                        <td>&lt;30秒</td>
+                    </tr>
+                    <tr>
+                        <td>内存占用</td>
+                        <td>&lt;100MB</td>
+                    </tr>
+                </table>
+            </section>
         </div>
 
         <footer>
-            <p>📊 Wide Research for Finance | 由 @ianchiou28 开发维护</p>
-            <p>GitHub: <a href="https://github.com/ianchiou28/Wide-Research-for-Finance" style="color: #63b3ed;">github.com/ianchiou28/Wide-Research-for-Finance</a></p>
+            <p><strong>Wide Research for Finance</strong></p>
+            <p>由 <a href="https://github.com/ianchiou28" target="_blank">@ianchiou28</a> 开发维护</p>
+            <p>GitHub: <a href="https://github.com/ianchiou28/Wide-Research-for-Finance" target="_blank">github.com/ianchiou28/Wide-Research-for-Finance</a></p>
+            <p style="margin-top: 20px; opacity: 0.8;">MIT License | 基于 DeepSeek AI 驱动</p>
         </footer>
     </div>
 </body>
