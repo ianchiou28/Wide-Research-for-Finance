@@ -69,18 +69,23 @@ def main():
     # 选择运行模式
     print("\n运行模式:")
     print("1. 立即执行一次")
-    print("2. 每小时执行一次")
+    print("2. 每个整点执行（0:00, 1:00, 2:00...）")
     print("3. 每天早上8点执行")
+    print("4. 每天8点和20点生成12小时摘要")
     
-    choice = input("\n请选择 (1/2/3): ").strip()
+    choice = input("\n请选择 (1/2/3/4): ").strip()
     
     if choice == '1':
         run_daily_report()
     elif choice == '2':
-        schedule.every().hour.do(run_daily_report)
-        print("\n已设置定时任务：每小时执行一次")
+        # 在每个整点执行
+        for hour in range(24):
+            schedule.every().day.at(f"{hour:02d}:00").do(run_daily_report)
+        
+        next_hour = (datetime.now().hour + 1) % 24
+        print(f"\n已设置定时任务：每个整点执行（0:00, 1:00, 2:00...）")
+        print(f"下次执行时间：{next_hour:02d}:00")
         print("按 Ctrl+C 停止\n")
-        run_daily_report()  # 立即执行一次
         
         while True:
             schedule.run_pending()
@@ -93,6 +98,9 @@ def main():
         while True:
             schedule.run_pending()
             time.sleep(60)
+    elif choice == '4':
+        print("\n请运行: python daily_summary_main.py")
+        print("或双击: run_daily_summary.bat")
     else:
         print("无效选择")
 

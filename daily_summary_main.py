@@ -56,13 +56,22 @@ def main():
         schedule.every().day.at("08:00").do(generate_and_send_summary)
         schedule.every().day.at("20:00").do(generate_and_send_summary)
         
+        now = datetime.now()
+        current_hour = now.hour
+        
+        # 计算下次执行时间
+        if current_hour < 8:
+            next_time = "08:00"
+        elif current_hour < 20:
+            next_time = "20:00"
+        else:
+            next_time = "明天 08:00"
+        
         print("\n已设置定时任务：")
         print("- 每天 08:00 生成早间摘要")
         print("- 每天 20:00 生成晚间摘要")
+        print(f"下次执行时间：{next_time}")
         print("按 Ctrl+C 停止\n")
-        
-        # 立即执行一次
-        generate_and_send_summary()
         
         while True:
             schedule.run_pending()

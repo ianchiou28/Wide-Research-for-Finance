@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wide Research for Finance - 项目结构说明</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        h1 { font-size: 2.5em; margin-bottom: 10px; }
+        .subtitle { font-size: 1.2em; opacity: 0.9; }
+        .content { padding: 40px; }
+        .section {
+            margin-bottom: 40px;
+            padding: 30px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            border-left: 5px solid #667eea;
+        }
+        h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .tree {
+            background: #2d3748;
+            color: #a0aec0;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+            line-height: 1.8;
+        }
+        .tree .folder { color: #63b3ed; font-weight: bold; }
+        .tree .file { color: #68d391; }
+        .tree .comment { color: #718096; }
+        .flow {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            align-items: center;
+        }
+        .flow-box {
+            background: white;
+            border: 3px solid #667eea;
+            border-radius: 10px;
+            padding: 20px 40px;
+            min-width: 300px;
+            text-align: center;
+            font-weight: bold;
+            color: #667eea;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .arrow {
+            font-size: 2em;
+            color: #667eea;
+        }
+        .tech-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        .tech-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid #e2e8f0;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .tech-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        .tech-card h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        .badge {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            margin: 5px;
+        }
+        footer {
+            background: #2d3748;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+        .emoji { font-size: 1.5em; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📊 Wide Research for Finance</h1>
+            <p class="subtitle">基于AI的自动化财经情报系统 - 项目结构说明</p>
+        </header>
+
+        <div class="content">
+            <div class="section">
+                <h2><span class="emoji">📁</span> 项目目录结构</h2>
+                <div class="tree">
+wide-research-for-finance/
+├── <span class="folder">config/</span>                      <span class="comment"># 配置文件</span>
+│   └── sources.yaml            <span class="comment"># 数据源配置（17个RSS源）</span>
+├── <span class="folder">src/</span>                         <span class="comment"># 源代码</span>
+│   ├── <span class="file">collector.py</span>              <span class="comment"># 数据采集器（RSS）</span>
+│   ├── <span class="file">web_scraper.py</span>            <span class="comment"># 网页爬虫（官方网站）</span>
+│   ├── <span class="file">processor.py</span>              <span class="comment"># AI处理器（DeepSeek）</span>
+│   ├── <span class="file">report_generator.py</span>       <span class="comment"># 报告生成器</span>
+│   └── <span class="file">email_sender.py</span>           <span class="comment"># 邮件发送器</span>
+├── <span class="folder">data/</span>                        <span class="comment"># 数据存储</span>
+│   ├── raw/                    <span class="comment"># 原始数据</span>
+│   └── reports/                <span class="comment"># 生成的报告</span>
+├── <span class="file">main.py</span>                       <span class="comment"># 主程序入口</span>
+├── <span class="file">requirements.txt</span>              <span class="comment"># Python依赖</span>
+├── <span class="file">.env</span>                          <span class="comment"># 环境变量（API密钥）</span>
+└── <span class="file">README.md</span>                     <span class="comment"># 项目文档</span>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2><span class="emoji">🔄</span> 数据处理流程</h2>
+                <div class="flow">
+                    <div class="flow-box">📡 数据采集<br><small>17个RSS源 + 4个官方网站</small></div>
+                    <div class="arrow">↓</div>
+                    <div class="flow-box">📝 原始文本<br><small>200-300条新闻/小时</small></div>
+                    <div class="arrow">↓</div>
+                    <div class="flow-box">🤖 AI分析<br><small>DeepSeek: 情感+实体+事件</small></div>
+                    <div class="arrow">↓</div>
+                    <div class="flow-box">📊 指标计算<br><small>情绪指数 + 热点统计</small></div>
+                    <div class="arrow">↓</div>
+                    <div class="flow-box">📄 生成报告<br><small>每小时简报</small></div>
+                    <div class="arrow">↓</div>
+                    <div class="flow-box">📧 推送/保存<br><small>邮件 或 本地存储</small></div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2><span class="emoji">⚙️</span> 核心模块说明</h2>
+                <div class="tech-grid">
+                    <div class="tech-card">
+                        <h3>collector.py</h3>
+                        <p>从17个RSS源采集新闻</p>
+                        <span class="badge">feedparser</span>
+                        <span class="badge">yaml</span>
+                    </div>
+                    <div class="tech-card">
+                        <h3>web_scraper.py</h3>
+                        <p>爬取官方机构网站</p>
+                        <span class="badge">BeautifulSoup</span>
+                        <span class="badge">requests</span>
+                    </div>
+                    <div class="tech-card">
+                        <h3>processor.py</h3>
+                        <p>AI智能分析新闻内容</p>
+                        <span class="badge">DeepSeek API</span>
+                        <span class="badge">批量处理</span>
+                    </div>
+                    <div class="tech-card">
+                        <h3>report_generator.py</h3>
+                        <p>生成结构化报告</p>
+                        <span class="badge">情绪统计</span>
+                        <span class="badge">热点提取</span>
+                    </div>
+                    <div class="tech-card">
+                        <h3>email_sender.py</h3>
+                        <p>邮件推送或本地保存</p>
+                        <span class="badge">smtplib</span>
+                        <span class="badge">Gmail</span>
+                    </div>
+                    <div class="tech-card">
+                        <h3>main.py</h3>
+                        <p>主程序与任务调度</p>
+                        <span class="badge">schedule</span>
+                        <span class="badge">每小时执行</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2><span class="emoji">🛠️</span> 技术栈</h2>
+                <p><strong>语言：</strong> Python 3.8+</p>
+                <p><strong>数据采集：</strong> feedparser, requests, BeautifulSoup4</p>
+                <p><strong>AI处理：</strong> DeepSeek API (OpenAI兼容)</p>
+                <p><strong>任务调度：</strong> schedule</p>
+                <p><strong>配置管理：</strong> python-dotenv, PyYAML</p>
+                <p><strong>成本：</strong> ~$0.3/天 (~$10/月)</p>
+            </div>
+
+            <div class="section">
+                <h2><span class="emoji">🚀</span> 快速开始</h2>
+                <ol style="line-height: 2;">
+                    <li><strong>安装依赖：</strong> <code>pip install -r requirements.txt</code></li>
+                    <li><strong>配置API：</strong> 复制 <code>.env.example</code> 为 <code>.env</code>，填入DeepSeek API密钥</li>
+                    <li><strong>运行程序：</strong> <code>python main.py</code></li>
+                    <li><strong>选择模式：</strong> 
+                        <ul>
+                            <li>模式1: 立即执行一次（测试）</li>
+                            <li>模式2: 每小时自动运行 ⭐</li>
+                            <li>模式3: 每天早上8点运行</li>
+                        </ul>
+                    </li>
+                </ol>
+            </div>
+        </div>
+
+        <footer>
+            <p>📊 Wide Research for Finance | 由 @ianchiou28 开发维护</p>
+            <p>GitHub: <a href="https://github.com/ianchiou28/Wide-Research-for-Finance" style="color: #63b3ed;">github.com/ianchiou28/Wide-Research-for-Finance</a></p>
+        </footer>
+    </div>
+</body>
+</html>
