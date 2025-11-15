@@ -1,0 +1,138 @@
+{
+  "stocks": [
+    {
+      "symbol": "BIDU",
+      "name": "百度",
+      "prediction": "上涨",
+      "confidence": "高",
+      "reason": "过去7天新闻中提及5次上涨，无下跌或中性记录，显示强劲正面情绪"
+    },
+    {
+      "symbol": "BABA",
+      "name": "阿里巴巴",
+      "prediction": "下跌",
+      "confidence": "中",
+      "reason": "提及中下跌3次占主导，仅1次上涨，反映负面趋势"
+    },
+    {
+      "symbol": "GOOGL",
+      "name": "谷歌",
+      "prediction": "震荡",
+      "confidence": "中",
+      "reason": "上涨和下跌各2次，无中性记录，表明多空力量均衡"
+    },
+    {
+      "symbol": "FXI",
+      "name": "中国ETF",
+      "prediction": "下跌",
+      "confidence": "高",
+      "reason": "所有3次提及均为下跌，无正面记录，受中国整体情绪偏低影响"
+    },
+    {
+      "symbol": "TSLA",
+      "name": "特斯拉",
+      "prediction": "下跌",
+      "confidence": "高",
+      "reason": "3次提及均为下跌，无上涨或中性，负面新闻主导"
+    },
+    {
+      "symbol": "CSCO",
+      "name": "思科",
+      "prediction": "下跌",
+      "confidence": "中",
+      "reason": "2次提及均为下跌，缺乏正面支撑"
+    },
+    {
+      "symbol": "TLRY",
+      "name": "Tilray",
+      "prediction": "下跌",
+      "confidence": "中",
+      "reason": "2次提及均为下跌，负面情绪持续"
+    },
+    {
+      "symbol": "AAPL",
+      "name": "苹果",
+      "prediction": "下跌",
+      "confidence": "中",
+      "reason": "2次提及均为下跌，受科技板块疲软拖累"
+    },
+    {
+      "symbol": "NSSC",
+      "name": "Napco Security",
+      "prediction": "上涨",
+      "confidence": "高",
+      "reason": "2次提及均为上涨，无负面记录，表现强劲"
+    },
+    {
+      "symbol": "EXOD",
+      "name": "Exodus Movement",
+      "prediction": "下跌",
+      "confidence": "中",
+      "reason": "2次提及均为下跌，负面新闻集中"
+    },
+    {
+      "symbol": "RADI",
+      "name": "RAD Intel",
+      "prediction": "上涨",
+      "confidence": "中",
+      "reason": "1次提及为上涨，无负面记录，但数据点较少"
+    },
+    {
+      "symbol": "QQQ",
+      "name": "纳斯达克ETF",
+      "prediction": "下跌",
+      "confidence": "低",
+      "reason": "1次提及为下跌，但整体市场情绪中性偏弱"
+    },
+    {
+      "symbol": "USO",
+      "name": "美国石油基金",
+      "prediction": "上涨",
+      "confidence": "中",
+      "reason": "1次提及为上涨，无负面记录，受益于能源板块支撑"
+    },
+    {
+      "symbol": "ORCL",
+      "name": "甲骨文",
+      "prediction": "下跌",
+      "confidence": "低",
+      "reason": "1次提及为下跌，但数据有限，需谨慎"
+    },
+    {
+      "symbol": "SPY",
+      "name": "标普500ETF",
+      "prediction": "下跌",
+      "confidence": "低",
+      "reason": "1次提及为下跌，但美国整体情绪略偏正面，可能震荡"
+    },
+    {
+      "symbol": "GLD",
+      "name": "黄金ETF",
+      "prediction": "上涨",
+      "confidence": "中",
+      "reason": "1次提及为上涨，无负面记录，作为避险资产受青睐"
+    },
+    {
+      "symbol": "BHP",
+      "name": "必和必拓",
+      "prediction": "下跌",
+      "confidence": "低",
+      "reason": "1次提及为下跌，但大宗商品波动性高"
+    },
+    {
+      "symbol": "SMEGF",
+      "name": "西门子能源",
+      "prediction": "上涨",
+      "confidence": "中",
+      "reason": "1次提及为上涨，无负面记录，欧洲能源股受关注"
+    },
+    {
+      "symbol": "0981.HK",
+      "name": "中芯国际",
+      "prediction": "上涨",
+      "confidence": "中",
+      "reason": "1次提及为上涨，无负面记录，半导体板块有复苏迹象"
+    }
+  ],
+  "summary": "过去一周市场整体情绪略偏正面（0.09），但分化明显：中国情绪（0.06）弱于美国（0.08）。股票表现两极分化，百度、NSSC等上涨股信心较高，而特斯拉、阿里巴巴等下跌股负面新闻集中。科技和ETF板块普遍承压，能源和避险资产如黄金表现较好。预计下周市场将延续震荡，上涨机会集中于个别强势股，但需警惕整体情绪转弱风险。"
+}

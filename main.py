@@ -23,11 +23,15 @@ def run_daily_report():
     # 1. 数据采集
     print("1. 采集RSS新闻...")
     collector = DataCollector()
-    articles = collector.fetch_latest(hours=72, max_per_source=15)  # 采集更多数据
+    articles = collector.fetch_latest(hours=24, max_per_source=15)
     
     print("\n2. 爬取官方网站...")
     scraper = WebScraper()
     web_articles = scraper.scrape_all()
+    articles.extend(web_articles)
+
+    # 2a. 采集自选股新闻
+    web_articles = collector.fetch_stock_specific_news()
     articles.extend(web_articles)
     
     print(f"\n   总计采集 {len(articles)} 条新闻")

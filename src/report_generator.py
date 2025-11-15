@@ -47,6 +47,10 @@ class ReportGenerator:
         
         # 高影响事件
         high_impact = [n for n in processed_news if n.get('impact_level') == '高']
+        # 国内热点
+        hot_search = [n for n in processed_news if n.get('category') == 'hot_search']
+        # 自选股动态
+        stock_specific = [n for n in processed_news if n.get('category') == 'stock_specific']
         
         report += f"\n【重大事件提醒】\n"
         if high_impact:
@@ -57,12 +61,14 @@ class ReportGenerator:
                 
                 stock_text = ""
                 stock_impact = news.get('stock_impact', [])
-                if stock_impact:
+                if stock_impact and isinstance(stock_impact, list):
                     stocks = []
                     for stock in stock_impact:
-                        direction_icon = '↑' if stock['direction'] == '上涨' else '↓' if stock['direction'] == '下跌' else '→'
-                        stocks.append(f"{stock['symbol']}({stock['name']}){direction_icon}")
-                    stock_text = f"\n  股票影响: {' | '.join(stocks)}"
+                        if isinstance(stock, dict):
+                            direction_icon = '↑' if stock.get('direction') == '上涨' else '↓' if stock.get('direction') == '下跌' else '→'
+                            stocks.append(f"{stock.get('symbol', '')}({stock.get('name', '')}){direction_icon}")
+                    if stocks:
+                        stock_text = f"\n  股票影响: {' | '.join(stocks)}"
                 
                 report += f"""
   [{news['source']}] {news['event_type']}
@@ -74,8 +80,30 @@ class ReportGenerator:
         else:
             report += "  本小时暂无高影响力事件\n"
         
+        report += f"\n【国内热点追踪】\n"
+        if hot_search:
+            for news in hot_search:
+                report += f"""
+  [{news['source']}] {news['title']}
+  摘要: {news['summary']}
+  链接: {news['url']}
+"""
+        else:
+            report += "  暂无特别关注的国内热点\n"
+
+        report += f"\n【我的自选股动态】\n"
+        if stock_specific:
+            for news in stock_specific:
+                report += f"""
+  {news['title']}
+  摘要: {news['summary']}
+  链接: {news['url']}
+"""
+        else:
+            report += "  暂无自选股相关新闻\n"
+
         # 其他新闻
-        other_news = [n for n in processed_news if n.get('impact_level') != '高']
+        other_news = [n for n in processed_news if n.get('impact_level') != '高' and n.get('category') not in ['hot_search', 'stock_specific']]
         report += f"\n【其他新闻 ({len(other_news)}条)】\n"
         for i, news in enumerate(other_news, 1):
             report += f"  {i}. [{news['source']}] {news['title']}\n"

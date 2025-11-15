@@ -11,27 +11,82 @@ class NLPProcessor:
         )
     
     def process_batch(self, articles: List[Dict], batch_size=20) -> List[Dict]:
-        """批量处理文章以降低成本"""
+        """两阶段处理：先筛选标题，再深度分析"""
         if not articles:
             return []
         
-        all_processed = []
+        print(f"\n[阶段1] 标题筛选 ({len(articles)}条)...")
+        interesting = self._filter_by_title(articles)
+        print(f"  筛选出 {len(interesting)} 条感兴趣的新闻")
         
-        # 分批处理
-        for batch_start in range(0, len(articles), batch_size):
-            batch = articles[batch_start:batch_start + batch_size]
+        if not interesting:
+            return []
+        
+        print(f"\n[阶段2] 深度分析...")
+        all_processed = []
+        for batch_start in range(0, len(interesting), batch_size):
+            batch = interesting[batch_start:batch_start + batch_size]
             processed = self._process_single_batch(batch)
             all_processed.extend(processed)
-            print(f"  已处理 {len(all_processed)}/{len(articles)} 条")
+            print(f"  已处理 {len(all_processed)}/{len(interesting)} 条")
         
         return all_processed
     
+    def _filter_by_title(self, articles: List[Dict]) -> List[Dict]:
+        """阶段1：仅用标题快速筛选"""
+        titles_text = "\n".join([f"{i+1}. [{a['source']}] {a['title']}" 
+                                  for i, a in enumerate(articles)])
+        
+        prompt = f"""你是财经分析师，快速判断以下新闻标题是否值得深入分析。
+
+{titles_text}
+
+筛选标准（满足任一即可）：
+- 涉及重大市场事件（IPO/并购/财报/政策）
+- 提及知名公司或行业龙头
+- 可能影响股市走势
+- 涉及宏观经济数据
+
+    只返回你认为最有价值的20条以内，按重要度从高到低排序。
+
+    返回JSON数组（仅包含值得分析的序号）：
+[1, 3, 5]
+
+如果都不感兴趣，返回：[]"""
+        
+        try:
+            response = self.client.chat.completions.create(
+                model="deepseek-chat",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.1,
+                max_tokens=500
+            )
+            
+            content = response.choices[0].message.content
+            if content is None:
+                return articles[:20]
+            indices = self._parse_indices(content, len(articles))
+
+            selected = []
+            seen = set()
+            for idx in indices:
+                if idx in seen:
+                    continue
+                seen.add(idx)
+                selected.append(articles[idx-1])
+                if len(selected) >= 20:
+                    break
+            return selected
+        
+        except Exception as e:
+            print(f"筛选失败: {e}，保留所有文章")
+            return articles[:20]
+    
     def _process_single_batch(self, articles: List[Dict]) -> List[Dict]:
         """处理单个批次"""
-        # 构建批量处理的prompt
         articles_text = ""
         for i, article in enumerate(articles):
-            articles_text += f"\n[文章{i+1}]\n标题: {article['title']}\n来源: {article['source']}\n内容: {article['content'][:500]}\n"
+            articles_text += f"\n[文章{i+1}]\n标题: {article['title']}\n来源: {article['source']}\n内容: {article['content']}\n"
         
         prompt = f"""分析以下财经新闻，为每篇文章返回JSON数组：
 
@@ -48,14 +103,7 @@ class NLPProcessor:
     "key_entities": ["公司A", "行业B"],
     "event_type": "财报/政策/并购/其他",
     "impact_level": "高/中/低",
-    "stock_impact": [
-      {{
-        "symbol": "TSLA",
-        "name": "特斯拉",
-        "direction": "上涨/下跌/中性",
-        "confidence": "高/中/低"
-      }}
-    ]
+    "stock_impact": []
   }}
 ]
 
@@ -64,7 +112,6 @@ class NLPProcessor:
 - sentiment_cn: 对中国股市影响 (-1.0到+1.0)
 - sentiment_us: 对美国股市影响 (-1.0到+1.0)
 - stock_impact: 相关股票影响预测（最多3个，如无直接相关股票则为空数组）
-- 例如：“特斯拉股东批准薪酬” → stock_impact: [{{"symbol":"TSLA","name":"特斯拉","direction":"上涨","confidence":"高"}}]
 
 必须返回所有{len(articles)}篇文章的分析结果。"""
 
@@ -76,22 +123,27 @@ class NLPProcessor:
                 max_tokens=2000
             )
             
-            result = json.loads(response.choices[0].message.content)
+            content = response.choices[0].message.content
+            if content is None:
+                return []
             
-            # 合并原始文章和分析结果
+            result = self._extract_json(content)
+            if not result:
+                return []
+            
             processed = []
             for item in result:
-                idx = item['index'] - 1
-                if idx < len(articles):
+                idx = item.get('index', 0) - 1
+                if 0 <= idx < len(articles):
                     processed.append({
                         **articles[idx],
-                        'summary': item['summary'],
-                        'sentiment': item['sentiment'],
-                        'sentiment_cn': item.get('sentiment_cn', item['sentiment']),
-                        'sentiment_us': item.get('sentiment_us', item['sentiment']),
-                        'entities': item['key_entities'],
-                        'event_type': item['event_type'],
-                        'impact_level': item['impact_level'],
+                        'summary': item.get('summary', ''),
+                        'sentiment': float(item.get('sentiment', 0)),
+                        'sentiment_cn': float(item.get('sentiment_cn', item.get('sentiment', 0))),
+                        'sentiment_us': float(item.get('sentiment_us', item.get('sentiment', 0))),
+                        'entities': item.get('key_entities', []),
+                        'event_type': item.get('event_type', '其他'),
+                        'impact_level': item.get('impact_level', '中'),
                         'stock_impact': item.get('stock_impact', [])
                     })
             
@@ -100,3 +152,49 @@ class NLPProcessor:
         except Exception as e:
             print(f"Processing error: {e}")
             return []
+    
+    def _extract_json(self, text: str):
+        """从文本中提取JSON数组"""
+        text = text.strip()
+        start = text.find('[')
+        end = text.rfind(']')
+        if start == -1 or end == -1 or start >= end:
+            return None
+        
+        try:
+            return json.loads(text[start:end+1])
+        except json.JSONDecodeError:
+            return None
+
+    def _parse_indices(self, raw_content: str, total: int) -> List[int]:
+        """从模型输出里提取最多20个有效的索引"""
+        content = raw_content.strip()
+        try:
+            data = json.loads(content)
+        except json.JSONDecodeError:
+            start = content.find('[')
+            end = content.rfind(']')
+            if start == -1 or end == -1 or start >= end:
+                raise
+            data = json.loads(content[start:end+1])
+
+        if not isinstance(data, list):
+            raise ValueError("Model应返回列表")
+
+        normalized: List[int] = []
+        for item in data:
+            idx = None
+            if isinstance(item, int):
+                idx = item
+            elif isinstance(item, str) and item.strip().isdigit():
+                idx = int(item.strip())
+
+            if idx is None:
+                continue
+            if 0 < idx <= total:
+                normalized.append(idx)
+
+            if len(normalized) >= 20:
+                break
+
+        return normalized

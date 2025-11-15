@@ -105,14 +105,19 @@ class DailySummary:
         us_positive = sum(1 for item in news_items if item.get('sentiment_us') == '积极')
         us_negative = sum(1 for item in news_items if item.get('sentiment_us') == '消极')
         
+        # 使用安全的日期格式化
+        now_str = now.strftime('%Y-%m-%d %H:00')
+        start_str = (now - timedelta(hours=12)).strftime('%m-%d %H:00')
+        end_str = now.strftime('%m-%d %H:00')
+        
         summary = f"""
 {'='*60}
-{period}财经摘要 - {now.strftime('%Y年%m月%d日 %H时')}
+{period}财经摘要 - {now_str}
 过去12小时重点回顾
 {'='*60}
 
 【数据概览】
-- 时间范围: {(now - timedelta(hours=12)).strftime('%m月%d日 %H时')} - {now.strftime('%m月%d日 %H时')}
+- 时间范围: {start_str} - {end_str}
 - 报告数量: {report_count} 份
 - 重大事件: {len(news_items)} 条
 
@@ -198,5 +203,8 @@ class DailySummary:
         filename = f"data/summaries/summary_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
         with open(filename, 'w', encoding='utf-8') as f:
             f.write(summary)
-        print(f"✅ 摘要已保存: {filename}")
+        try:
+            print(f"✅ 摘要已保存: {filename}")
+        except:
+            print(f"Summary saved: {filename}")
         return filename

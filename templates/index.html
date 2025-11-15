@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wide Research for Finance - 财经信息聚合平台</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+        }
+        
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #2c3e50;
+            border-left: 4px solid #667eea;
+            padding-left: 10px;
+        }
+        
+        .sentiment-box {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 15px;
+        }
+        
+        .sentiment-item {
+            text-align: center;
+            padding: 15px;
+            border-radius: 8px;
+            flex: 1;
+            margin: 0 5px;
+        }
+        
+        .sentiment-positive {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .sentiment-neutral {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .sentiment-negative {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .sentiment-value {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 5px 0;
+        }
+        
+        .sentiment-label {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+        
+        .stock-list {
+            list-style: none;
+        }
+        
+        .stock-item {
+            padding: 12px;
+            margin: 8px 0;
+            background: #f8f9fa;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .stock-symbol {
+            font-weight: 600;
+            color: #667eea;
+        }
+        
+        .stock-name {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .stock-up {
+            color: #28a745;
+            font-weight: bold;
+        }
+        
+        .stock-down {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        
+        .market-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        
+        .market-item {
+            text-align: center;
+            padding: 20px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .market-name {
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+        
+        .market-trend {
+            font-size: 28px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        
+        .market-sentiment {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .hot-topics {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .topic-tag {
+            background: #667eea;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+        
+        .report-content {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #999;
+        }
+        
+        .refresh-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+        
+        .refresh-btn:hover {
+            background: #5568d3;
+        }
+        
+        .timestamp {
+            text-align: center;
+            color: #999;
+            font-size: 12px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Wide Research for Finance</h1>
+        <p>AI驱动的财经信息聚合平台</p>
+    </div>
+    
+    <div class="container">
+        <!-- 市场情绪总览 -->
+        <div class="card">
+            <div class="card-title">市场情绪总览</div>
+            <div class="sentiment-box" id="sentimentBox">
+                <div class="loading">加载中...</div>
+            </div>
+        </div>
+        
+        <!-- 大盘走势预测 -->
+        <div class="card">
+            <div class="card-title">大盘走势预测</div>
+            <div class="market-grid" id="marketPrediction">
+                <div class="loading">加载中...</div>
+            </div>
+        </div>
+        
+        <!-- 推荐个股 -->
+        <div class="grid">
+            <div class="card">
+                <div class="card-title">推荐A股</div>
+                <ul class="stock-list" id="aStocks">
+                    <li class="loading">加载中...</li>
+                </ul>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">推荐美股</div>
+                <ul class="stock-list" id="usStocks">
+                    <li class="loading">加载中...</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- 本小时简报 -->
+        <div class="card">
+            <div class="card-title">本小时简报
+                <button class="refresh-btn" onclick="loadHourlyReport()" style="float: right; margin-top: -5px;">🔄 刷新</button>
+            </div>
+            <div class="report-content" id="hourlyReportContent">
+                <div class="loading">加载中...</div>
+            </div>
+        </div>
+        
+        <!-- 热点追踪 -->
+        <div class="card">
+            <div class="card-title">热点追踪</div>
+            <div class="hot-topics" id="hotTopics">
+                <div class="loading">加载中...</div>
+            </div>
+        </div>
+        
+        <!-- 本日摘要 -->
+        <div class="card">
+            <div class="card-title">本日摘要</div>
+            <div class="report-content" id="dailySummary">
+                <div class="loading">加载中...</div>
+            </div>
+        </div>
+        
+        <!-- 周报分析 -->
+        <div class="card">
+            <div class="card-title">周报分析</div>
+            <div id="weeklyContent">
+                <div class="loading">加载中...</div>
+            </div>
+        </div>
+        
+        <div class="timestamp" id="timestamp"></div>
+    </div>
+    
+    <script>
+        // 加载市场情绪
+        async function loadSentiment() {
+            try {
+                const response = await fetch('/api/sentiment');
+                const data = await response.json();
+                
+                const getSentimentClass = (value) => {
+                    if (value > 0.3) return 'sentiment-positive';
+                    if (value < -0.3) return 'sentiment-negative';
+                    return 'sentiment-neutral';
+                };
+                
+                const getSentimentLabel = (value) => {
+                    if (value > 0.3) return '积极';
+                    if (value < -0.3) return '消极';
+                    return '中性';
+                };
+                
+                document.getElementById('sentimentBox').innerHTML = `
+                    <div class="sentiment-item ${getSentimentClass(data.overall)}">
+                        <div class="sentiment-label">整体市场</div>
+                        <div class="sentiment-value">${data.overall.toFixed(2)}</div>
+                        <div class="sentiment-label">${getSentimentLabel(data.overall)}</div>
+                    </div>
+                    <div class="sentiment-item ${getSentimentClass(data.cn)}">
+                        <div class="sentiment-label">中国市场</div>
+                        <div class="sentiment-value">${data.cn.toFixed(2)}</div>
+                        <div class="sentiment-label">${getSentimentLabel(data.cn)}</div>
+                    </div>
+                    <div class="sentiment-item ${getSentimentClass(data.us)}">
+                        <div class="sentiment-label">美国市场</div>
+                        <div class="sentiment-value">${data.us.toFixed(2)}</div>
+                        <div class="sentiment-label">${getSentimentLabel(data.us)}</div>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('加载情绪数据失败:', error);
+            }
+        }
+        
+        // 加载大盘预测
+        async function loadMarketPrediction() {
+            try {
+                const response = await fetch('/api/market_prediction');
+                const data = await response.json();
+                
+                const getTrendIcon = (trend) => {
+                    if (trend === '上涨') return '📈';
+                    if (trend === '下跌') return '📉';
+                    return '➡️';
+                };
+                
+                let html = '';
+                for (const key in data) {
+                    const market = data[key];
+                    html += `
+                        <div class="market-item">
+                            <div class="market-name">${market.name}</div>
+                            <div class="market-trend">${getTrendIcon(market.trend)} ${market.trend}</div>
+                            <div class="market-sentiment">情绪指数: ${market.sentiment.toFixed(2)}</div>
+                        </div>
+                    `;
+                }
+                
+                document.getElementById('marketPrediction').innerHTML = html;
+            } catch (error) {
+                console.error('加载大盘预测失败:', error);
+            }
+        }
+        
+        // 加载股票推荐
+        async function loadStockRecommendations() {
+            try {
+                const response = await fetch('/api/stock_recommendations');
+                const data = await response.json();
+                
+                const renderStocks = (stocks, elementId) => {
+                    const element = document.getElementById(elementId);
+                    if (stocks.length === 0) {
+                        element.innerHTML = '<li class="stock-item">暂无推荐</li>';
+                        return;
+                    }
+                    
+                    element.innerHTML = stocks.map(stock => `
+                        <li class="stock-item">
+                            <div>
+                                <span class="stock-symbol">${stock.symbol}</span>
+                                <span class="stock-name">${stock.name}</span>
+                            </div>
+                            <span class="stock-up">↑ ${stock.direction}</span>
+                        </li>
+                    `).join('');
+                };
+                
+                renderStocks(data.a_stocks, 'aStocks');
+                renderStocks(data.us_stocks, 'usStocks');
+            } catch (error) {
+                console.error('加载股票推荐失败:', error);
+            }
+        }
+        
+        // 加载小时报告
+        async function loadHourlyReport() {
+            try {
+                const response = await fetch('/api/hourly_report');
+                const data = await response.json();
+                
+                // 显示完整报告内容
+                const reportElement = document.getElementById('hourlyReportContent');
+                if (data.content) {
+                    reportElement.textContent = data.content;
+                } else {
+                    reportElement.innerHTML = '<div class="loading">暂无数据</div>';
+                }
+                
+                // 显示热点
+                const topicsHtml = data.hot_topics && data.hot_topics.length > 0 
+                    ? data.hot_topics.slice(0, 15).map(topic => 
+                        `<span class="topic-tag">${topic}</span>`
+                    ).join('')
+                    : '<div class="loading">暂无热点</div>';
+                
+                document.getElementById('hotTopics').innerHTML = topicsHtml;
+            } catch (error) {
+                console.error('加载小时报告失败:', error);
+                document.getElementById('hourlyReportContent').innerHTML = '<div class="loading">加载失败</div>';
+            }
+        }
+        
+        // 加载每日摘要
+        async function loadDailySummary() {
+            try {
+                const response = await fetch('/api/daily_summary');
+                const data = await response.json();
+                document.getElementById('dailySummary').textContent = data.content;
+            } catch (error) {
+                console.error('加载每日摘要失败:', error);
+            }
+        }
+        
+        // 加载周报分析
+        async function loadWeeklyAnalysis() {
+            try {
+                const response = await fetch('/api/weekly_analysis');
+                const data = await response.json();
+                
+                let html = `<div style="margin-bottom: 20px;">`;
+                html += `<div style="font-weight: 600; margin-bottom: 15px; padding: 15px; background: #f0f4ff; border-radius: 8px;">`;
+                html += `${data.summary || '暂无摘要'}`;
+                html += `</div>`;
+                
+                if (data.stocks && data.stocks.length > 0) {
+                    html += `<div style="margin-top: 15px;"><strong>个股预测 (前10):</strong></div>`;
+                    html += `<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 10px; margin-top: 10px;">`;
+                    
+                    data.stocks.slice(0, 10).forEach(stock => {
+                        const trendIcon = stock.prediction === '上涨' ? '📈' : stock.prediction === '下跌' ? '📉' : '➡️';
+                        const confidenceColor = stock.confidence === '高' ? '#28a745' : stock.confidence === '中' ? '#ffc107' : '#dc3545';
+                        
+                        html += `
+                            <div style="padding: 12px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid ${confidenceColor};">
+                                <div style="font-weight: 600; color: #667eea;">${stock.symbol} ${stock.name}</div>
+                                <div style="margin: 8px 0; font-size: 18px;">${trendIcon} ${stock.prediction}</div>
+                                <div style="font-size: 12px; color: #666; margin-bottom: 5px;">信心度: <span style="color: ${confidenceColor}; font-weight: 600;">${stock.confidence}</span></div>
+                                <div style="font-size: 12px; color: #999;">${stock.reason}</div>
+                            </div>
+                        `;
+                    });
+                    
+                    html += `</div>`;
+                }
+                
+                html += `</div>`;
+                document.getElementById('weeklyContent').innerHTML = html;
+            } catch (error) {
+                console.error('加载周报分析失败:', error);
+                document.getElementById('weeklyContent').innerHTML = '<div class="loading">加载失败</div>';
+            }
+        }
+        
+        // 更新时间戳
+        function updateTimestamp() {
+            const now = new Date();
+            document.getElementById('timestamp').textContent = 
+                `最后更新: ${now.toLocaleString('zh-CN')}`;
+        }
+        
+        // 初始化
+        async function init() {
+            await Promise.all([
+                loadSentiment(),
+                loadMarketPrediction(),
+                loadStockRecommendations(),
+                loadHourlyReport(),
+                loadDailySummary(),
+                loadWeeklyAnalysis()
+            ]);
+            updateTimestamp();
+        }
+        
+        // 页面加载时初始化
+        init();
+        
+        // 每5分钟自动刷新
+        setInterval(init, 5 * 60 * 1000);
+    </script>
+</body>
+</html>

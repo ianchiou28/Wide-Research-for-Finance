@@ -1,9 +1,20 @@
+# -*- coding: utf-8 -*-
 import os
 import sys
+import io
 from dotenv import load_dotenv
 import schedule
 import time
 from datetime import datetime
+
+# Fix Windows console encoding
+if sys.platform == 'win32':
+    try:
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')  # type: ignore
+        sys.stderr.reconfigure(encoding='utf-8', errors='replace')  # type: ignore
+    except AttributeError:
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+        sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
 sys.path.append('src')
 from daily_summary import DailySummary
@@ -18,17 +29,11 @@ def generate_and_send_summary():
     print(f"{'='*60}\n")
     
     try:
-        # 生成摘要
         summary_gen = DailySummary()
         summary = summary_gen.generate_12h_summary()
-        
-        # 保存摘要
         summary_gen.save_summary(summary)
-        
-        # 打印摘要
         print(summary)
         
-        # 发送邮件
         sender = EmailSender()
         sender.send(summary)
         
@@ -47,19 +52,17 @@ def main():
     print("1. 立即生成一次摘要")
     print("2. 每天早上8点和晚上8点自动生成")
     
-    choice = input("\n请选择 (1/2): ").strip()
+    choice = input("\n请选择 (1/2): ").strip().replace('、', '').replace('，', '').replace(',', '')
     
     if choice == '1':
         generate_and_send_summary()
     elif choice == '2':
-        # 设置定时任务
         schedule.every().day.at("08:00").do(generate_and_send_summary)
         schedule.every().day.at("20:00").do(generate_and_send_summary)
         
         now = datetime.now()
         current_hour = now.hour
         
-        # 计算下次执行时间
         if current_hour < 8:
             next_time = "08:00"
         elif current_hour < 20:
