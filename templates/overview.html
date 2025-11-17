@@ -84,11 +84,34 @@
             gap: 16px;
         }
         .metric-card {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 14px;
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 18px;
             padding: 18px;
             transition: all 0.3s ease;
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            box-shadow: 
+                0 10px 30px -5px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+        
+        [data-theme="light"] .metric-card {
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(148, 163, 184, 0.3);
+            box-shadow: 
+                0 10px 30px -5px rgba(0, 0, 0, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8);
+        }
+        
+        .metric-card:hover {
+            transform: translateY(-5px) scale(1.03);
+            border-color: rgba(102, 126, 234, 0.5);
+            box-shadow: 
+                0 15px 40px -5px rgba(102, 126, 234, 0.4),
+                0 0 20px rgba(102, 126, 234, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(30px) saturate(200%);
         }
         .metric-value {
             font-size: 2rem;
@@ -103,11 +126,24 @@
         main { padding: 50px 6% 80px; }
         .section {
             margin-bottom: 50px;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 20px;
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 24px;
             padding: 38px;
-            transition: background-color 0.3s ease;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            box-shadow: 
+                0 20px 60px -10px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+        
+        [data-theme="light"] .section {
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(148, 163, 184, 0.3);
+            box-shadow: 
+                0 20px 60px -10px rgba(0, 0, 0, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.9);
         }
         .section-header {
             margin-bottom: 28px;
@@ -124,11 +160,24 @@
             gap: 20px;
         }
         .kpi-card {
-            background: var(--bg-secondary);
+            background: rgba(30, 41, 59, 0.6);
             padding: 22px;
-            border-radius: 16px;
-            border: 1px solid var(--border-color);
-            transition: background-color 0.3s ease;
+            border-radius: 20px;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            transition: all 0.3s ease;
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            box-shadow: 
+                0 8px 25px -5px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+        
+        [data-theme="light"] .kpi-card {
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(148, 163, 184, 0.3);
+            box-shadow: 
+                0 8px 25px -5px rgba(0, 0, 0, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8);
         }
         .kpi-card span {
             display: block;
@@ -142,14 +191,27 @@
             gap: 24px;
         }
         .tile {
-            background: var(--bg-secondary);
-            border-radius: 16px;
+            background: rgba(30, 41, 59, 0.6);
+            border-radius: 20px;
             padding: 24px;
-            border: 1px solid var(--border-color);
+            border: 1px solid rgba(148, 163, 184, 0.2);
             min-height: 260px;
             display: flex;
             flex-direction: column;
-            transition: background-color 0.3s ease;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            box-shadow: 
+                0 10px 30px -5px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+        
+        [data-theme="light"] .tile {
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(148, 163, 184, 0.3);
+            box-shadow: 
+                0 10px 30px -5px rgba(0, 0, 0, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8);
         }
         .tile h4 { margin-bottom: 16px; font-size: 1.1rem; color: var(--text-primary); }
         .sentiment-bars { margin-top: 8px; display: flex; flex-direction: column; gap: 12px; }
@@ -209,11 +271,24 @@
             gap: 18px;
         }
         .flow-step {
-            background: var(--bg-secondary);
-            border-radius: 16px;
+            background: rgba(30, 41, 59, 0.6);
+            border-radius: 20px;
             padding: 24px;
-            border: 1px solid var(--border-color);
-            transition: background-color 0.3s ease;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            transition: all 0.3s ease;
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            box-shadow: 
+                0 8px 25px -5px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+        
+        [data-theme="light"] .flow-step {
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(148, 163, 184, 0.3);
+            box-shadow: 
+                0 8px 25px -5px rgba(0, 0, 0, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8);
         }
         .flow-step h5 { 
             margin-bottom: 10px; 
@@ -523,12 +598,26 @@
         
         /* Enhanced Navigation */
         nav {
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+            background: rgba(15, 23, 42, 0.8) !important;
+            backdrop-filter: blur(40px) saturate(180%) !important;
+            -webkit-backdrop-filter: blur(40px) saturate(180%) !important;
+            box-shadow: 
+                0 4px 30px rgba(0, 0, 0, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
             transition: box-shadow 0.3s ease;
         }
         
+        [data-theme="light"] nav {
+            background: rgba(248, 250, 252, 0.8) !important;
+            box-shadow: 
+                0 4px 30px rgba(0, 0, 0, 0.08),
+                inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+        }
+        
         nav:hover {
-            box-shadow: 0 8px 40px rgba(102, 126, 234, 0.2);
+            box-shadow: 
+                0 8px 40px rgba(102, 126, 234, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
         }
         
         nav a {

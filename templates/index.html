@@ -59,17 +59,29 @@
             position: sticky;
             top: 0;
             z-index: 1000;
-            background: var(--dark-bg);
-            opacity: 0.98;
-            backdrop-filter: blur(30px) saturate(180%);
-            border-bottom: 1px solid var(--border-color);
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(40px) saturate(180%);
+            -webkit-backdrop-filter: blur(40px) saturate(180%);
+            border-bottom: 1px solid rgba(148, 163, 184, 0.2);
             padding: 0;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+            box-shadow: 
+                0 4px 30px rgba(0, 0, 0, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+        
+        [data-theme="light"] .navbar {
+            background: rgba(248, 250, 252, 0.8);
+            border-bottom: 1px solid rgba(148, 163, 184, 0.3);
+            box-shadow: 
+                0 4px 30px rgba(0, 0, 0, 0.08),
+                inset 0 1px 0 rgba(255, 255, 255, 0.9);
         }
         
         .navbar:hover {
-            box-shadow: 0 8px 40px rgba(102, 126, 234, 0.15);
+            box-shadow: 
+                0 8px 40px rgba(102, 126, 234, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.08);
         }
         
         .nav-container {
@@ -254,17 +266,28 @@
         
         /* Card Styles */
         .card {
-            background: var(--card-bg);
-            border-radius: 20px;
+            background: rgba(30, 41, 59, 0.7);
+            border-radius: 24px;
             padding: 1.5rem;
-            border: 1px solid var(--border-color);
+            border: 1px solid rgba(148, 163, 184, 0.2);
             box-shadow: 
-                0 10px 30px -10px rgba(0, 0, 0, 0.3),
-                0 0 1px rgba(102, 126, 234, 0.1);
+                0 20px 60px -10px rgba(0, 0, 0, 0.4),
+                0 0 1px rgba(255, 255, 255, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
             transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             position: relative;
             overflow: hidden;
-            backdrop-filter: blur(10px);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+        }
+        
+        [data-theme="light"] .card {
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(148, 163, 184, 0.3);
+            box-shadow: 
+                0 20px 60px -10px rgba(0, 0, 0, 0.15),
+                0 0 1px rgba(0, 0, 0, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8);
         }
         
         .card::before {
@@ -277,15 +300,18 @@
             background: var(--primary-gradient);
             opacity: 0;
             transition: opacity 0.3s ease;
+            border-radius: 24px 24px 0 0;
         }
         
         .card:hover {
-            transform: translateY(-8px) scale(1.01);
+            transform: translateY(-12px) scale(1.02);
             box-shadow: 
-                0 20px 50px -10px rgba(102, 126, 234, 0.4),
-                0 0 20px rgba(102, 126, 234, 0.2),
-                inset 0 0 0 1px rgba(102, 126, 234, 0.3);
-            border-color: rgba(102, 126, 234, 0.6);
+                0 30px 80px -10px rgba(102, 126, 234, 0.5),
+                0 0 40px rgba(102, 126, 234, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1),
+                inset 0 0 0 1px rgba(102, 126, 234, 0.4);
+            border-color: rgba(102, 126, 234, 0.7);
+            backdrop-filter: blur(30px) saturate(200%);
         }
         
         .card:hover::before {
@@ -1059,17 +1085,35 @@
         }
         
         .stat-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 20px;
             padding: 1.5rem;
             text-align: center;
             transition: all 0.3s ease;
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            box-shadow: 
+                0 10px 30px -5px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+        
+        [data-theme="light"] .stat-card {
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(148, 163, 184, 0.3);
+            box-shadow: 
+                0 10px 30px -5px rgba(0, 0, 0, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8);
         }
         
         .stat-card:hover {
-            transform: translateY(-4px);
-            border-color: rgba(102, 126, 234, 0.4);
+            transform: translateY(-8px) scale(1.02);
+            border-color: rgba(102, 126, 234, 0.6);
+            box-shadow: 
+                0 20px 50px -10px rgba(102, 126, 234, 0.4),
+                0 0 30px rgba(102, 126, 234, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(30px) saturate(200%);
         }
         
         .stat-icon {
