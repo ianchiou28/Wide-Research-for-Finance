@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wide Research for Finance - 项目总览</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --text-primary: #e2e8f0;
+            --text-secondary: #cbd5e1;
+            --text-muted: #94a3b8;
+            --border-color: rgba(148, 163, 184, 0.2);
+        }
+        
+        [data-theme="light"] {
+            --bg-primary: #f8fafc;
+            --bg-secondary: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #475569;
+            --text-muted: #64748b;
+            --border-color: rgba(148, 163, 184, 0.3);
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, 'Microsoft YaHei', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        a { text-decoration: none; }
+        .hero {
+            background: radial-gradient(circle at top left, rgba(102,126,234,0.25), transparent 45%),
+                        radial-gradient(circle at top right, rgba(118,75,162,0.3), transparent 40%),
+                        var(--bg-primary);
+            padding: 80px 6% 60px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .hero-content {
+            max-width: 720px;
+        }
+        .eyebrow {
+            letter-spacing: 0.3em;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 1.5rem;
+        }
+        h1 {
+            font-size: clamp(2.4rem, 4vw, 3.5rem);
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+        .lead {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+        }
+        .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+        .btn {
+            padding: 12px 28px;
+            border-radius: 999px;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+        .primary { background: #7c3aed; color: white; }
+        .secondary { 
+            color: var(--text-primary); 
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+        
+        .secondary:hover {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: rgba(102, 126, 234, 0.5);
+        }
+        .metrics-ribbon {
+            margin-top: 50px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+        }
+        .metric-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 18px;
+            transition: all 0.3s ease;
+        }
+        .metric-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #ec4899;
+        }
+        
+        [data-theme="light"] .metric-value {
+            color: #db2777;
+        }
+        .metric-label { color: var(--text-muted); font-size: 0.9rem; }
+        main { padding: 50px 6% 80px; }
+        .section {
+            margin-bottom: 50px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 38px;
+            transition: background-color 0.3s ease;
+        }
+        .section-header {
+            margin-bottom: 28px;
+        }
+        .section-title {
+            font-size: 1.6rem;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+        .section-subtitle { color: var(--text-muted); }
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+        }
+        .kpi-card {
+            background: var(--bg-secondary);
+            padding: 22px;
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            transition: background-color 0.3s ease;
+        }
+        .kpi-card span {
+            display: block;
+        }
+        .kpi-label { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 8px; }
+        .kpi-value { font-size: 1.8rem; font-weight: 700; color: var(--text-primary); }
+        .kpi-detail { color: var(--text-secondary); font-size: 0.9rem; margin-top: 12px; }
+        .live-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+        }
+        .tile {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid var(--border-color);
+            min-height: 260px;
+            display: flex;
+            flex-direction: column;
+            transition: background-color 0.3s ease;
+        }
+        .tile h4 { margin-bottom: 16px; font-size: 1.1rem; color: var(--text-primary); }
+        .sentiment-bars { margin-top: 8px; display: flex; flex-direction: column; gap: 12px; }
+        .bar-label { display: flex; justify-content: space-between; font-size: 0.9rem; color: var(--text-primary); }
+        .bar-track {
+            height: 10px;
+            background: var(--border-color);
+            border-radius: 999px;
+            overflow: hidden;
+        }
+        .bar-fill {
+            height: 100%;
+            border-radius: 999px;
+            transition: width 0.4s ease;
+        }
+        .topics { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }
+        .topic {
+            padding: 6px 14px;
+            border-radius: 999px;
+            background: rgba(59,130,246,0.2);
+            color: #60a5fa;
+            font-size: 0.85rem;
+        }
+        
+        [data-theme="light"] .topic {
+            background: rgba(59,130,246,0.15);
+            color: #2563eb;
+        }
+        .snippet {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 14px;
+            font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+            font-size: 0.85rem;
+            color: var(--text-primary);
+            white-space: pre-line;
+            flex: 1;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+        .list {
+            list-style: none;
+            margin-top: 10px;
+        }
+        .list li {
+            padding: 12px;
+            border-radius: 10px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            margin-bottom: 10px;
+            color: var(--text-primary);
+            transition: all 0.3s ease;
+        }
+        .flow {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 18px;
+        }
+        .flow-step {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid var(--border-color);
+            transition: background-color 0.3s ease;
+        }
+        .flow-step h5 { 
+            margin-bottom: 10px; 
+            color: #60a5fa; 
+        }
+        
+        [data-theme="light"] .flow-step h5 {
+            color: #2563eb;
+        }
+        .flow-step p { color: var(--text-secondary); }
+        .data-pills { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+        .pill {
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: rgba(56,189,248,0.2);
+            color: #38bdf8;
+            font-size: 0.85rem;
+        }
+        
+        [data-theme="light"] .pill {
+            background: rgba(56,189,248,0.15);
+            color: #0284c7;
+        }
+        .cta {
+            text-align: center;
+            padding: 60px 20px;
+            background: radial-gradient(circle at center, rgba(66,153,225,0.15), transparent 65%);
+        }
+        .cta h3 { font-size: 2rem; margin-bottom: 12px; }
+        .cta p { 
+            color: var(--text-secondary); 
+            margin-bottom: 24px; 
+        }
+        
+        [data-theme="light"] .cta p {
+            color: var(--text-secondary);
+        }
+        .status { font-size: 0.85rem; color: var(--text-muted); margin-top: 18px; }
+        /* Button Enhancements */
+        .btn {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+        
+        .btn:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+        
+        .btn span {
+            position: relative;
+            z-index: 1;
+        }
+        
+        /* Card Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .section {
+            animation: fadeInUp 0.6s ease-out;
+        }
+        
+        .section:nth-child(1) { animation-delay: 0.1s; }
+        .section:nth-child(2) { animation-delay: 0.2s; }
+        .section:nth-child(3) { animation-delay: 0.3s; }
+        .section:nth-child(4) { animation-delay: 0.4s; }
+        
+        /* Advanced Animations */
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-15px); }
+        }
+        
+        @keyframes glow {
+            0%, 100% {
+                box-shadow: 0 0 20px rgba(102, 126, 234, 0.3),
+                           0 0 40px rgba(102, 126, 234, 0.1);
+            }
+            50% {
+                box-shadow: 0 0 40px rgba(102, 126, 234, 0.6),
+                           0 0 80px rgba(102, 126, 234, 0.3);
+            }
+        }
+        
+        @keyframes shimmer {
+            0% { background-position: -1000px 0; }
+            100% { background-position: 1000px 0; }
+        }
+        
+        @keyframes rotateIn {
+            from {
+                opacity: 0;
+                transform: rotate(-180deg) scale(0.5);
+            }
+            to {
+                opacity: 1;
+                transform: rotate(0) scale(1);
+            }
+        }
+        
+        @keyframes gradientFlow {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.05); }
+        }
+        
+        @keyframes borderFlow {
+            0% { border-color: rgba(102, 126, 234, 0.3); }
+            50% { border-color: rgba(240, 147, 251, 0.5); }
+            100% { border-color: rgba(102, 126, 234, 0.3); }
+        }
+        
+        /* Particle Background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(circle at 20% 30%, rgba(102, 126, 234, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(118, 75, 162, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 50% 50%, rgba(240, 147, 251, 0.08) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+            animation: gradientFlow 20s ease infinite;
+            background-size: 300% 300%;
+        }
+        
+        body::after {
+            content: '';
+            position: fixed;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(
+                circle,
+                rgba(102, 126, 234, 0.03) 1px,
+                transparent 1px
+            );
+            background-size: 50px 50px;
+            pointer-events: none;
+            z-index: 0;
+            animation: float 30s ease-in-out infinite;
+        }
+        
+        main, nav, header {
+            position: relative;
+            z-index: 1;
+        }
+        
+        /* Enhanced Section Hover */
+        .section {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .section::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(
+                45deg,
+                transparent 30%,
+                rgba(255, 255, 255, 0.05) 50%,
+                transparent 70%
+            );
+            transform: rotate(45deg);
+            transition: all 0.6s ease;
+        }
+        
+        .section:hover::after {
+            animation: shimmer 1.5s ease-in-out;
+        }
+        
+        .section:hover {
+            border-color: rgba(102, 126, 234, 0.5);
+            box-shadow: 0 15px 50px -10px rgba(102, 126, 234, 0.3);
+            transform: translateY(-5px);
+        }
+        
+        /* Enhanced Hero */
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(
+                ellipse at center,
+                rgba(102, 126, 234, 0.15) 0%,
+                transparent 60%
+            );
+            pointer-events: none;
+            animation: pulse 4s ease-in-out infinite;
+        }
+        
+        .hero-content {
+            position: relative;
+            z-index: 1;
+        }
+        
+        h1 {
+            animation: fadeInUp 0.8s ease-out;
+            filter: drop-shadow(0 0 30px rgba(102, 126, 234, 0.3));
+        }
+        
+        /* Enhanced Buttons */
+        .btn {
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+        
+        .btn:active::before {
+            width: 300px;
+            height: 300px;
+        }
+        
+        .btn.primary:hover {
+            transform: scale(1.05);
+            animation: glow 2s ease-in-out infinite;
+        }
+        
+        /* Enhanced Metric Cards */
+        .metric-card {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .metric-card:hover {
+            transform: translateY(-5px) scale(1.03);
+            border-color: rgba(102, 126, 234, 0.5);
+            box-shadow: 0 10px 30px -5px rgba(102, 126, 234, 0.4);
+        }
+        
+        .metric-card:hover::before {
+            opacity: 1;
+        }
+        
+        .metric-value {
+            animation: rotateIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) backwards;
+        }
+        
+        .metric-card:nth-child(1) .metric-value { animation-delay: 0.1s; }
+        .metric-card:nth-child(2) .metric-value { animation-delay: 0.2s; }
+        .metric-card:nth-child(3) .metric-value { animation-delay: 0.3s; }
+        .metric-card:nth-child(4) .metric-value { animation-delay: 0.4s; }
+        
+        /* Enhanced Navigation */
+        nav {
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+            transition: box-shadow 0.3s ease;
+        }
+        
+        nav:hover {
+            box-shadow: 0 8px 40px rgba(102, 126, 234, 0.2);
+        }
+        
+        nav a {
+            position: relative;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        nav a::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 50%;
+            width: 0;
+            height: 2px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transform: translateX(-50%);
+            transition: width 0.3s ease;
+        }
+        
+        nav a:hover::after {
+            width: 80%;
+        }
+        
+        /* Theme Toggle Enhancement */
+        .theme-toggle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid var(--border-color);
+            background: var(--bg-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            font-size: 1.2rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .theme-toggle:hover {
+            transform: rotate(180deg) scale(1.2);
+            box-shadow: 0 0 30px rgba(102, 126, 234, 0.6);
+            border-color: rgba(102, 126, 234, 0.5);
+        }
+        
+        .theme-toggle:active {
+            transform: rotate(180deg) scale(0.95);
+        }
+        
+        /* Smooth Scroll */
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        /* Grid Items Animation */
+        .metrics-ribbon > * {
+            animation: fadeInUp 0.6s ease-out backwards;
+        }
+        
+        .metrics-ribbon > *:nth-child(1) { animation-delay: 0.1s; }
+        .metrics-ribbon > *:nth-child(2) { animation-delay: 0.2s; }
+        .metrics-ribbon > *:nth-child(3) { animation-delay: 0.3s; }
+        .metrics-ribbon > *:nth-child(4) { animation-delay: 0.4s; }
+        
+        /* Responsive */
+        @media (max-width: 640px) {
+            .hero-actions { flex-direction: column; }
+            .section { padding: 28px; }
+            nav > div { flex-direction: column !important; gap: 1rem !important; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav style="position: sticky; top: 0; z-index: 1000; background: var(--bg-primary); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border-color); opacity: 0.98;">
+        <div style="max-width: 1600px; margin: 0 auto; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.2rem; color: white;">WR</div>
+                <div>
+                    <h1 style="font-size: 1.25rem; font-weight: 700; margin: 0; color: var(--text-primary);">Wide Research</h1>
+                    <p style="font-size: 0.75rem; color: var(--text-muted); margin: 0;">AI Financial Intelligence</p>
+                </div>
+            </div>
+            <div style="display: flex; gap: 1rem; align-items: center;">
+                <a href="/" style="padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.875rem; font-weight: 500; color: var(--text-secondary); text-decoration: none; transition: all 0.3s ease;">实时仪表盘</a>
+                <a href="/overview" style="padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.875rem; font-weight: 500; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none;">项目总览</a>
+                <a href="https://github.com/ianchiou28/Wide-Research-for-Finance" target="_blank" style="padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.875rem; font-weight: 500; color: var(--text-secondary); text-decoration: none; transition: all 0.3s ease;">GitHub</a>
+                <button class="theme-toggle" onclick="toggleTheme()" title="切换主题">
+                    <span id="themeIcon">🌙</span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <header class="hero">
+        <div class="hero-content">
+            <div class="eyebrow">🚀 Wide Research for Finance</div>
+            <h1>AI 驱动的金融情报指挥台</h1>
+            <p class="lead">每小时聚合 200+ 全球财经资讯，实时输出情绪、热点、个股洞察与行动建议，帮助投研团队零延迟捕捉市场信号。</p>
+            <div class="hero-actions">
+                <a href="/" class="btn primary">📊 查看实时仪表盘</a>
+                <a href="https://github.com/ianchiou28/Wide-Research-for-Finance" target="_blank" rel="noopener" class="btn secondary">💻 GitHub 项目</a>
+            </div>
+        </div>
+        <div class="metrics-ribbon">
+            <div class="metric-card">
+                <div class="metric-value">17+</div>
+                <div class="metric-label">主流财经源</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">200+</div>
+                <div class="metric-label">新闻/小时</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">75%</div>
+                <div class="metric-label">AI 成本节省</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">&lt;30s</div>
+                <div class="metric-label">报告生成</div>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <section class="section">
+            <div class="section-header">
+                <div class="section-title">核心指标</div>
+                <p class="section-subtitle">覆盖范围、运行效率与成本优势一览</p>
+            </div>
+            <div class="kpi-grid">
+                <div class="kpi-card" style="border-left: 3px solid #667eea;">
+                    <span class="kpi-label">🌍 采集范围</span>
+                    <span class="kpi-value">全球 4 大洲</span>
+                    <span class="kpi-detail">RSS + 官方机构双轨</span>
+                </div>
+                <div class="kpi-card" style="border-left: 3px solid #f093fb;">
+                    <span class="kpi-label">🤖 AI 处理流程</span>
+                    <span class="kpi-value">2 阶段</span>
+                    <span class="kpi-detail">标题筛选 → 深度分析</span>
+                </div>
+                <div class="kpi-card" style="border-left: 3px solid #4facfe;">
+                    <span class="kpi-label">⚡ 热点识别</span>
+                    <span class="kpi-value">&lt;15 秒</span>
+                    <span class="kpi-detail">实体/事件实时聚合</span>
+                </div>
+                <div class="kpi-card" style="border-left: 3px solid #fa709a;">
+                    <span class="kpi-label">💰 运营成本</span>
+                    <span class="kpi-value">$0.003/h</span>
+                    <span class="kpi-detail">相比终端节省 99.5%</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section-header">
+                <div class="section-title">实时快照</div>
+                <p class="section-subtitle">自动拉取最新 API 数据，展示市场脉搏与策略提示</p>
+            </div>
+            <div class="live-grid">
+                <div class="tile">
+                    <h4>市场情绪雷达</h4>
+                    <div id="sentimentBox">
+                        <p>正在同步最新情绪数据...</p>
+                    </div>
+                </div>
+                <div class="tile">
+                    <h4>本小时情报</h4>
+                    <div id="newsSummary">
+                        <p>正在获取最新简报...</p>
+                    </div>
+                </div>
+                <div class="tile">
+                    <h4>一周策略观察</h4>
+                    <div id="weeklyWatch">
+                        <p>正在生成周度洞察...</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section-header">
+                <div class="section-title">处理链路</div>
+                <p class="section-subtitle">采集 → 筛选 → 深度分析 → 报告推送的闭环自动化</p>
+            </div>
+            <div class="flow">
+                <div class="flow-step">
+                    <h5>01 数据采集</h5>
+                    <p>feedparser + requests 轮询 17 个 RSS / 官方站点，自动去重与合并。</p>
+                    <div class="data-pills">
+                        <span class="pill">Bloomberg</span>
+                        <span class="pill">WSJ</span>
+                        <span class="pill">SEC</span>
+                        <span class="pill">PBOC</span>
+                    </div>
+                </div>
+                <div class="flow-step">
+                    <h5>02 智能筛选</h5>
+                    <p>DeepSeek 先基于标题做低成本筛查，保留最高价值 20%-30% 的事件。</p>
+                    <div class="data-pills">
+                        <span class="pill">情绪估计</span>
+                        <span class="pill">事件分类</span>
+                    </div>
+                </div>
+                <div class="flow-step">
+                    <h5>03 深度分析</h5>
+                    <p>对保留样本获取全文，抽取实体、估算影响等级，并生成结构化 JSON。</p>
+                    <div class="data-pills">
+                        <span class="pill">LLM 批处理</span>
+                        <span class="pill">热点聚类</span>
+                    </div>
+                </div>
+                <div class="flow-step">
+                    <h5>04 报告输出</h5>
+                    <p>生成小时/日/周三层报告，支持本地存储、邮箱推送和 Web 展示。</p>
+                    <div class="data-pills">
+                        <span class="pill">TXT</span>
+                        <span class="pill">JSON</span>
+                        <span class="pill">Flask API</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section-header">
+                <div class="section-title">数据覆盖</div>
+                <p class="section-subtitle">国际财经 / 机构分析 / 科技加密 / 官方政策 四大板块</p>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                <div style="padding: 1rem; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 12px;">
+                    <div style="font-weight: 600; color: #60a5fa; margin-bottom: 0.5rem;">🌎 国际财经 (9个)</div>
+                    <div style="font-size: 0.875rem; color: var(--text-secondary); line-height: 1.8;">Bloomberg, WSJ, CNBC, MarketWatch, Forbes, FT, Yahoo Finance, Investing.com, Reuters</div>
+                </div>
+                <div style="padding: 1rem; background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 12px;">
+                    <div style="font-weight: 600; color: #a78bfa; margin-bottom: 0.5rem;">📊 机构分析 (4个)</div>
+                    <div style="font-size: 0.875rem; color: var(--text-secondary); line-height: 1.8;">Seeking Alpha, 雪球, Benzinga, The Motley Fool</div>
+                </div>
+                <div style="padding: 1rem; background: rgba(236, 72, 153, 0.1); border: 1px solid rgba(236, 72, 153, 0.3); border-radius: 12px;">
+                    <div style="font-weight: 600; color: #f472b6; margin-bottom: 0.5rem;">🚀 科技/加密 (3个)</div>
+                    <div style="font-size: 0.875rem; color: var(--text-secondary); line-height: 1.8;">CoinDesk, TechCrunch, VentureBeat</div>
+                </div>
+                <div style="padding: 1rem; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 12px;">
+                    <div style="font-weight: 600; color: #34d399; margin-bottom: 0.5rem;">🏛️ 官方机构 (4个)</div>
+                    <div style="font-size: 0.875rem; color: var(--text-secondary); line-height: 1.8;">美联储, SEC, 央行, 证监会</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section-header">
+                <div class="section-title">样例输出</div>
+                <p class="section-subtitle">以下内容由 /api/hourly_report 与 /api/weekly_analysis 动态驱动</p>
+            </div>
+            <div class="live-grid">
+                <div class="tile">
+                    <h4>日报摘要</h4>
+                    <div id="dailySummary" class="snippet">正在同步...</div>
+                </div>
+                <div class="tile">
+                    <h4>小时简报原文</h4>
+                    <div id="hourlyRaw" class="snippet">等待数据...</div>
+                </div>
+                <div class="tile">
+                    <h4>预测股票列表</h4>
+                    <ul id="weeklyList" class="list"></ul>
+                </div>
+            </div>
+        </section>
+
+        <section class="section cta">
+            <div style="max-width: 800px; margin: 0 auto;">
+                <h3 style="margin-bottom: 1rem;">🚀 快速开始</h3>
+                <p style="margin-bottom: 2rem;">准备把 AI 情报流接入投研或风控体系？只需两步即可启动系统。</p>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; text-align: left;">
+                    <div style="padding: 1.5rem; background: rgba(102, 126, 234, 0.1); border: 1px solid rgba(102, 126, 234, 0.3); border-radius: 16px;">
+                        <div style="font-size: 2rem; margin-bottom: 0.5rem;">📊</div>
+                        <div style="font-weight: 700; color: #93c5fd; margin-bottom: 0.5rem;">启动仪表盘</div>
+                        <code style="display: block; background: var(--bg-secondary); padding: 0.75rem; border-radius: 8px; font-size: 0.875rem; color: #10b981; margin: 0.5rem 0; border: 1px solid var(--border-color);">python web_app.py</code>
+                        <div style="font-size: 0.875rem; color: var(--text-muted); margin-top: 0.5rem;">访问 http://localhost:5000</div>
+                    </div>
+                    
+                    <div style="padding: 1.5rem; background: rgba(236, 72, 153, 0.1); border: 1px solid rgba(236, 72, 153, 0.3); border-radius: 16px;">
+                        <div style="font-size: 2rem; margin-bottom: 0.5rem;">⚡</div>
+                        <div style="font-weight: 700; color: #f472b6; margin-bottom: 0.5rem;">自动调度</div>
+                        <code style="display: block; background: var(--bg-secondary); padding: 0.75rem; border-radius: 8px; font-size: 0.875rem; color: #10b981; margin: 0.5rem 0; border: 1px solid var(--border-color);">python main.py</code>
+                        <div style="font-size: 0.875rem; color: var(--text-muted); margin-top: 0.5rem;">选择模式 2 每小时运行</div>
+                    </div>
+                </div>
+                
+                <div class="hero-actions" style="justify-content: center;">
+                    <a href="/" class="btn primary"><span>📊 打开实时仪表盘</span></a>
+                    <a href="https://github.com/ianchiou28/Wide-Research-for-Finance" target="_blank" rel="noopener" class="btn secondary"><span>💻 查看 GitHub 代码</span></a>
+                </div>
+                
+                <div class="status" id="updatedAt" style="margin-top: 2rem;">🔄 数据同步中...</div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const sentimentBox = document.getElementById('sentimentBox');
+        const newsSummary = document.getElementById('newsSummary');
+        const weeklyWatch = document.getElementById('weeklyWatch');
+        const dailySummary = document.getElementById('dailySummary');
+        const hourlyRaw = document.getElementById('hourlyRaw');
+        const weeklyList = document.getElementById('weeklyList');
+        const updatedAt = document.getElementById('updatedAt');
+
+        const clamp = (value) => Math.max(-1, Math.min(1, value ?? 0));
+
+        function renderSentiment(data) {
+            if (!data) {
+                sentimentBox.innerHTML = '<p>暂无情绪数据。</p>';
+                return;
+            }
+            const targets = [
+                { label: '整体市场', key: 'overall', color: '#f472b6' },
+                { label: '中国市场', key: 'cn', color: '#34d399' },
+                { label: '美国市场', key: 'us', color: '#60a5fa' }
+            ];
+            const bars = targets.map(target => {
+                const score = clamp(data[target.key]);
+                const percent = ((score + 1) / 2) * 100;
+                return `
+                    <div>
+                        <div class="bar-label">
+                            <span>${target.label}</span>
+                            <span>${score.toFixed(2)}</span>
+                        </div>
+                        <div class="bar-track">
+                            <div class="bar-fill" style="width: ${percent}%; background: ${target.color};"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            sentimentBox.innerHTML = `<div class="sentiment-bars">${bars}</div>`;
+        }
+
+        function renderHourly(data) {
+            if (!data) {
+                newsSummary.innerHTML = '<p>暂无简报。</p>';
+                hourlyRaw.textContent = '暂无内容';
+                return;
+            }
+            const topics = data.hot_topics?.length
+                ? data.hot_topics.slice(0, 6).map(topic => `<span class="topic">${topic}</span>`).join('')
+                : '<p>暂无热点</p>';
+            const snippet = data.content
+                ? data.content.split('\n').slice(0, 10).join('\n')
+                : '暂无原文';
+            newsSummary.innerHTML = `
+                <div class="kpi-label">分析新闻</div>
+                <div class="kpi-value" style="font-size:2rem;">${data.total_news || '--'} 条</div>
+                <div class="kpi-detail" style="margin:16px 0 8px;">热点追踪</div>
+                <div class="topics">${topics}</div>
+                <div class="kpi-detail">更新时间：${data.timestamp || '未知'}</div>
+            `;
+            hourlyRaw.textContent = snippet;
+        }
+
+        function renderWeekly(analysis) {
+            if (!analysis || !analysis.stocks?.length) {
+                weeklyWatch.innerHTML = '<p>暂无历史数据，等待新一轮周报。</p>';
+                weeklyList.innerHTML = '<li>暂无预测</li>';
+                return;
+            }
+            weeklyWatch.innerHTML = `
+                <p>${analysis.summary || '暂无总结'}</p>
+                <ul class="list" style="margin-top:18px;">
+                    ${analysis.stocks.slice(0,3).map(item => `
+                        <li>
+                            <strong>${item.symbol} ${item.name || ''}</strong><br>
+                            方向：${item.prediction} · 置信度：${item.confidence}
+                        </li>
+                    `).join('')}
+                </ul>
+            `;
+            weeklyList.innerHTML = analysis.stocks.slice(0,6).map(item => `
+                <li>
+                    <strong>${item.symbol}</strong> ${item.name || ''}<br>
+                    走势：${item.prediction} | 置信：${item.confidence}<br>
+                    <span style="color: var(--text-muted); font-size:0.85rem;">${item.reason || ''}</span>
+                </li>
+            `).join('');
+        }
+
+        function renderDaily(content) {
+            dailySummary.textContent = content || '暂无每日摘要。';
+        }
+
+        async function loadOverview() {
+            try {
+                const [sentimentRes, hourlyRes, weeklyRes, summaryRes] = await Promise.allSettled([
+                    fetch('/api/sentiment'),
+                    fetch('/api/hourly_report'),
+                    fetch('/api/weekly_analysis'),
+                    fetch('/api/daily_summary')
+                ]);
+
+                if (sentimentRes.status === 'fulfilled') {
+                    const data = await sentimentRes.value.json();
+                    renderSentiment(data);
+                } else {
+                    renderSentiment(null);
+                }
+
+                if (hourlyRes.status === 'fulfilled') {
+                    const data = await hourlyRes.value.json();
+                    renderHourly(data);
+                } else {
+                    renderHourly(null);
+                }
+
+                if (weeklyRes.status === 'fulfilled') {
+                    const data = await weeklyRes.value.json();
+                    renderWeekly(data);
+                } else {
+                    renderWeekly(null);
+                }
+
+                if (summaryRes.status === 'fulfilled') {
+                    const data = await summaryRes.value.json();
+                    renderDaily(data.content);
+                } else {
+                    renderDaily(null);
+                }
+
+                updatedAt.textContent = `最后同步：${new Date().toLocaleString('zh-CN')}`;
+            } catch (err) {
+                console.error('加载 overview 数据失败', err);
+                updatedAt.textContent = '数据同步失败，请稍后刷新。';
+            }
+        }
+
+        loadOverview();
+        setInterval(loadOverview, 5 * 60 * 1000);
+        
+        // 主题切换功能
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            
+            const icon = document.getElementById('themeIcon');
+            icon.textContent = newTheme === 'light' ? '☀️' : '🌙';
+            
+            console.log(`🎨 主题已切换为: ${newTheme === 'light' ? '亮色' : '暗色'}模式`);
+        }
+        
+        // 初始化主题
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            const icon = document.getElementById('themeIcon');
+            if (icon) {
+                icon.textContent = savedTheme === 'light' ? '☀️' : '🌙';
+            }
+        }
+        
+        // 页面加载时初始化主题
+        initTheme();
+    </script>
+</body>
+</html>
+

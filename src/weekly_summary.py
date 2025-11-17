@@ -6,11 +6,11 @@ from openai import OpenAI
 
 class WeeklySummary:
     def __init__(self):
-        self.client = OpenAI(
-            api_key=os.getenv('DEEPSEEK_API_KEY'),
-            base_url="https://api.deepseek.com"
-        )
-    
+        self.api_key = os.getenv('DEEPSEEK_API_KEY')
+        self.client = None
+        if self.api_key:
+            self.client = OpenAI(api_key=self.api_key, base_url="https://api.deepseek.com")
+
     def generate(self, weekly_reports: List[Dict]) -> Dict:
         """生成一周总结和个股预测"""
         if not weekly_reports:
@@ -69,6 +69,8 @@ class WeeklySummary:
   "summary": "一周市场总体分析"
 }}"""
         
+        if not self.client:
+            return self._mock_analysis(all_stocks, avg_sentiment)
         try:
             response = self.client.chat.completions.create(
                 model="deepseek-chat",
@@ -99,6 +101,24 @@ class WeeklySummary:
             'us': sum(s.get('us', 0) for s in sentiments) / len(sentiments)
         }
     
+    def _mock_analysis(self, all_stocks: Dict, avg_sentiment: Dict) -> Dict:
+        top = sorted(all_stocks.items(), key=lambda x: x[1]['up'] + x[1]['down'], reverse=True)[:5]
+        stocks = []
+        for symbol, stats in top:
+            direction = '上涨' if stats['up'] >= stats['down'] else '震荡'
+            stocks.append({
+                'symbol': symbol,
+                'name': stats['name'],
+                'prediction': direction,
+                'confidence': '低',
+                'reason': '离线模式占位结果'
+            })
+        summary = (
+            f"离线模式：整体情绪 {avg_sentiment['overall']:.2f}，"
+            f"中国 {avg_sentiment['cn']:.2f}，美国 {avg_sentiment['us']:.2f}。"
+        )
+        return {'stocks': stocks, 'summary': summary}
+
     def save_analysis(self, analysis: Dict):
         """保存分析结果"""
         os.makedirs('data/weekly', exist_ok=True)
