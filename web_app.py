@@ -5,6 +5,9 @@ import glob
 from datetime import datetime, timedelta
 from collections import Counter
 import json
+from dotenv import load_dotenv
+
+load_dotenv()
 
 sys.path.append('src')
 from weekly_summary import WeeklySummary
@@ -233,6 +236,14 @@ def get_market_prediction():
 @app.route('/')
 def index():
     return render_template('index.html')
+
+@app.route('/overview')
+def overview():
+    return render_template('overview.html')
+
+@app.route('/test')
+def test():
+    return render_template('test.html')
 
 @app.route('/api/hourly_report')
 def hourly_report():

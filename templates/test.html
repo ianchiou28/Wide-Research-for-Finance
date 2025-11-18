@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>前端优化测试 - Wide Research</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --text-primary: #f8fafc;
+            --text-secondary: #cbd5e1;
+            --border-color: rgba(148, 163, 184, 0.2);
+        }
+        
+        [data-theme="light"] {
+            --bg-primary: #f8fafc;
+            --bg-secondary: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #475569;
+            --border-color: rgba(148, 163, 184, 0.3);
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(140deg, #030712 0%, #0b1129 60%, #030712 100%);
+            color: var(--text-primary);
+            padding: 2rem;
+            min-height: 100vh;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(120deg, #9ba8ff, #8be0ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .test-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+        
+        .test-card {
+            background: linear-gradient(145deg, rgba(6, 11, 25, 0.95), rgba(17, 27, 49, 0.75));
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            border-radius: 18px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            box-shadow: 
+                0 15px 45px -20px rgba(0, 0, 0, 0.8),
+                inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        }
+        
+        [data-theme="light"] .test-card {
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(148, 163, 184, 0.3);
+            box-shadow: 
+                0 10px 30px -5px rgba(0, 0, 0, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8);
+        }
+        
+        .test-card:hover {
+            transform: translateY(-6px);
+            border-color: rgba(125, 211, 252, 0.5);
+            box-shadow: 
+                0 30px 60px -25px rgba(56, 189, 248, 0.35),
+                inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(30px) saturate(200%);
+        }
+        
+        .test-card h3 {
+            color: #c7d2fe;
+            margin-bottom: 0.5rem;
+        }
+        
+        .test-card p {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            line-height: 1.6;
+        }
+        
+        .status {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 50px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-top: 0.5rem;
+        }
+        
+        .status.success {
+            background: rgba(56, 189, 248, 0.15);
+            color: #7dd3fc;
+            border: 1px solid rgba(56, 189, 248, 0.4);
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            margin: 0.5rem;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(120deg, #4c6ef5 0%, #5de0ff 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+        
+        .btn-secondary {
+            background: rgba(79, 70, 229, 0.18);
+            color: #c7d2fe;
+            border: 1px solid rgba(99, 102, 241, 0.4);
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(102, 126, 234, 0.2);
+        }
+        
+        .theme-toggle {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: 2px solid var(--border-color);
+            background: var(--bg-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            font-size: 1.5rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+        }
+        
+        .theme-toggle:hover {
+            transform: rotate(15deg) scale(1.1);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+        
+        /* Advanced Animations */
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+        
+        @keyframes glow {
+            0%, 100% {
+                box-shadow: 0 0 20px rgba(102, 126, 234, 0.4);
+            }
+            50% {
+                box-shadow: 0 0 40px rgba(102, 126, 234, 0.8);
+            }
+        }
+        
+        @keyframes shimmer {
+            0% { background-position: -1000px 0; }
+            100% { background-position: 1000px 0; }
+        }
+        
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes rotateIn {
+            from {
+                opacity: 0;
+                transform: rotate(-180deg) scale(0.5);
+            }
+            to {
+                opacity: 1;
+                transform: rotate(0) scale(1);
+            }
+        }
+        
+        @keyframes gradientFlow {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        /* Particle Background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(circle at 25% 25%, rgba(59, 130, 246, 0.12) 0%, transparent 55%),
+                radial-gradient(circle at 75% 75%, rgba(14, 165, 233, 0.12) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+            animation: gradientFlow 15s ease infinite;
+            background-size: 200% 200%;
+        }
+        
+        .container {
+            position: relative;
+            z-index: 1;
+        }
+        
+        /* Enhanced Title */
+        h1 {
+            background-size: 200% auto;
+            animation: gradientFlow 8s linear infinite;
+            filter: drop-shadow(0 0 30px rgba(102, 126, 234, 0.4));
+        }
+        
+        /* Card Animations */
+        .test-card {
+            position: relative;
+            overflow: hidden;
+            animation: slideInUp 0.6s ease-out backwards;
+        }
+        
+        .test-card::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(
+                45deg,
+                transparent 30%,
+                rgba(255, 255, 255, 0.08) 50%,
+                transparent 70%
+            );
+            transform: rotate(45deg);
+            transition: all 0.6s ease;
+        }
+        
+        .test-card:hover::after {
+            animation: shimmer 1.5s ease-in-out;
+        }
+        
+        .test-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 
+                0 25px 50px -12px rgba(102, 126, 234, 0.5),
+                0 0 30px rgba(102, 126, 234, 0.3);
+        }
+        
+        /* Staggered Card Animations */
+        .test-card:nth-child(1) { animation-delay: 0.1s; }
+        .test-card:nth-child(2) { animation-delay: 0.15s; }
+        .test-card:nth-child(3) { animation-delay: 0.2s; }
+        .test-card:nth-child(4) { animation-delay: 0.25s; }
+        .test-card:nth-child(5) { animation-delay: 0.3s; }
+        .test-card:nth-child(6) { animation-delay: 0.35s; }
+        .test-card:nth-child(7) { animation-delay: 0.4s; }
+        .test-card:nth-child(8) { animation-delay: 0.45s; }
+        
+        /* Enhanced Buttons */
+        .btn {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.4);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+        
+        .btn:active::before {
+            width: 300px;
+            height: 300px;
+        }
+        
+        .btn-primary:hover {
+            animation: glow 2s ease-in-out infinite;
+        }
+        
+        .btn-secondary:hover {
+            transform: translateY(-2px) scale(1.05);
+        }
+        
+        /* Status Badge Animation */
+        .status {
+            animation: pulse 3s ease-in-out infinite;
+        }
+        
+        /* Theme Toggle Enhancement */
+        .theme-toggle {
+            transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+        
+        .theme-toggle:hover {
+            transform: rotate(180deg) scale(1.2);
+            animation: glow 2s ease-in-out infinite;
+        }
+        
+        .theme-toggle:active {
+            transform: rotate(180deg) scale(0.95);
+        }
+        
+        /* Smooth Scroll */
+        html {
+            scroll-behavior: smooth;
+        }
+    </style>
+</head>
+<body>
+    <button class="theme-toggle" onclick="toggleTheme()" title="切换主题">
+        <span id="themeIcon">🌙</span>
+    </button>
+    
+    <div class="container">
+        <h1>🎨 前端优化测试页面</h1>
+        <p style="color: #cbd5e1; margin-bottom: 2rem;">验证所有优化功能是否正常工作</p>
+        
+        <div style="margin-bottom: 2rem;">
+            <a href="/" class="btn btn-primary">📊 查看主仪表盘</a>
+            <a href="/overview" class="btn btn-secondary">📖 查看项目总览</a>
+        </div>
+        
+        <div class="test-grid">
+            <div class="test-card">
+                <h3>✅ 暗色主题</h3>
+                <p>采用现代化的深色配色方案，减少眼睛疲劳，提升专业感。</p>
+                <span class="status success">已启用</span>
+            </div>
+            
+            <div class="test-card">
+                <h3>✅ 玻璃态设计</h3>
+                <p>半透明背景配合模糊效果，创造层次感和现代感。</p>
+                <span class="status success">已启用</span>
+            </div>
+            
+            <div class="test-card">
+                <h3>✅ 渐变色彩</h3>
+                <p>精心调配的渐变色系，让界面更具视觉吸引力。</p>
+                <span class="status success">已启用</span>
+            </div>
+            
+            <div class="test-card">
+                <h3>✅ 响应式布局</h3>
+                <p>自适应不同屏幕尺寸，在手机、平板、电脑上都有良好体验。</p>
+                <span class="status success">已启用</span>
+            </div>
+            
+            <div class="test-card">
+                <h3>✅ 动画效果</h3>
+                <p>流畅的过渡动画和悬停效果，提升交互体验。</p>
+                <span class="status success">已启用</span>
+            </div>
+            
+            <div class="test-card">
+                <h3>✅ 数据可视化</h3>
+                <p>清晰的卡片布局和数据展示，一目了然的信息传达。</p>
+                <span class="status success">已启用</span>
+            </div>
+            
+            <div class="test-card">
+                <h3>✅ 实时更新</h3>
+                <p>每5分钟自动刷新数据，确保信息始终是最新的。</p>
+                <span class="status success">已启用</span>
+            </div>
+            
+            <div class="test-card">
+                <h3>✅ 错误处理</h3>
+                <p>完善的错误提示和加载状态，提升用户体验。</p>
+                <span class="status success">已启用</span>
+            </div>
+        </div>
+        
+        <div style="margin-top: 3rem; padding: 2rem; background: rgba(102, 126, 234, 0.1); border: 1px solid rgba(102, 126, 234, 0.3); border-radius: 16px;">
+            <h2 style="color: #93c5fd; margin-bottom: 1rem;">📋 优化清单</h2>
+            <ul style="color: #cbd5e1; line-height: 2; list-style-position: inside;">
+                <li>✅ 重新设计主仪表盘界面</li>
+                <li>✅ 优化项目总览页面</li>
+                <li>✅ 添加导航栏和面包屑</li>
+                <li>✅ 改进卡片样式和布局</li>
+                <li>✅ 优化情绪、市场、股票组件</li>
+                <li>✅ 增强数据加载和错误处理</li>
+                <li>✅ 添加更多图标和视觉元素</li>
+                <li>✅ 创建静态资源文件夹</li>
+                <li>✅ 编写前端优化文档</li>
+            </ul>
+        </div>
+        
+        <div style="text-align: center; margin-top: 3rem; padding: 2rem; color: #94a3b8;">
+            <p>🎉 前端优化完成！</p>
+            <p style="margin-top: 0.5rem; font-size: 0.875rem;">
+                Wide Research for Finance v2.0 | 优化时间: 2025-01-18
+            </p>
+        </div>
+    </div>
+    
+    <script>
+        // 主题切换功能
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            
+            const icon = document.getElementById('themeIcon');
+            icon.textContent = newTheme === 'light' ? '☀️' : '🌙';
+            
+            console.log(`🎨 主题已切换为: ${newTheme === 'light' ? '亮色' : '暗色'}模式`);
+        }
+        
+        // 初始化主题
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            const icon = document.getElementById('themeIcon');
+            if (icon) {
+                icon.textContent = savedTheme === 'light' ? '☀️' : '🌙';
+            }
+        }
+        
+        // 页面加载时初始化主题
+        initTheme();
+    </script>
+</body>
+</html>

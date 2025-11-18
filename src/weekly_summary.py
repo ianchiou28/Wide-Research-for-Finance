@@ -1,15 +1,15 @@
 import os
 import json
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import List, Dict
 from openai import OpenAI
 
 class WeeklySummary:
     def __init__(self):
-        self.client = OpenAI(
-            api_key=os.getenv('DEEPSEEK_API_KEY'),
-            base_url="https://api.deepseek.com"
-        )
+        self.api_key = os.getenv('DEEPSEEK_API_KEY')
+        self.client = None
+        if self.api_key:
+            self.client = OpenAI(api_key=self.api_key, base_url="https://api.deepseek.com")
     
     def generate(self, weekly_reports: List[Dict]) -> Dict:
         """生成一周总结和个股预测"""
@@ -69,24 +69,27 @@ class WeeklySummary:
   "summary": "一周市场总体分析"
 }}"""
         
+        if not self.client:
+            return {'stocks': [], 'summary': '未配置 DeepSeek API，暂无周度分析'}
+
         try:
-            response = self.client.chat.completions.create(
+            response = self.client.responses.create(
                 model="deepseek-chat",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.3,
                 max_tokens=2000
             )
-            
-            content = response.choices[0].message.content
+            content = response.choices[0].message.content if response.choices else None
             if content:
                 start = content.find('{')
                 end = content.rfind('}')
-                if start != -1 and end != -1:
+                if start != -1 and end != -1 and end > start:
                     return json.loads(content[start:end+1])
         except Exception as e:
             print(f"Weekly analysis error: {e}")
-        
-        return {'stocks': [], 'summary': '分析失败'}
+            return {'stocks': [], 'summary': '生成周度分析失败'}
+
+        return {'stocks': [], 'summary': 'AI 返回内容为空，暂无数据'}
     
     def _calc_avg_sentiment(self, sentiments: List[Dict]) -> Dict:
         """计算平均情绪"""
@@ -101,8 +104,17 @@ class WeeklySummary:
     
     def save_analysis(self, analysis: Dict):
         """保存分析结果"""
-        os.makedirs('data/weekly', exist_ok=True)
-        filename = f"data/weekly/analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        if not analysis:
+            return ""
+        output_dir = os.path.join('data', 'weekly')
+        os.makedirs(output_dir, exist_ok=True)
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = os.path.join(output_dir, f'analysis_{timestamp}.json')
+        payload = {
+            **analysis,
+            'generated_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        }
         with open(filename, 'w', encoding='utf-8') as f:
-            json.dump(analysis, f, ensure_ascii=False, indent=2)
+            json.dump(payload, f, ensure_ascii=False, indent=2)
         return filename
+
