@@ -29,7 +29,7 @@
         
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
-            background: var(--bg-primary);
+            background: linear-gradient(140deg, #030712 0%, #0b1129 60%, #030712 100%);
             color: var(--text-primary);
             padding: 2rem;
             min-height: 100vh;
@@ -44,7 +44,7 @@
         h1 {
             font-size: 2.5rem;
             margin-bottom: 1rem;
-            background: linear-gradient(135deg, #667eea, #764ba2, #f093fb);
+            background: linear-gradient(120deg, #9ba8ff, #8be0ff);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -58,16 +58,16 @@
         }
         
         .test-card {
-            background: rgba(30, 41, 59, 0.7);
-            border: 1px solid rgba(148, 163, 184, 0.2);
-            border-radius: 20px;
+            background: linear-gradient(145deg, rgba(6, 11, 25, 0.95), rgba(17, 27, 49, 0.75));
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            border-radius: 18px;
             padding: 1.5rem;
             transition: all 0.3s ease;
             backdrop-filter: blur(20px) saturate(180%);
             -webkit-backdrop-filter: blur(20px) saturate(180%);
             box-shadow: 
-                0 10px 30px -5px rgba(0, 0, 0, 0.3),
-                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+                0 15px 45px -20px rgba(0, 0, 0, 0.8),
+                inset 0 1px 0 rgba(255, 255, 255, 0.04);
         }
         
         [data-theme="light"] .test-card {
@@ -79,17 +79,16 @@
         }
         
         .test-card:hover {
-            transform: translateY(-8px) scale(1.02);
-            border-color: rgba(102, 126, 234, 0.6);
+            transform: translateY(-6px);
+            border-color: rgba(125, 211, 252, 0.5);
             box-shadow: 
-                0 25px 50px -10px rgba(102, 126, 234, 0.4),
-                0 0 30px rgba(102, 126, 234, 0.2),
-                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+                0 30px 60px -25px rgba(56, 189, 248, 0.35),
+                inset 0 1px 0 rgba(255, 255, 255, 0.08);
             backdrop-filter: blur(30px) saturate(200%);
         }
         
         .test-card h3 {
-            color: #93c5fd;
+            color: #c7d2fe;
             margin-bottom: 0.5rem;
         }
         
@@ -109,9 +108,9 @@
         }
         
         .status.success {
-            background: rgba(16, 185, 129, 0.1);
-            color: #10b981;
-            border: 1px solid rgba(16, 185, 129, 0.3);
+            background: rgba(56, 189, 248, 0.15);
+            color: #7dd3fc;
+            border: 1px solid rgba(56, 189, 248, 0.4);
         }
         
         .btn {
@@ -125,7 +124,7 @@
         }
         
         .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(120deg, #4c6ef5 0%, #5de0ff 100%);
             color: white;
         }
         
@@ -135,9 +134,9 @@
         }
         
         .btn-secondary {
-            background: rgba(102, 126, 234, 0.1);
-            color: #93c5fd;
-            border: 1px solid rgba(102, 126, 234, 0.3);
+            background: rgba(79, 70, 229, 0.18);
+            color: #c7d2fe;
+            border: 1px solid rgba(99, 102, 241, 0.4);
         }
         
         .btn-secondary:hover {
@@ -230,8 +229,8 @@
             width: 100%;
             height: 100%;
             background-image: 
-                radial-gradient(circle at 25% 25%, rgba(102, 126, 234, 0.1) 0%, transparent 50%),
-                radial-gradient(circle at 75% 75%, rgba(240, 147, 251, 0.1) 0%, transparent 50%);
+                radial-gradient(circle at 25% 25%, rgba(59, 130, 246, 0.12) 0%, transparent 55%),
+                radial-gradient(circle at 75% 75%, rgba(14, 165, 233, 0.12) 0%, transparent 50%);
             pointer-events: none;
             z-index: 0;
             animation: gradientFlow 15s ease infinite;

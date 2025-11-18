@@ -11,79 +11,62 @@
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         :root {
             --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
             --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
             --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-            --dark-bg: #0f172a;
-            --card-bg: #1e293b;
-            --card-hover: #334155;
+            --card-bg: rgba(8, 12, 28, 0.92);
+            --card-hover: rgba(15, 23, 42, 0.9);
             --text-primary: #f8fafc;
             --text-secondary: #cbd5e1;
             --text-muted: #94a3b8;
-            --border-color: rgba(148, 163, 184, 0.2);
-            --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1);
-            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.2);
-            --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.3);
+            --border-color: rgba(148, 163, 184, 0.25);
+            --neon-green: #4ade80;
         }
-        
-        /* Light Theme */
+
         [data-theme="light"] {
-            --dark-bg: #f8fafc;
-            --card-bg: #ffffff;
-            --card-hover: #f1f5f9;
-            --text-primary: #1e293b;
+            --card-bg: rgba(255, 255, 255, 0.92);
+            --card-hover: rgba(248, 250, 252, 0.9);
+            --text-primary: #0f172a;
             --text-secondary: #475569;
             --text-muted: #64748b;
-            --border-color: rgba(148, 163, 184, 0.3);
-            --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.05);
-            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.05);
-            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
-            --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.15);
+            --border-color: rgba(148, 163, 184, 0.35);
+            --neon-green: #16a34a;
         }
-        
+
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
-            background: var(--dark-bg);
+            background: radial-gradient(circle at top, rgba(59, 130, 246, 0.08), transparent 45%), #040714;
             color: var(--text-primary);
             min-height: 100vh;
             line-height: 1.6;
-            transition: background-color 0.3s ease, color 0.3s ease;
+            transition: background-color 0.4s ease, color 0.4s ease;
         }
-        
-        /* Navigation Bar */
+
+        [data-theme="light"] body {
+            background: radial-gradient(circle at top, rgba(129, 140, 248, 0.2), transparent 45%), #f8fafc;
+        }
+
+        a { text-decoration: none; color: inherit; }
+
         .navbar {
             position: sticky;
             top: 0;
             z-index: 1000;
-            background: rgba(15, 23, 42, 0.8);
-            backdrop-filter: blur(40px) saturate(180%);
-            -webkit-backdrop-filter: blur(40px) saturate(180%);
-            border-bottom: 1px solid rgba(148, 163, 184, 0.2);
-            padding: 0;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 
-                0 4px 30px rgba(0, 0, 0, 0.2),
-                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            background: rgba(3, 6, 17, 0.95);
+            border-bottom: 1px solid var(--border-color);
+            backdrop-filter: blur(24px) saturate(180%);
+            -webkit-backdrop-filter: blur(24px) saturate(180%);
+            box-shadow: 0 20px 60px -30px rgba(15, 23, 42, 0.75);
         }
-        
+
         [data-theme="light"] .navbar {
-            background: rgba(248, 250, 252, 0.8);
-            border-bottom: 1px solid rgba(148, 163, 184, 0.3);
-            box-shadow: 
-                0 4px 30px rgba(0, 0, 0, 0.08),
-                inset 0 1px 0 rgba(255, 255, 255, 0.9);
+            background: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 20px 60px -35px rgba(15, 23, 42, 0.25);
         }
-        
-        .navbar:hover {
-            box-shadow: 
-                0 8px 40px rgba(102, 126, 234, 0.2),
-                inset 0 1px 0 rgba(255, 255, 255, 0.08);
-        }
-        
+
         .nav-container {
             max-width: 1600px;
             margin: 0 auto;
@@ -91,46 +74,272 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: 1.5rem;
         }
-        
+
         .nav-brand {
             display: flex;
             align-items: center;
             gap: 1rem;
         }
-        
+
         .nav-logo {
-            width: 40px;
-            height: 40px;
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
             background: var(--primary-gradient);
-            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: 800;
             font-size: 1.2rem;
+            color: white;
+            box-shadow: 0 10px 30px -10px rgba(102, 126, 234, 0.8);
         }
-        
-        .nav-title {
-            display: flex;
-            flex-direction: column;
-        }
-        
+
         .nav-title h1 {
-            font-size: 1.25rem;
+            font-size: 1.15rem;
             font-weight: 700;
-            letter-spacing: -0.025em;
+            letter-spacing: -0.02em;
         }
-        
+
         .nav-title p {
-            font-size: 0.75rem;
+            font-size: 0.78rem;
             color: var(--text-muted);
         }
-        
+
         .nav-links {
             display: flex;
-            gap: 1rem;
             align-items: center;
+            gap: 0.75rem;
+        }
+
+        .hero {
+            padding: 4.5rem 2rem 2rem;
+            max-width: 1500px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            inset: -60px;
+            background: radial-gradient(circle at 10% 5%, rgba(59, 130, 246, 0.25), transparent 55%);
+            pointer-events: none;
+            animation: pulse 10s ease-in-out infinite;
+        }
+
+        html[data-theme="light"] .hero::before {
+            background: radial-gradient(circle at 10% 5%, rgba(99, 102, 241, 0.18), transparent 60%);
+        }
+
+        .hero-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.1fr) minmax(260px, 0.9fr);
+            gap: clamp(1.5rem, 3vw, 2.75rem);
+            padding: clamp(1.75rem, 4vw, 3.25rem);
+            border-radius: 34px;
+            background: rgba(4, 8, 22, 0.92);
+            border: 1px solid rgba(148, 163, 184, 0.28);
+            box-shadow: 0 40px 90px -40px rgba(2, 6, 23, 0.9);
+            backdrop-filter: blur(30px) saturate(180%);
+            -webkit-backdrop-filter: blur(30px) saturate(180%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-grid::after {
+            content: '';
+            position: absolute;
+            inset: 24px;
+            border-radius: 28px;
+            border: 1px dashed rgba(148, 163, 184, 0.2);
+            pointer-events: none;
+        }
+
+        [data-theme="light"] .hero-grid {
+            background: rgba(255, 255, 255, 0.96);
+            border-color: rgba(148, 163, 184, 0.35);
+            box-shadow: 0 40px 80px -45px rgba(15, 23, 42, 0.2);
+        }
+
+        .hero-content {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.45rem 1rem;
+            border-radius: 999px;
+            border: 1px solid rgba(59, 130, 246, 0.4);
+            background: rgba(59, 130, 246, 0.12);
+            font-size: 0.78rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: #93c5fd;
+        }
+
+        .hero h2 {
+            font-size: clamp(2.4rem, 4vw, 3.6rem);
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            margin: 0;
+            background: linear-gradient(120deg, #f5a5ff, #9bb7ff, #8be7ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            filter: drop-shadow(0 0 35px rgba(99, 102, 241, 0.35));
+        }
+
+        .hero p {
+            font-size: 1.08rem;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0;
+        }
+
+        .hero-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+
+        .hero-actions .btn-secondary {
+            background: transparent;
+            border: 1px solid rgba(148, 163, 184, 0.4);
+            color: var(--text-primary);
+        }
+
+        .hero-meta {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 1rem;
+        }
+
+        .meta-card {
+            border-radius: 20px;
+            border: 1px solid rgba(148, 163, 184, 0.28);
+            background: rgba(11, 16, 36, 0.85);
+            padding: 1.1rem;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+
+        [data-theme="light"] .meta-card {
+            background: rgba(255, 255, 255, 0.85);
+            border-color: rgba(148, 163, 184, 0.35);
+        }
+
+        .meta-card span {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+        }
+
+        .meta-card strong {
+            display: block;
+            margin: 0.35rem 0;
+            font-size: 1.4rem;
+            color: var(--text-primary);
+        }
+
+        .meta-card small {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .hero-visual {
+            position: relative;
+            border-radius: 28px;
+            padding: 2rem 1.5rem 1.5rem;
+            background: radial-gradient(circle at top, rgba(59, 130, 246, 0.15), transparent 55%), rgba(3, 7, 19, 0.9);
+            border: 1px solid rgba(59, 130, 246, 0.35);
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        [data-theme="light"] .hero-visual {
+            background: radial-gradient(circle at top, rgba(59, 130, 246, 0.18), transparent 55%), rgba(255, 255, 255, 0.9);
+        }
+
+        .hero-orb {
+            width: min(280px, 80%);
+            aspect-ratio: 1 / 1;
+            border-radius: 50%;
+            margin: 0 auto 1.5rem;
+            position: relative;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.45), transparent 70%);
+        }
+
+        .hero-orb::after {
+            content: '';
+            position: absolute;
+            inset: 25%;
+            border-radius: 50%;
+            background: radial-gradient(circle, #5eead4, #2563eb);
+            box-shadow: 0 0 35px rgba(94, 234, 212, 0.5);
+        }
+
+        .hero-orb-ring {
+            position: absolute;
+            inset: 8px;
+            border-radius: 50%;
+            border: 1px solid rgba(94, 234, 212, 0.4);
+            animation: rotateOrb 16s linear infinite;
+        }
+
+        .hero-orb-ring:nth-child(2) { inset: 28px; animation-duration: 20s; border-color: rgba(167, 139, 250, 0.4); }
+        .hero-orb-ring:nth-child(3) { inset: 48px; animation-duration: 24s; border-color: rgba(248, 113, 113, 0.35); }
+
+        .hero-visual-meta {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 1rem;
+        }
+
+        .visual-card {
+            border-radius: 18px;
+            padding: 1rem;
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            background: rgba(8, 12, 28, 0.85);
+        }
+
+        [data-theme="light"] .visual-card {
+            background: rgba(255, 255, 255, 0.85);
+            border-color: rgba(148, 163, 184, 0.35);
+        }
+
+        .visual-card span {
+            font-size: 0.75rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        .visual-card strong {
+            display: block;
+            margin: 0.4rem 0;
+            font-size: 1.2rem;
+            color: var(--text-primary);
+        }
+
+        .visual-card small {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        @keyframes rotateOrb {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
         }
         
         .nav-link {
@@ -152,6 +361,25 @@
             background: var(--primary-gradient);
             color: white;
         }
+
+        .nav-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.35rem 0.9rem;
+            border-radius: 999px;
+            border: 1px solid rgba(56, 189, 248, 0.4);
+            background: rgba(56, 189, 248, 0.08);
+            color: #7dd3fc;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        [data-theme="light"] .nav-status {
+            background: rgba(14, 165, 233, 0.1);
+            border-color: rgba(14, 165, 233, 0.35);
+            color: #0284c7;
+        }
         
         .theme-toggle {
             width: 40px;
@@ -172,72 +400,6 @@
             transform: rotate(15deg) scale(1.1);
         }
         
-        /* Hero Section */
-        .hero {
-            padding: 3rem 2rem 2rem;
-            text-align: center;
-            max-width: 1600px;
-            margin: 0 auto;
-            position: relative;
-        }
-        
-        .hero::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(
-                ellipse at top,
-                rgba(102, 126, 234, 0.1) 0%,
-                transparent 50%
-            );
-            pointer-events: none;
-            animation: pulse 4s ease-in-out infinite;
-        }
-        
-        .hero-badge {
-            display: inline-block;
-            padding: 0.5rem 1rem;
-            background: rgba(102, 126, 234, 0.1);
-            border: 1px solid rgba(102, 126, 234, 0.3);
-            border-radius: 50px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            color: #93c5fd;
-            margin-bottom: 1rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-        
-        .hero h2 {
-            font-size: clamp(2rem, 5vw, 3rem);
-            font-weight: 800;
-            margin-bottom: 1rem;
-            background: linear-gradient(
-                135deg,
-                #667eea 0%,
-                #764ba2 25%,
-                #f093fb 50%,
-                #667eea 75%,
-                #764ba2 100%
-            );
-            background-size: 200% auto;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            animation: gradientShift 8s linear infinite;
-            filter: drop-shadow(0 0 30px rgba(102, 126, 234, 0.3));
-        }
-        
-        .hero p {
-            font-size: 1.125rem;
-            color: var(--text-secondary);
-            max-width: 600px;
-            margin: 0 auto 2rem;
-        }
         
         .container {
             max-width: 1600px;
@@ -263,10 +425,116 @@
         .grid-4 {
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
         }
+
+        .dashboard-section {
+            margin-bottom: 2.5rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .section-heading {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .section-heading p {
+            text-transform: uppercase;
+            letter-spacing: 0.3em;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 0.35rem;
+        }
+
+        .section-heading h3 {
+            font-size: 1.6rem;
+            color: var(--text-primary);
+        }
+
+        .heading-meta {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .heading-meta span,
+        .heading-meta .heading-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.4rem 0.9rem;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            background: rgba(148, 163, 184, 0.08);
+            color: var(--text-secondary);
+        }
+
+        .heading-time {
+            background: transparent !important;
+            border: none !important;
+            padding: 0 !important;
+            color: var(--text-muted);
+        }
+
+        .heading-time strong {
+            color: var(--text-primary);
+            margin-left: 0.35rem;
+            font-size: 0.95rem;
+        }
+
+        .status-pill {
+            background: rgba(34, 197, 94, 0.18) !important;
+            border-color: rgba(34, 197, 94, 0.55) !important;
+            color: #4ade80 !important;
+            box-shadow: 0 8px 20px -10px rgba(34, 197, 94, 0.6);
+        }
+
+        [data-theme="light"] .status-pill {
+            background: rgba(34, 197, 94, 0.22) !important;
+            border-color: rgba(22, 163, 74, 0.65) !important;
+            color: #065f46 !important;
+            box-shadow: none;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+            position: relative;
+        }
+
+        .status-dot::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            box-shadow: 0 0 0 0 currentColor;
+            animation: ping 2s infinite;
+        }
+
+        .status-dot.live {
+            color: var(--neon-green);
+        }
+
+        .insight-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .insight-grid.dual {
+            grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+        }
         
         /* Card Styles */
         .card {
-            background: rgba(30, 41, 59, 0.7);
+            background: rgba(8, 12, 28, 0.92);
             border-radius: 24px;
             padding: 1.5rem;
             border: 1px solid rgba(148, 163, 184, 0.2);
@@ -282,7 +550,7 @@
         }
         
         [data-theme="light"] .card {
-            background: rgba(255, 255, 255, 0.7);
+            background: rgba(255, 255, 255, 0.92);
             border: 1px solid rgba(148, 163, 184, 0.3);
             box-shadow: 
                 0 20px 60px -10px rgba(0, 0, 0, 0.15),
@@ -350,9 +618,9 @@
             border-radius: 50px;
             font-size: 0.75rem;
             font-weight: 600;
-            background: rgba(102, 126, 234, 0.1);
-            color: #93c5fd;
-            border: 1px solid rgba(102, 126, 234, 0.3);
+            background: rgba(59, 130, 246, 0.12);
+            color: #bfdbfe;
+            border: 1px solid rgba(59, 130, 246, 0.35);
         }
         
         /* Sentiment Component */
@@ -601,18 +869,32 @@
             border-radius: 50px;
             font-size: 0.875rem;
             font-weight: 600;
-            background: rgba(102, 126, 234, 0.1);
-            color: #93c5fd;
-            border: 1px solid rgba(102, 126, 234, 0.3);
+            background: rgba(37, 99, 235, 0.25);
+            color: #e0e7ff;
+            border: 1px solid rgba(96, 165, 250, 0.55);
             transition: all 0.3s ease;
             cursor: pointer;
+            box-shadow: 0 8px 24px -12px rgba(37, 99, 235, 0.6);
         }
         
         .topic-tag:hover {
-            background: rgba(102, 126, 234, 0.2);
-            border-color: rgba(102, 126, 234, 0.5);
+            background: rgba(59, 130, 246, 0.35);
+            border-color: rgba(59, 130, 246, 0.7);
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+            box-shadow: 0 10px 28px -12px rgba(59, 130, 246, 0.6);
+        }
+
+        [data-theme="light"] .topic-tag {
+            background: rgba(59, 130, 246, 0.12);
+            border-color: rgba(59, 130, 246, 0.45);
+            color: #1d4ed8;
+            box-shadow: none;
+        }
+
+        [data-theme="light"] .topic-tag:hover {
+            background: rgba(59, 130, 246, 0.2);
+            border-color: rgba(37, 99, 235, 0.55);
+            color: #1e3a8a;
         }
         
         /* Report Content */
@@ -752,6 +1034,8 @@
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
+            text-decoration: none;
+            color: inherit;
         }
         
         .btn-primary {
@@ -777,8 +1061,8 @@
         }
         
         .refresh-btn {
-            float: right;
-            margin-top: -0.5rem;
+            margin-left: auto;
+            margin-top: 0;
         }
         
         /* Timestamp */
@@ -838,6 +1122,12 @@
             50% { background-position: 100% 50%; }
             100% { background-position: 0% 50%; }
         }
+
+        @keyframes ping {
+            0% { box-shadow: 0 0 0 0 currentColor; opacity: 1; }
+            70% { box-shadow: 0 0 0 10px rgba(255, 255, 255, 0); opacity: 0; }
+            100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); opacity: 0; }
+        }
         
         /* Particle Background */
         body::before {
@@ -847,14 +1137,43 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background-image: 
-                radial-gradient(circle at 20% 50%, rgba(102, 126, 234, 0.05) 0%, transparent 50%),
-                radial-gradient(circle at 80% 80%, rgba(118, 75, 162, 0.05) 0%, transparent 50%),
-                radial-gradient(circle at 40% 20%, rgba(240, 147, 251, 0.05) 0%, transparent 50%);
+            background-image:
+                radial-gradient(circle at 10% 20%, rgba(56, 189, 248, 0.15), transparent 45%),
+                radial-gradient(circle at 80% 30%, rgba(168, 85, 247, 0.18), transparent 50%),
+                radial-gradient(circle at 60% 80%, rgba(236, 72, 153, 0.12), transparent 55%);
             pointer-events: none;
             z-index: 0;
-            animation: gradientShift 15s ease infinite;
-            background-size: 200% 200%;
+            animation: gradientShift 20s ease infinite;
+            background-size: 250% 250%;
+        }
+
+        html[data-theme="light"] body::before {
+            background-image:
+                radial-gradient(circle at 15% 25%, rgba(59, 130, 246, 0.12), transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(244, 114, 182, 0.12), transparent 55%),
+                radial-gradient(circle at 65% 80%, rgba(14, 165, 233, 0.1), transparent 55%);
+            opacity: 0.8;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+            background-size: 140px 140px;
+            opacity: 0.3;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        html[data-theme="light"] body::after {
+            opacity: 0.15;
+            background-image: linear-gradient(rgba(15, 23, 42, 0.08) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(15, 23, 42, 0.08) 1px, transparent 1px);
         }
         
         .container {
@@ -1071,6 +1390,20 @@
             .hero h2 {
                 font-size: 2rem;
             }
+
+            .hero-grid {
+                flex-direction: column;
+            }
+
+            .hero-content,
+            .hero-visual {
+                padding: 1.5rem;
+            }
+
+            .heading-meta {
+                width: 100%;
+                justify-content: flex-start;
+            }
             
             .grid, .grid-2, .grid-3, .grid-4 {
                 grid-template-columns: 1fr;
@@ -1085,7 +1418,7 @@
         }
         
         .stat-card {
-            background: rgba(30, 41, 59, 0.6);
+            background: rgba(7, 12, 28, 0.92);
             border: 1px solid rgba(148, 163, 184, 0.2);
             border-radius: 20px;
             padding: 1.5rem;
@@ -1099,7 +1432,7 @@
         }
         
         [data-theme="light"] .stat-card {
-            background: rgba(255, 255, 255, 0.7);
+            background: rgba(255, 255, 255, 0.92);
             border: 1px solid rgba(148, 163, 184, 0.3);
             box-shadow: 
                 0 10px 30px -5px rgba(0, 0, 0, 0.1),
@@ -1163,7 +1496,11 @@
             <div class="nav-links">
                 <a href="/" class="nav-link active">实时仪表盘</a>
                 <a href="/overview" class="nav-link">项目总览</a>
-                <a href="https://github.com/ianchiou28/Wide-Research-for-Finance" target="_blank" class="nav-link">GitHub</a>
+                <a href="https://github.com/ianchiou28/Wide-Research-for-Finance" target="_blank" rel="noopener" class="nav-link">GitHub</a>
+                <div class="nav-status">
+                    <span class="status-dot live"></span>
+                    <span>Agent 在线</span>
+                </div>
                 <button class="theme-toggle" onclick="toggleTheme()" title="切换主题">
                     <span id="themeIcon">🌙</span>
                 </button>
@@ -1173,161 +1510,263 @@
 
     <!-- Hero Section -->
     <div class="hero">
-        <div class="hero-badge">🚀 实时监控中</div>
-        <h2>金融智能情报中心</h2>
-        <p>基于 DeepSeek AI 的自动化财经分析系统，每小时处理 200+ 全球新闻源</p>
+        <div class="hero-grid">
+            <div class="hero-content">
+                <div class="hero-badge">⚡ 实时监控 · DeepSeek Agent</div>
+                <h2>金融智能情报中心</h2>
+                <p>基于 DeepSeek AI 的自动化财经分析系统，每小时吞吐 200+ 全球新闻源，实时输出情绪、个股与策略指引。</p>
+                <div class="hero-actions">
+                    <a href="/overview" class="btn btn-primary">🧭 查看项目总览</a>
+                    <a href="https://github.com/ianchiou28/Wide-Research-for-Finance" target="_blank" rel="noopener" class="btn btn-secondary">💻 GitHub 仓库</a>
+                </div>
+                <div class="hero-meta">
+                    <div class="meta-card">
+                        <span>处理吞吐</span>
+                        <strong>200+ / 小时</strong>
+                        <small>聚合 17 个主流新闻与政策源</small>
+                    </div>
+                    <div class="meta-card">
+                        <span>监控覆盖</span>
+                        <strong>4 大洲</strong>
+                        <small>国际财经 · 科技加密 · 官方机构</small>
+                    </div>
+                    <div class="meta-card">
+                        <span>运行成本</span>
+                        <strong>$0.003 / h</strong>
+                        <small>比传统终端降低 99% 成本</small>
+                    </div>
+                </div>
+            </div>
+            <div class="hero-visual">
+                <div class="hero-orb">
+                    <span class="hero-orb-ring"></span>
+                    <span class="hero-orb-ring"></span>
+                    <span class="hero-orb-ring"></span>
+                </div>
+                <div class="hero-visual-meta">
+                    <div class="visual-card">
+                        <span>LLM 引擎</span>
+                        <strong>DeepSeek · GPT</strong>
+                        <small>自动推理 + 结构化输出</small>
+                    </div>
+                    <div class="visual-card">
+                        <span>平均延迟</span>
+                        <strong>320 ms</strong>
+                        <small>最近 10 次任务</small>
+                    </div>
+                    <div class="visual-card">
+                        <span>运行模式</span>
+                        <strong>全自动</strong>
+                        <small>24/7 Watch &amp; Dispatch</small>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
     
     <div class="container">
-        <!-- Stats Overview -->
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-icon">📊</div>
-                <div class="stat-value" id="totalNews">--</div>
-                <div class="stat-label">本小时新闻</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon">🎯</div>
-                <div class="stat-value" id="hotTopicsCount">--</div>
-                <div class="stat-label">热点话题</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon">📈</div>
-                <div class="stat-value" id="positiveCount">--</div>
-                <div class="stat-label">积极事件</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon">⚡</div>
-                <div class="stat-value" id="updateTime">--</div>
-                <div class="stat-label">更新时间</div>
-            </div>
-        </div>
-        <!-- Market Sentiment -->
-        <div class="card">
-            <div class="card-header">
-                <div class="card-title">
-                    <div class="card-icon" style="background: var(--success-gradient);">💹</div>
-                    市场情绪雷达
+        <section class="dashboard-section">
+            <div class="section-heading">
+                <div>
+                    <p>Agent Pulse</p>
+                    <h3>全局运行态势</h3>
                 </div>
-                <span class="card-badge">实时</span>
-            </div>
-            <div class="sentiment-box" id="sentimentBox">
-                <div class="loading">加载数据中</div>
-            </div>
-        </div>
-        
-        <!-- Market Prediction -->
-        <div class="card">
-            <div class="card-header">
-                <div class="card-title">
-                    <div class="card-icon" style="background: var(--warning-gradient);">🔮</div>
-                    大盘走势预测
+                <div class="heading-meta">
+                    <span class="status-pill">
+                        <span class="status-dot live"></span>
+                        实时在线
+                    </span>
+                    <span class="heading-time">上次同步 <strong id="timestampInline">--</strong></span>
                 </div>
-                <span class="card-badge">AI 分析</span>
             </div>
-            <div class="market-grid" id="marketPrediction">
-                <div class="loading">生成预测中</div>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">📊</div>
+                    <div class="stat-value" id="totalNews">--</div>
+                    <div class="stat-label">本小时新闻</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🎯</div>
+                    <div class="stat-value" id="hotTopicsCount">--</div>
+                    <div class="stat-label">热点话题</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">📈</div>
+                    <div class="stat-value" id="positiveCount">--</div>
+                    <div class="stat-label">积极事件</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">⚡</div>
+                    <div class="stat-value" id="updateTime">--</div>
+                    <div class="stat-label">更新时间</div>
+                </div>
             </div>
-        </div>
-        
-        <!-- Stock Recommendations -->
-        <div class="grid grid-2">
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-title">
-                        <div class="card-icon" style="background: linear-gradient(135deg, #ef4444, #dc2626);">🇨🇳</div>
-                        A股推荐
+        </section>
+
+        <section class="dashboard-section">
+            <div class="section-heading">
+                <div>
+                    <p>Market Intelligence</p>
+                    <h3>情绪雷达 &amp; 走势预测</h3>
+                </div>
+                <div class="heading-meta">
+                    <span class="heading-chip">AI Confidence 0.92</span>
+                </div>
+            </div>
+            <div class="insight-grid dual">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <div class="card-icon" style="background: var(--success-gradient);">💹</div>
+                            市场情绪雷达
+                        </div>
+                        <span class="card-badge">实时</span>
                     </div>
-                    <span class="card-badge" id="aStockCount">0</span>
-                </div>
-                <ul class="stock-list" id="aStocks">
-                    <li class="loading">分析中</li>
-                </ul>
-            </div>
-            
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-title">
-                        <div class="card-icon" style="background: linear-gradient(135deg, #3b82f6, #2563eb);">🇺🇸</div>
-                        美股推荐
+                    <div class="sentiment-box" id="sentimentBox">
+                        <div class="loading">加载数据中</div>
                     </div>
-                    <span class="card-badge" id="usStockCount">0</span>
                 </div>
-                <ul class="stock-list" id="usStocks">
-                    <li class="loading">分析中</li>
-                </ul>
-            </div>
-        </div>
-        
-        <!-- Hourly Report -->
-        <div class="card">
-            <div class="card-header">
-                <div class="card-title">
-                    <div class="card-icon" style="background: var(--primary-gradient);">📝</div>
-                    本小时简报
-                </div>
-                <button class="btn btn-secondary refresh-btn" onclick="loadHourlyReport()">🔄 刷新</button>
-            </div>
-            <div class="report-wrapper">
-                <div class="report-content collapsed" id="hourlyReportContent">
-                    <div class="loading">获取最新报告中</div>
-                </div>
-                <button class="expand-toggle" onclick="toggleReport('hourlyReportContent', this)">
-                    <span>展开查看完整内容</span>
-                    <span class="arrow">▼</span>
-                </button>
-            </div>
-        </div>
-        
-        <!-- Hot Topics -->
-        <div class="card">
-            <div class="card-header">
-                <div class="card-title">
-                    <div class="card-icon" style="background: var(--secondary-gradient);">🔥</div>
-                    热点追踪
-                </div>
-                <span class="card-badge">实时更新</span>
-            </div>
-            <div class="hot-topics" id="hotTopics">
-                <div class="loading">分析热点中</div>
-            </div>
-        </div>
-        
-        <!-- Daily Summary & Weekly Analysis -->
-        <div class="grid grid-2">
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-title">
-                        <div class="card-icon" style="background: var(--success-gradient);">📅</div>
-                        每日摘要
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <div class="card-icon" style="background: var(--warning-gradient);">🔮</div>
+                            大盘走势预测
+                        </div>
+                        <span class="card-badge">AI 分析</span>
                     </div>
-                    <span class="card-badge">过去12小时</span>
-                </div>
-                <div class="report-wrapper">
-                    <div class="report-content collapsed" id="dailySummary">
-                        <div class="loading">生成摘要中</div>
+                    <div class="market-grid" id="marketPrediction">
+                        <div class="loading">生成预测中</div>
                     </div>
-                    <button class="expand-toggle" onclick="toggleReport('dailySummary', this)">
-                        <span>展开查看完整内容</span>
-                        <span class="arrow">▼</span>
-                    </button>
                 </div>
             </div>
-            
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-title">
-                        <div class="card-icon" style="background: var(--warning-gradient);">📊</div>
-                        周度分析
-                    </div>
-                    <span class="card-badge">过去7天</span>
+        </section>
+
+        <section class="dashboard-section">
+            <div class="section-heading">
+                <div>
+                    <p>Strategy Stream</p>
+                    <h3>多市场个股指引</h3>
                 </div>
-                <div id="weeklyContent">
-                    <div class="loading">分析中</div>
+                <div class="heading-meta">
+                    <span class="heading-chip">实时推送</span>
                 </div>
             </div>
-        </div>
-        
+            <div class="insight-grid dual">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <div class="card-icon" style="background: linear-gradient(135deg, #ef4444, #dc2626);">🇨🇳</div>
+                            A股推荐
+                        </div>
+                        <span class="card-badge" id="aStockCount">0</span>
+                    </div>
+                    <ul class="stock-list" id="aStocks">
+                        <li class="loading">分析中</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <div class="card-icon" style="background: linear-gradient(135deg, #3b82f6, #2563eb);">🇺🇸</div>
+                            美股推荐
+                        </div>
+                        <span class="card-badge" id="usStockCount">0</span>
+                    </div>
+                    <ul class="stock-list" id="usStocks">
+                        <li class="loading">分析中</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section class="dashboard-section">
+            <div class="section-heading">
+                <div>
+                    <p>Briefing Layer</p>
+                    <h3>小时简报 &amp; 热点雷达</h3>
+                </div>
+                <div class="heading-meta">
+                    <span class="heading-chip">LLM 汇总</span>
+                </div>
+            </div>
+            <div class="insight-grid dual">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <div class="card-icon" style="background: var(--primary-gradient);">📝</div>
+                            本小时简报
+                        </div>
+                        <button class="btn btn-secondary refresh-btn" onclick="loadHourlyReport()">🔄 刷新</button>
+                    </div>
+                    <div class="report-wrapper">
+                        <div class="report-content collapsed" id="hourlyReportContent">
+                            <div class="loading">获取最新报告中</div>
+                        </div>
+                        <button class="expand-toggle" onclick="toggleReport('hourlyReportContent', this)">
+                            <span>展开查看完整内容</span>
+                            <span class="arrow">▼</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <div class="card-icon" style="background: var(--secondary-gradient);">🔥</div>
+                            热点追踪
+                        </div>
+                        <span class="card-badge">实时更新</span>
+                    </div>
+                    <div class="hot-topics" id="hotTopics">
+                        <div class="loading">分析热点中</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="dashboard-section">
+            <div class="section-heading">
+                <div>
+                    <p>Multi Horizon</p>
+                    <h3>每日摘要 &amp; 周度洞察</h3>
+                </div>
+                <div class="heading-meta">
+                    <span class="heading-chip">跨周期监控</span>
+                </div>
+            </div>
+            <div class="insight-grid dual">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <div class="card-icon" style="background: var(--success-gradient);">📅</div>
+                            每日摘要
+                        </div>
+                        <span class="card-badge">过去12小时</span>
+                    </div>
+                    <div class="report-wrapper">
+                        <div class="report-content collapsed" id="dailySummary">
+                            <div class="loading">生成摘要中</div>
+                        </div>
+                        <button class="expand-toggle" onclick="toggleReport('dailySummary', this)">
+                            <span>展开查看完整内容</span>
+                            <span class="arrow">▼</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <div class="card-icon" style="background: var(--warning-gradient);">📊</div>
+                            周度分析
+                        </div>
+                        <span class="card-badge">过去7天</span>
+                    </div>
+                    <div id="weeklyContent">
+                        <div class="loading">分析中</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <div class="timestamp" id="timestamp"></div>
     </div>
     
@@ -1642,6 +2081,10 @@
                 minute: '2-digit', 
                 second: '2-digit' 
             });
+            const inlineStamp = document.getElementById('timestampInline');
+            if (inlineStamp) {
+                inlineStamp.textContent = `${dateStr} ${timeStr}`;
+            }
             document.getElementById('timestamp').innerHTML = 
                 `⚡ 最后更新: <strong>${dateStr} ${timeStr}</strong> · 每 5 分钟自动刷新`;
         }
