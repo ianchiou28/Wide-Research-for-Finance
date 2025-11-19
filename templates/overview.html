@@ -44,6 +44,7 @@
                         var(--bg-primary);
             padding: 80px 6% 60px;
             border-bottom: 1px solid var(--border-color);
+            margin-top: 80px;
         }
         .hero-content {
             max-width: 720px;
@@ -83,6 +84,283 @@
             background: rgba(102, 126, 234, 0.1);
             border-color: rgba(102, 126, 234, 0.5);
         }
+        .hero-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.1fr) minmax(260px, 0.9fr);
+            gap: clamp(1.5rem, 3vw, 2.75rem);
+            padding: clamp(1.75rem, 4vw, 3.25rem);
+            border-radius: 34px;
+            background: rgba(15, 20, 40, 0.92);
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            box-shadow: 0 40px 90px -40px rgba(2, 6, 23, 0.8);
+            backdrop-filter: blur(32px) saturate(180%);
+            -webkit-backdrop-filter: blur(32px) saturate(180%);
+            position: relative;
+            overflow: hidden;
+            margin: 2.5rem auto 0;
+            max-width: 1400px;
+        }
+
+        .hero-grid::after {
+            content: '';
+            position: absolute;
+            inset: 24px;
+            border-radius: 28px;
+            border: 1px dashed rgba(148, 163, 184, 0.2);
+            pointer-events: none;
+        }
+
+        [data-theme="light"] .hero-grid {
+            background: rgba(255, 255, 255, 0.96);
+            border-color: rgba(148, 163, 184, 0.35);
+            box-shadow: 0 40px 80px -45px rgba(15, 23, 42, 0.2);
+        }
+
+        .hero-grid .hero-content {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-grid h2 {
+            font-size: clamp(2.3rem, 3.5vw, 3.3rem);
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            margin: 0;
+            background: linear-gradient(120deg, #f5a5ff, #9bb7ff, #8be7ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            filter: drop-shadow(0 0 35px rgba(99, 102, 241, 0.35));
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.45rem 1rem;
+            border-radius: 999px;
+            border: 1px solid rgba(59, 130, 246, 0.4);
+            background: rgba(59, 130, 246, 0.12);
+            font-size: 0.78rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: #93c5fd;
+        }
+
+        .hero-grid p {
+            margin: 0;
+            color: var(--text-secondary);
+        }
+
+        .hero-meta {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 1rem;
+        }
+
+        .meta-card {
+            border-radius: 20px;
+            border: 1px solid rgba(148, 163, 184, 0.28);
+            background: rgba(11, 16, 36, 0.85);
+            padding: 1.1rem;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+
+        [data-theme="light"] .meta-card {
+            background: rgba(255, 255, 255, 0.85);
+            border-color: rgba(148, 163, 184, 0.35);
+        }
+
+        .meta-card span {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+        }
+
+        .meta-card strong {
+            display: block;
+            margin: 0.35rem 0;
+            font-size: 1.4rem;
+            color: var(--text-primary);
+        }
+
+        .meta-card small {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .hero-visual {
+            position: relative;
+            border-radius: 28px;
+            padding: 2rem 1.5rem 1.5rem;
+            background: radial-gradient(circle at top, rgba(59, 130, 246, 0.15), transparent 55%), rgba(3, 7, 19, 0.9);
+            border: 1px solid rgba(59, 130, 246, 0.35);
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        [data-theme="light"] .hero-visual {
+            background: radial-gradient(circle at top, rgba(59, 130, 246, 0.18), transparent 55%), rgba(255, 255, 255, 0.9);
+        }
+
+        .hero-orb {
+            width: min(280px, 80%);
+            aspect-ratio: 1 / 1;
+            border-radius: 50%;
+            margin: 0 auto 1.5rem;
+            position: relative;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.45), transparent 70%);
+            overflow: visible;
+        }
+
+        .hero-orb::after {
+            content: '';
+            position: absolute;
+            inset: 25%;
+            border-radius: 50%;
+            background: radial-gradient(circle, #5eead4, #2563eb);
+            box-shadow: 0 0 35px rgba(94, 234, 212, 0.5);
+            z-index: -1;
+        }
+
+        .hero-orb-ring {
+            position: absolute;
+            inset: 8px;
+            border-radius: 50%;
+            border: 1px solid rgba(94, 234, 212, 0.4);
+            animation: rotateOrb 16s linear infinite;
+        }
+
+        .hero-orb-ring:nth-child(2) { inset: 28px; animation-duration: 20s; border-color: rgba(167, 139, 250, 0.4); }
+        .hero-orb-ring:nth-child(3) { inset: 48px; animation-duration: 24s; border-color: rgba(248, 113, 113, 0.35); }
+
+        .hero-orb-hotspots {
+            position: absolute;
+            inset: -16px;
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .hero-orb-hotspot {
+            --orbit-radius: 150px;
+            --start-angle: 0deg;
+            --offset: 0deg;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform-origin: center;
+            transform: translate(-50%, -50%) rotate(var(--start-angle, 0deg)) translate(var(--orbit-radius)) rotate(calc(var(--offset, 0deg) - var(--start-angle, 0deg)));
+            animation: orbitSpin var(--speed, 20s) linear infinite;
+            animation-delay: var(--delay, 0s);
+            animation-timing-function: linear;
+        }
+
+        .hero-orb-hotspot-empty {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+
+        .hero-orb-hotspot .hotspot-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.35rem 0.85rem;
+            border-radius: 999px;
+            background: rgba(5, 10, 28, 0.9);
+            border: 1px solid rgba(94, 234, 212, 0.45);
+            font-size: 0.78rem;
+            color: #e0f2fe;
+            text-shadow: 0 0 8px rgba(94, 234, 212, 0.45);
+            box-shadow: 0 10px 25px -12px rgba(94, 234, 212, 0.6);
+            animation: hotspotGlow 3.5s ease-in-out infinite;
+            animation-delay: var(--delay, 0s);
+        }
+
+        [data-theme="light"] .hero-orb-hotspot .hotspot-chip {
+            background: rgba(255, 255, 255, 0.9);
+            color: #0f172a;
+        }
+
+        .hotspot-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #5eead4;
+            box-shadow: 0 0 14px rgba(94, 234, 212, 0.9);
+            animation: hotspotPulse 2s ease-in-out infinite;
+        }
+
+        .hero-visual-meta {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 1rem;
+        }
+
+        .visual-card {
+            border-radius: 18px;
+            padding: 1rem;
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            background: rgba(8, 12, 28, 0.85);
+        }
+
+        [data-theme="light"] .visual-card {
+            background: rgba(255, 255, 255, 0.85);
+            border-color: rgba(148, 163, 184, 0.35);
+        }
+
+        .visual-card span {
+            font-size: 0.75rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        .visual-card strong {
+            display: block;
+            margin: 0.4rem 0;
+            font-size: 1.2rem;
+            color: var(--text-primary);
+        }
+
+        .visual-card small {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        @keyframes rotateOrb {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes hotspotPulse {
+            0%, 100% { transform: scale(1); opacity: 0.9; }
+            50% { transform: scale(1.4); opacity: 1; }
+        }
+
+        @keyframes hotspotGlow {
+            0%, 100% { box-shadow: 0 10px 25px -12px rgba(94, 234, 212, 0.4); }
+            50% { box-shadow: 0 15px 30px -12px rgba(94, 234, 212, 0.7); }
+        }
+
+        @keyframes orbitSpin {
+            from {
+                transform: translate(-50%, -50%) rotate(var(--start-angle, 0deg)) translate(var(--orbit-radius)) rotate(calc(var(--offset, 0deg) - var(--start-angle, 0deg)));
+            }
+            to {
+                transform: translate(-50%, -50%) rotate(calc(var(--start-angle, 0deg) + 360deg)) translate(var(--orbit-radius)) rotate(calc(var(--offset, 0deg) - var(--start-angle, 0deg) - 360deg));
+            }
+        }
+
         .metrics-ribbon {
             margin-top: 50px;
             display: grid;
@@ -352,6 +630,7 @@
             box-shadow: 
                 0 10px 30px -5px rgba(0, 0, 0, 0.3),
                 inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            overflow: hidden;
         }
         
         [data-theme="light"] .tile {
@@ -362,6 +641,7 @@
                 inset 0 1px 0 rgba(255, 255, 255, 0.8);
         }
         .tile h4 { margin-bottom: 16px; font-size: 1.1rem; color: var(--text-primary); }
+        .tile * { overflow-wrap: anywhere; word-break: break-word; }
         .sentiment-bars { margin-top: 8px; display: flex; flex-direction: column; gap: 12px; }
         .bar-label { display: flex; justify-content: space-between; font-size: 0.9rem; color: var(--text-primary); }
         .bar-track {
@@ -396,6 +676,7 @@
             font-size: 0.85rem;
             color: var(--text-primary);
             white-space: pre-line;
+            overflow-y: auto;
             flex: 1;
             border: 1px solid var(--border-color);
             transition: all 0.3s ease;
@@ -749,35 +1030,96 @@
         .metric-card:nth-child(4) .metric-value { animation-delay: 0.4s; }
         
         /* Enhanced Navigation */
-        nav {
-            background: rgba(15, 23, 42, 0.8) !important;
-            backdrop-filter: blur(40px) saturate(180%) !important;
-            -webkit-backdrop-filter: blur(40px) saturate(180%) !important;
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            border-bottom: 1px solid var(--border-color);
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(32px) saturate(180%);
+            -webkit-backdrop-filter: blur(32px) saturate(180%);
             box-shadow: 
                 0 4px 30px rgba(0, 0, 0, 0.2),
-                inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
-            transition: box-shadow 0.3s ease;
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            transition: box-shadow 0.3s ease, background 0.3s ease;
         }
-        
-        [data-theme="light"] nav {
-            background: rgba(248, 250, 252, 0.8) !important;
+
+        [data-theme="light"] .navbar {
+            background: rgba(248, 250, 252, 0.92);
             box-shadow: 
                 0 4px 30px rgba(0, 0, 0, 0.08),
-                inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+                inset 0 1px 0 rgba(255, 255, 255, 0.9);
         }
-        
-        nav:hover {
+
+        .navbar:hover {
             box-shadow: 
                 0 8px 40px rgba(102, 126, 234, 0.2),
-                inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+                inset 0 1px 0 rgba(255, 255, 255, 0.08);
         }
-        
-        nav a {
+
+        .nav-container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .nav-logo {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 1.1rem;
+            color: white;
+            box-shadow: 0 10px 30px -10px rgba(102, 126, 234, 0.8);
+        }
+
+        .nav-title h1 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin: 0;
+            color: var(--text-primary);
+        }
+
+        .nav-title p {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin: 0;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .nav-link {
             position: relative;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            text-decoration: none;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        
-        nav a::after {
+
+        .nav-link:hover::after {
             content: '';
             position: absolute;
             bottom: -2px;
@@ -788,9 +1130,16 @@
             transform: translateX(-50%);
             transition: width 0.3s ease;
         }
-        
-        nav a:hover::after {
+
+        .nav-link:hover::after,
+        .nav-link.active::after {
             width: 80%;
+        }
+
+        .nav-link.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 10px 25px -10px rgba(102, 126, 234, 0.65);
         }
         
         /* Theme Toggle Enhancement */
@@ -837,26 +1186,31 @@
         /* Responsive */
         @media (max-width: 640px) {
             .hero-actions { flex-direction: column; }
+            .hero-grid { grid-template-columns: 1fr; margin-top: 1.5rem; }
+            .hero-grid .hero-content,
+            .hero-visual { padding: 1.5rem; }
             .section { padding: 28px; }
-            nav > div { flex-direction: column !important; gap: 1rem !important; }
+            .navbar .nav-container { flex-direction: column; gap: 1rem; }
+            .nav-links { width: 100%; justify-content: space-between; flex-wrap: wrap; }
+            .hero-orb-hotspot { --orbit-radius: 110px; }
         }
     </style>
 </head>
 <body>
     <!-- Navigation -->
-    <nav style="position: sticky; top: 0; z-index: 1000; background: var(--bg-primary); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border-color); opacity: 0.98;">
-        <div style="max-width: 1600px; margin: 0 auto; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center;">
-            <div style="display: flex; align-items: center; gap: 1rem;">
-                <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.2rem; color: white;">WR</div>
-                <div>
-                    <h1 style="font-size: 1.25rem; font-weight: 700; margin: 0; color: var(--text-primary);">Wide Research</h1>
-                    <p style="font-size: 0.75rem; color: var(--text-muted); margin: 0;">AI Financial Intelligence</p>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <div class="nav-logo">WR</div>
+                <div class="nav-title">
+                    <h1>Wide Research</h1>
+                    <p>AI Financial Intelligence</p>
                 </div>
             </div>
-            <div style="display: flex; gap: 1rem; align-items: center;">
-                <a href="/" style="padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.875rem; font-weight: 500; color: var(--text-secondary); text-decoration: none; transition: all 0.3s ease;">实时仪表盘</a>
-                <a href="/overview" style="padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.875rem; font-weight: 500; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none;">项目总览</a>
-                <a href="https://github.com/ianchiou28/Wide-Research-for-Finance" target="_blank" style="padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.875rem; font-weight: 500; color: var(--text-secondary); text-decoration: none; transition: all 0.3s ease;">GitHub</a>
+            <div class="nav-links">
+                <a href="/" class="nav-link">实时仪表盘</a>
+                <a href="/overview" class="nav-link active">项目总览</a>
+                <a href="https://github.com/ianchiou28/Wide-Research-for-Finance" class="nav-link" target="_blank" rel="noopener">GitHub</a>
                 <button class="theme-toggle" onclick="toggleTheme()" title="切换主题">
                     <span id="themeIcon">🌙</span>
                 </button>
@@ -872,6 +1226,55 @@
             <div class="hero-actions">
                 <a href="/" class="btn primary">📊 查看实时仪表盘</a>
                 <a href="https://github.com/ianchiou28/Wide-Research-for-Finance" target="_blank" rel="noopener" class="btn secondary">💻 GitHub 项目</a>
+            </div>
+        </div>
+        <div class="hero-grid">
+            <div class="hero-content">
+                <div class="hero-badge">⚡ 实时监控 · DeepSeek Agent</div>
+                <h2>金融智能情报中心</h2>
+                <p>基于 DeepSeek AI 的自动化财经分析系统，每小时吞吐 200+ 全球新闻源，实时输出情绪、个股与策略指引。</p>
+                <div class="hero-meta">
+                    <div class="meta-card">
+                        <span>处理吞吐</span>
+                        <strong>200+ / 小时</strong>
+                        <small>聚合 17 个主流新闻与政策源</small>
+                    </div>
+                    <div class="meta-card">
+                        <span>监控覆盖</span>
+                        <strong>4 大洲</strong>
+                        <small>国际财经 · 科技加密 · 官方机构</small>
+                    </div>
+                    <div class="meta-card">
+                        <span>运行成本</span>
+                        <strong>$0.003 / h</strong>
+                        <small>比传统终端降低 99% 成本</small>
+                    </div>
+                </div>
+            </div>
+            <div class="hero-visual">
+                <div class="hero-orb">
+                    <span class="hero-orb-ring"></span>
+                    <span class="hero-orb-ring"></span>
+                    <span class="hero-orb-ring"></span>
+                    <div class="hero-orb-hotspots" id="orbHotspots"></div>
+                </div>
+                <div class="hero-visual-meta">
+                    <div class="visual-card">
+                        <span>LLM 引擎</span>
+                        <strong>DeepSeek · GPT</strong>
+                        <small>自动推理 + 结构化输出</small>
+                    </div>
+                    <div class="visual-card">
+                        <span>平均延迟</span>
+                        <strong>320 ms</strong>
+                        <small>最近 10 次任务</small>
+                    </div>
+                    <div class="visual-card">
+                        <span>运行模式</span>
+                        <strong>全自动</strong>
+                        <small>24/7 Watch &amp; Dispatch</small>
+                    </div>
+                </div>
             </div>
         </div>
         <div class="metrics-ribbon">
@@ -1080,6 +1483,9 @@
         const hourlyRaw = document.getElementById('hourlyRaw');
         const weeklyList = document.getElementById('weeklyList');
         const updatedAt = document.getElementById('updatedAt');
+        const orbHotspots = document.getElementById('orbHotspots');
+        const HOTSPOT_COLORS = ['#5eead4', '#a5b4fc', '#f472b6', '#fbbf24', '#34d399', '#60a5fa'];
+        const HOTSPOT_SPEED = 22; // seconds per orbit
 
         const clamp = (value) => Math.max(-1, Math.min(1, value ?? 0));
 
@@ -1111,10 +1517,52 @@
             sentimentBox.innerHTML = `<div class="sentiment-bars">${bars}</div>`;
         }
 
+        function renderHeroHotspots(topics) {
+            if (!orbHotspots) return;
+            orbHotspots.innerHTML = '';
+
+            const list = Array.isArray(topics)
+                ? topics.filter(item => typeof item === 'string' && item.trim())
+                : [];
+            const count = Math.min(list.length, 6);
+
+            if (!count) {
+                const fallback = document.createElement('div');
+                fallback.className = 'hero-orb-hotspot-empty';
+                fallback.textContent = '等待热点...';
+                orbHotspots.appendChild(fallback);
+                return;
+            }
+
+            const angleStep = 360 / count;
+            list.slice(0, count).forEach((topic, index) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'hero-orb-hotspot';
+                wrapper.style.setProperty('--start-angle', `${(angleStep * index).toFixed(2)}deg`);
+                wrapper.style.setProperty('--orbit-radius', '150px');
+                wrapper.style.setProperty('--speed', `${HOTSPOT_SPEED}s`);
+                wrapper.style.setProperty('--delay', `${(index * 0.4).toFixed(2)}s`);
+
+                const chip = document.createElement('span');
+                chip.className = 'hotspot-chip';
+
+                const dot = document.createElement('span');
+                dot.className = 'hotspot-dot';
+                dot.style.background = HOTSPOT_COLORS[index % HOTSPOT_COLORS.length];
+
+                chip.appendChild(dot);
+                chip.append(topic.trim());
+
+                wrapper.appendChild(chip);
+                orbHotspots.appendChild(wrapper);
+            });
+        }
+
         function renderHourly(data) {
             if (!data) {
                 newsSummary.innerHTML = '<p>暂无简报。</p>';
                 hourlyRaw.textContent = '暂无内容';
+                renderHeroHotspots([]);
                 return;
             }
             const topics = data.hot_topics?.length
@@ -1131,6 +1579,7 @@
                 <div class="kpi-detail">更新时间：${data.timestamp || '未知'}</div>
             `;
             hourlyRaw.textContent = snippet;
+            renderHeroHotspots(data.hot_topics || []);
         }
 
         function renderWeekly(analysis) {
@@ -1207,6 +1656,7 @@
             }
         }
 
+        renderHeroHotspots([]);
         loadOverview();
         setInterval(loadOverview, 5 * 60 * 1000);
         

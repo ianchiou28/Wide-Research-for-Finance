@@ -125,52 +125,57 @@
         .hero::before {
             content: '';
             position: absolute;
-            inset: -60px;
-            background: radial-gradient(circle at 10% 5%, rgba(59, 130, 246, 0.25), transparent 55%);
+            top: -90px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: min(1200px, calc(100% + 220px));
+            height: calc(100% + 180px);
+            border-radius: 80px;
+            background: radial-gradient(circle at 50% 15%, rgba(59, 130, 246, 0.25), transparent 65%);
             pointer-events: none;
             animation: pulse 10s ease-in-out infinite;
+            z-index: 0;
         }
 
         html[data-theme="light"] .hero::before {
-            background: radial-gradient(circle at 10% 5%, rgba(99, 102, 241, 0.18), transparent 60%);
+            background: radial-gradient(circle at 50% 15%, rgba(99, 102, 241, 0.18), transparent 65%);
         }
 
-        .hero-grid {
-            display: grid;
-            grid-template-columns: minmax(0, 1.1fr) minmax(260px, 0.9fr);
-            gap: clamp(1.5rem, 3vw, 2.75rem);
-            padding: clamp(1.75rem, 4vw, 3.25rem);
-            border-radius: 34px;
-            background: rgba(4, 8, 22, 0.92);
+        .hero-simple {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: clamp(1.75rem, 4vw, 3rem);
+            border-radius: 30px;
             border: 1px solid rgba(148, 163, 184, 0.28);
-            box-shadow: 0 40px 90px -40px rgba(2, 6, 23, 0.9);
-            backdrop-filter: blur(30px) saturate(180%);
-            -webkit-backdrop-filter: blur(30px) saturate(180%);
+            background: rgba(4, 8, 22, 0.85);
+            box-shadow: 0 35px 80px -35px rgba(2, 6, 23, 0.85);
+            backdrop-filter: blur(28px) saturate(180%);
+            -webkit-backdrop-filter: blur(28px) saturate(180%);
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
             position: relative;
             overflow: hidden;
         }
 
-        .hero-grid::after {
+        .hero-simple::after {
             content: '';
             position: absolute;
-            inset: 24px;
-            border-radius: 28px;
-            border: 1px dashed rgba(148, 163, 184, 0.2);
+            inset: 18px;
+            border-radius: 24px;
+            border: 1px dashed rgba(148, 163, 184, 0.22);
             pointer-events: none;
         }
 
-        [data-theme="light"] .hero-grid {
-            background: rgba(255, 255, 255, 0.96);
-            border-color: rgba(148, 163, 184, 0.35);
-            box-shadow: 0 40px 80px -45px rgba(15, 23, 42, 0.2);
-        }
-
-        .hero-content {
-            display: flex;
-            flex-direction: column;
-            gap: 1.5rem;
+        .hero-simple > * {
             position: relative;
             z-index: 1;
+        }
+
+        [data-theme="light"] .hero-simple {
+            background: rgba(255, 255, 255, 0.95);
+            border-color: rgba(148, 163, 184, 0.35);
+            box-shadow: 0 35px 70px -45px rgba(15, 23, 42, 0.25);
         }
 
         .hero-badge {
@@ -201,147 +206,11 @@
         }
 
         .hero p {
-            font-size: 1.08rem;
+            font-size: 1.05rem;
             color: var(--text-secondary);
-            max-width: 600px;
+            max-width: 640px;
             margin: 0;
         }
-
-        .hero-actions {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.75rem;
-        }
-
-        .hero-actions .btn-secondary {
-            background: transparent;
-            border: 1px solid rgba(148, 163, 184, 0.4);
-            color: var(--text-primary);
-        }
-
-        .hero-meta {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-            gap: 1rem;
-        }
-
-        .meta-card {
-            border-radius: 20px;
-            border: 1px solid rgba(148, 163, 184, 0.28);
-            background: rgba(11, 16, 36, 0.85);
-            padding: 1.1rem;
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
-        }
-
-        [data-theme="light"] .meta-card {
-            background: rgba(255, 255, 255, 0.85);
-            border-color: rgba(148, 163, 184, 0.35);
-        }
-
-        .meta-card span {
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            color: var(--text-muted);
-        }
-
-        .meta-card strong {
-            display: block;
-            margin: 0.35rem 0;
-            font-size: 1.4rem;
-            color: var(--text-primary);
-        }
-
-        .meta-card small {
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-        }
-
-        .hero-visual {
-            position: relative;
-            border-radius: 28px;
-            padding: 2rem 1.5rem 1.5rem;
-            background: radial-gradient(circle at top, rgba(59, 130, 246, 0.15), transparent 55%), rgba(3, 7, 19, 0.9);
-            border: 1px solid rgba(59, 130, 246, 0.35);
-            overflow: hidden;
-            z-index: 1;
-        }
-
-        [data-theme="light"] .hero-visual {
-            background: radial-gradient(circle at top, rgba(59, 130, 246, 0.18), transparent 55%), rgba(255, 255, 255, 0.9);
-        }
-
-        .hero-orb {
-            width: min(280px, 80%);
-            aspect-ratio: 1 / 1;
-            border-radius: 50%;
-            margin: 0 auto 1.5rem;
-            position: relative;
-            background: radial-gradient(circle, rgba(59, 130, 246, 0.45), transparent 70%);
-        }
-
-        .hero-orb::after {
-            content: '';
-            position: absolute;
-            inset: 25%;
-            border-radius: 50%;
-            background: radial-gradient(circle, #5eead4, #2563eb);
-            box-shadow: 0 0 35px rgba(94, 234, 212, 0.5);
-        }
-
-        .hero-orb-ring {
-            position: absolute;
-            inset: 8px;
-            border-radius: 50%;
-            border: 1px solid rgba(94, 234, 212, 0.4);
-            animation: rotateOrb 16s linear infinite;
-        }
-
-        .hero-orb-ring:nth-child(2) { inset: 28px; animation-duration: 20s; border-color: rgba(167, 139, 250, 0.4); }
-        .hero-orb-ring:nth-child(3) { inset: 48px; animation-duration: 24s; border-color: rgba(248, 113, 113, 0.35); }
-
-        .hero-visual-meta {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            gap: 1rem;
-        }
-
-        .visual-card {
-            border-radius: 18px;
-            padding: 1rem;
-            border: 1px solid rgba(148, 163, 184, 0.25);
-            background: rgba(8, 12, 28, 0.85);
-        }
-
-        [data-theme="light"] .visual-card {
-            background: rgba(255, 255, 255, 0.85);
-            border-color: rgba(148, 163, 184, 0.35);
-        }
-
-        .visual-card span {
-            font-size: 0.75rem;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-            color: var(--text-muted);
-        }
-
-        .visual-card strong {
-            display: block;
-            margin: 0.4rem 0;
-            font-size: 1.2rem;
-            color: var(--text-primary);
-        }
-
-        .visual-card small {
-            font-size: 0.8rem;
-            color: var(--text-secondary);
-        }
-
-        @keyframes rotateOrb {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-        
         .nav-link {
             padding: 0.5rem 1rem;
             border-radius: 8px;
@@ -896,6 +765,157 @@
             border-color: rgba(37, 99, 235, 0.55);
             color: #1e3a8a;
         }
+
+        .hot-topics-visual {
+            margin-top: 1.5rem;
+            padding: 1.5rem;
+            border-radius: 20px;
+            background: radial-gradient(circle at top, rgba(59, 130, 246, 0.25), transparent 60%), rgba(9, 13, 27, 0.9);
+            border: 1px solid rgba(59, 130, 246, 0.35);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        [data-theme="light"] .hot-topics-visual {
+            background: radial-gradient(circle at top, rgba(59, 130, 246, 0.15), transparent 60%), rgba(255, 255, 255, 0.95);
+            border-color: rgba(148, 163, 184, 0.4);
+        }
+
+        .hero-orb {
+            width: min(260px, 75%);
+            aspect-ratio: 1 / 1;
+            border-radius: 50%;
+            margin: 0 auto;
+            position: relative;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.4), transparent 70%);
+            overflow: visible;
+        }
+
+        .hero-orb::after {
+            content: '';
+            position: absolute;
+            inset: 28%;
+            border-radius: 50%;
+            background: radial-gradient(circle, #5eead4, #2563eb);
+            box-shadow: 0 0 35px rgba(94, 234, 212, 0.5);
+            z-index: -1;
+        }
+
+        .hero-orb-ring {
+            position: absolute;
+            inset: 10px;
+            border-radius: 50%;
+            border: 1px solid rgba(94, 234, 212, 0.4);
+            animation: rotateOrb 16s linear infinite;
+        }
+
+        .hero-orb-ring:nth-child(2) { inset: 28px; animation-duration: 20s; border-color: rgba(167, 139, 250, 0.45); }
+        .hero-orb-ring:nth-child(3) { inset: 46px; animation-duration: 24s; border-color: rgba(248, 113, 113, 0.35); }
+
+        .hero-orb-hotspots {
+            position: absolute;
+            inset: -10px;
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .hero-orb-hotspot {
+            --orbit-radius: 140px;
+            --start-angle: 0deg;
+            --offset: 0deg;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform-origin: center;
+            transform: translate(-50%, -50%) rotate(var(--start-angle, 0deg)) translate(var(--orbit-radius)) rotate(calc(var(--offset, 0deg) - var(--start-angle, 0deg)));
+            animation: orbitSpin var(--speed, 22s) linear infinite;
+            animation-delay: var(--delay, 0s);
+            animation-timing-function: linear;
+        }
+
+        .hero-orb-hotspot-empty {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+
+        .hero-orb-hotspot .hotspot-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.35rem 0.85rem;
+            border-radius: 999px;
+            background: rgba(5, 10, 28, 0.9);
+            border: 1px solid rgba(94, 234, 212, 0.45);
+            font-size: 0.78rem;
+            color: #e0f2fe;
+            text-shadow: 0 0 8px rgba(94, 234, 212, 0.45);
+            box-shadow: 0 10px 25px -12px rgba(94, 234, 212, 0.6);
+            animation: hotspotGlow 3.5s ease-in-out infinite;
+            animation-delay: var(--delay, 0s);
+        }
+
+        [data-theme="light"] .hero-orb-hotspot .hotspot-chip {
+            background: rgba(255, 255, 255, 0.95);
+            color: #0f172a;
+            text-shadow: none;
+        }
+
+        .hotspot-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #5eead4;
+            box-shadow: 0 0 14px rgba(94, 234, 212, 0.9);
+            animation: hotspotPulse 2s ease-in-out infinite;
+        }
+
+        .hot-topic-orb-meta {
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        @keyframes rotateOrb {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes hotspotPulse {
+            0%, 100% { transform: scale(1); opacity: 0.9; }
+            50% { transform: scale(1.4); opacity: 1; }
+        }
+
+        @keyframes hotspotGlow {
+            0%, 100% { box-shadow: 0 10px 25px -12px rgba(94, 234, 212, 0.4); }
+            50% { box-shadow: 0 15px 30px -12px rgba(94, 234, 212, 0.7); }
+        }
+
+        @keyframes orbitSpin {
+            from {
+                transform: translate(-50%, -50%) rotate(var(--start-angle, 0deg)) translate(var(--orbit-radius)) rotate(calc(var(--offset, 0deg) - var(--start-angle, 0deg)));
+            }
+            to {
+                transform: translate(-50%, -50%) rotate(calc(var(--start-angle, 0deg) + 360deg)) translate(var(--orbit-radius)) rotate(calc(var(--offset, 0deg) - var(--start-angle, 0deg) - 360deg));
+            }
+        }
+
+        @media (max-width: 640px) {
+            .hero-orb {
+                width: 210px;
+            }
+            .hero-orb-hotspot {
+                --orbit-radius: 110px;
+            }
+        }
         
         /* Report Content */
         .report-content {
@@ -1391,12 +1411,7 @@
                 font-size: 2rem;
             }
 
-            .hero-grid {
-                flex-direction: column;
-            }
-
-            .hero-content,
-            .hero-visual {
+            .hero-simple {
                 padding: 1.5rem;
             }
 
@@ -1510,57 +1525,10 @@
 
     <!-- Hero Section -->
     <div class="hero">
-        <div class="hero-grid">
-            <div class="hero-content">
-                <div class="hero-badge">⚡ 实时监控 · DeepSeek Agent</div>
-                <h2>金融智能情报中心</h2>
-                <p>基于 DeepSeek AI 的自动化财经分析系统，每小时吞吐 200+ 全球新闻源，实时输出情绪、个股与策略指引。</p>
-                <div class="hero-actions">
-                    <a href="/overview" class="btn btn-primary">🧭 查看项目总览</a>
-                    <a href="https://github.com/ianchiou28/Wide-Research-for-Finance" target="_blank" rel="noopener" class="btn btn-secondary">💻 GitHub 仓库</a>
-                </div>
-                <div class="hero-meta">
-                    <div class="meta-card">
-                        <span>处理吞吐</span>
-                        <strong>200+ / 小时</strong>
-                        <small>聚合 17 个主流新闻与政策源</small>
-                    </div>
-                    <div class="meta-card">
-                        <span>监控覆盖</span>
-                        <strong>4 大洲</strong>
-                        <small>国际财经 · 科技加密 · 官方机构</small>
-                    </div>
-                    <div class="meta-card">
-                        <span>运行成本</span>
-                        <strong>$0.003 / h</strong>
-                        <small>比传统终端降低 99% 成本</small>
-                    </div>
-                </div>
-            </div>
-            <div class="hero-visual">
-                <div class="hero-orb">
-                    <span class="hero-orb-ring"></span>
-                    <span class="hero-orb-ring"></span>
-                    <span class="hero-orb-ring"></span>
-                </div>
-                <div class="hero-visual-meta">
-                    <div class="visual-card">
-                        <span>LLM 引擎</span>
-                        <strong>DeepSeek · GPT</strong>
-                        <small>自动推理 + 结构化输出</small>
-                    </div>
-                    <div class="visual-card">
-                        <span>平均延迟</span>
-                        <strong>320 ms</strong>
-                        <small>最近 10 次任务</small>
-                    </div>
-                    <div class="visual-card">
-                        <span>运行模式</span>
-                        <strong>全自动</strong>
-                        <small>24/7 Watch &amp; Dispatch</small>
-                    </div>
-                </div>
-            </div>
+        <div class="hero-simple">
+            <div class="hero-badge">⚡ 实时监控 · DeepSeek Agent</div>
+            <h2>金融智能情报中心</h2>
+            <p>基于 DeepSeek AI 的自动化财经分析系统，每小时吞吐 200+ 全球新闻源，实时输出情绪、个股与策略指引。</p>
         </div>
     </div>
     
@@ -1719,6 +1687,15 @@
                     <div class="hot-topics" id="hotTopics">
                         <div class="loading">分析热点中</div>
                     </div>
+                    <div class="hot-topics-visual">
+                        <div class="hero-orb">
+                            <span class="hero-orb-ring"></span>
+                            <span class="hero-orb-ring"></span>
+                            <span class="hero-orb-ring"></span>
+                            <div class="hero-orb-hotspots" id="hotTopicsOrb"></div>
+                        </div>
+                        <div class="hot-topic-orb-meta">热点轨道 · 24h 高频信号</div>
+                    </div>
                 </div>
             </div>
         </section>
@@ -1771,6 +1748,51 @@
     </div>
     
     <script>
+        const hotTopicsOrbElement = document.getElementById('hotTopicsOrb');
+        const HOT_TOPICS_ORB_COLORS = ['#5eead4', '#a5b4fc', '#f472b6', '#fbbf24', '#34d399', '#60a5fa'];
+        const HOT_TOPICS_ORB_SPEED = 22;
+
+        function renderHotTopicsOrb(topics) {
+            if (!hotTopicsOrbElement) return;
+            hotTopicsOrbElement.innerHTML = '';
+
+            const list = Array.isArray(topics)
+                ? topics.filter(item => typeof item === 'string' && item.trim())
+                : [];
+            const count = Math.min(list.length, 6);
+
+            if (!count) {
+                const fallback = document.createElement('div');
+                fallback.className = 'hero-orb-hotspot-empty';
+                fallback.textContent = '等待热点...';
+                hotTopicsOrbElement.appendChild(fallback);
+                return;
+            }
+
+            const angleStep = 360 / count;
+            list.slice(0, count).forEach((topic, index) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'hero-orb-hotspot';
+                wrapper.style.setProperty('--start-angle', `${(angleStep * index).toFixed(2)}deg`);
+                wrapper.style.setProperty('--orbit-radius', '140px');
+                wrapper.style.setProperty('--speed', `${HOT_TOPICS_ORB_SPEED}s`);
+                wrapper.style.setProperty('--delay', `${(index * 0.4).toFixed(2)}s`);
+
+                const chip = document.createElement('span');
+                chip.className = 'hotspot-chip';
+
+                const dot = document.createElement('span');
+                dot.className = 'hotspot-dot';
+                dot.style.background = HOT_TOPICS_ORB_COLORS[index % HOT_TOPICS_ORB_COLORS.length];
+
+                chip.appendChild(dot);
+                chip.append(topic.trim());
+
+                wrapper.appendChild(chip);
+                hotTopicsOrbElement.appendChild(wrapper);
+            });
+        }
+
         // 加载市场情绪
         async function loadSentiment() {
             try {
@@ -1930,9 +1952,11 @@
                     : '<div class="loading">暂无热点话题</div>';
                 
                 document.getElementById('hotTopics').innerHTML = topicsHtml;
+                renderHotTopicsOrb(topics);
             } catch (error) {
                 console.error('加载小时报告失败:', error);
                 document.getElementById('hourlyReportContent').innerHTML = '<div class="loading">数据加载失败，请稍后重试</div>';
+                renderHotTopicsOrb([]);
             }
         }
         
@@ -2102,6 +2126,8 @@
             }
         }
         
+        renderHotTopicsOrb([]);
+
         // 初始化
         async function init() {
             console.log('🚀 加载仪表盘数据...');
