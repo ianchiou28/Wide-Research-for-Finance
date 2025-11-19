@@ -297,4 +297,15 @@ def weekly_analysis():
     return jsonify(analyze_weekly_stocks())
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    # 生产环境配置
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--debug', action='store_true', help='Enable debug mode')
+    args = parser.parse_args()
+    
+    app.run(
+        debug=args.debug,
+        host='127.0.0.1',  # 只监听本地，通过Nginx代理
+        port=5000,
+        threaded=True
+    )

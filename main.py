@@ -70,14 +70,19 @@ def main():
         print("请创建 .env 文件并配置API密钥")
         return
     
-    # 选择运行模式
-    print("\n运行模式:")
-    print("1. 立即执行一次")
-    print("2. 每个整点执行（0:00, 1:00, 2:00...）")
-    print("3. 每天早上8点执行")
-    print("4. 每天8点和20点生成12小时摘要")
-    
-    choice = input("\n请选择 (1/2/3/4): ").strip()
+    # Docker环境自动选择模式2
+    if os.getenv('DOCKER_ENV') == 'true':
+        choice = '2'
+        print("Docker环境检测到，自动启用每小时执行模式")
+    else:
+        # 选择运行模式
+        print("\n运行模式:")
+        print("1. 立即执行一次")
+        print("2. 每个整点执行（0:00, 1:00, 2:00...）")
+        print("3. 每天早上8点执行")
+        print("4. 每天8点和20点生成12小时摘要")
+        
+        choice = input("\n请选择 (1/2/3/4): ").strip()
     
     if choice == '1':
         run_daily_report()

@@ -6,3 +6,4 @@ data/reports/*
 *.log
 .vscode/
 .idea/
+阿里云部署指南.md

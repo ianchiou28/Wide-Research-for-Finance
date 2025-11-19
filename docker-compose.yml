@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  finance-app:
+    build: .
+    ports:
+      - "80:5000"
+    environment:
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+    volumes:
+      - ./data:/app/data
+      - ./.env:/app/.env
+    restart: unless-stopped
+    
+  finance-collector:
+    build: .
+    command: python main.py
+    environment:
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+      - DOCKER_ENV=true
+    volumes:
+      - ./data:/app/data
+      - ./.env:/app/.env
+    restart: unless-stopped
+    depends_on:
+      - finance-app
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - finance-app
+    restart: unless-stopped
