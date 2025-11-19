@@ -43,6 +43,7 @@
             min-height: 100vh;
             line-height: 1.6;
             transition: background-color 0.4s ease, color 0.4s ease;
+            overflow-x: hidden;
         }
 
         [data-theme="light"] body {
@@ -112,12 +113,116 @@
             display: flex;
             align-items: center;
             gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .menu-toggle {
+            display: none;
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            background: var(--card-bg);
+            color: var(--text-primary);
+            font-size: 1.25rem;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .menu-toggle:hover {
+            background: var(--card-hover);
+            box-shadow: 0 10px 30px -15px rgba(15, 23, 42, 0.7);
+        }
+
+        .nav-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(2, 6, 23, 0.55);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            z-index: 900;
+        }
+
+        .nav-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .mobile-drawer {
+            position: fixed;
+            top: 0;
+            right: -320px;
+            width: min(80vw, 300px);
+            height: 100vh;
+            background: rgba(4, 8, 22, 0.98);
+            border-left: 1px solid rgba(148, 163, 184, 0.2);
+            box-shadow: -20px 0 60px -30px rgba(15, 23, 42, 0.8);
+            padding: 1.75rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+            transition: right 0.3s ease;
+            z-index: 950;
+        }
+
+        body.drawer-open {
+            overflow: hidden;
+        }
+
+        [data-theme="light"] .mobile-drawer {
+            background: rgba(255, 255, 255, 0.98);
+            border-color: rgba(148, 163, 184, 0.35);
+            box-shadow: -20px 0 60px -30px rgba(15, 23, 42, 0.2);
+        }
+
+        .mobile-drawer.open {
+            right: 0;
+        }
+
+        .drawer-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .drawer-close {
+            border: none;
+            background: transparent;
+            color: var(--text-primary);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .drawer-links {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .drawer-links a {
+            padding: 0.8rem 1rem;
+            border-radius: 12px;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            color: var(--text-primary);
+            font-weight: 600;
+            background: rgba(148, 163, 184, 0.08);
+        }
+
+        .drawer-meta {
+            margin-top: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
         }
 
         .hero {
             padding: 4.5rem 2rem 2rem;
             max-width: 1500px;
             margin: 0 auto;
+            margin-top: 4rem;
             position: relative;
             z-index: 1;
         }
@@ -128,7 +233,7 @@
             top: -90px;
             left: 50%;
             transform: translateX(-50%);
-            width: min(1200px, calc(100% + 220px));
+            width: min(1200px, 100%);
             height: calc(100% + 180px);
             border-radius: 80px;
             background: radial-gradient(circle at 50% 15%, rgba(59, 130, 246, 0.25), transparent 65%);
@@ -491,6 +596,13 @@
             color: #bfdbfe;
             border: 1px solid rgba(59, 130, 246, 0.35);
         }
+
+        [data-theme="light"] .card-badge {
+            background: rgba(59, 130, 246, 0.22);
+            color: #1e40af;
+            border-color: rgba(37, 99, 235, 0.45);
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+        }
         
         /* Sentiment Component */
         .sentiment-box {
@@ -773,9 +885,10 @@
             background: radial-gradient(circle at top, rgba(59, 130, 246, 0.25), transparent 60%), rgba(9, 13, 27, 0.9);
             border: 1px solid rgba(59, 130, 246, 0.35);
             display: flex;
-            flex-direction: column;
+            flex-direction: row;
+            flex-wrap: wrap;
             align-items: center;
-            gap: 1rem;
+            gap: 1.5rem;
             position: relative;
             overflow: hidden;
         }
@@ -786,13 +899,16 @@
         }
 
         .hero-orb {
-            width: min(260px, 75%);
+            --orb-size: clamp(220px, 55vw, 320px);
+            width: var(--orb-size);
             aspect-ratio: 1 / 1;
             border-radius: 50%;
             margin: 0 auto;
             position: relative;
             background: radial-gradient(circle, rgba(59, 130, 246, 0.4), transparent 70%);
             overflow: visible;
+            flex-shrink: 0;
+            max-width: 100%;
         }
 
         .hero-orb::after {
@@ -824,7 +940,7 @@
         }
 
         .hero-orb-hotspot {
-            --orbit-radius: 140px;
+            --orbit-radius: calc(var(--orb-size, 260px) / 2 - 24px);
             --start-angle: 0deg;
             --offset: 0deg;
             position: absolute;
@@ -879,9 +995,12 @@
         }
 
         .hot-topic-orb-meta {
-            text-align: center;
-            font-size: 0.85rem;
-            color: var(--text-muted);
+            flex: 1;
+            text-align: left;
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            line-height: 1.7;
+            max-width: 420px;
         }
 
         @keyframes rotateOrb {
@@ -908,12 +1027,31 @@
             }
         }
 
-        @media (max-width: 640px) {
-            .hero-orb {
-                width: 210px;
+        @media (max-width: 992px) {
+            .hot-topics-visual {
+                flex-direction: column;
+                align-items: stretch;
+                text-align: center;
             }
-            .hero-orb-hotspot {
-                --orbit-radius: 110px;
+
+            .hot-topic-orb-meta {
+                max-width: none;
+                text-align: center;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .hot-topics-visual {
+                padding: 1.25rem;
+                gap: 1rem;
+            }
+
+            .hero-orb {
+                --orb-size: clamp(180px, 70vw, 240px);
+            }
+
+            .hot-topic-orb-meta {
+                font-size: 0.875rem;
             }
         }
         
@@ -1401,14 +1539,53 @@
         }
         
         /* Responsive */
-        @media (max-width: 768px) {
-            .nav-container {
-                flex-direction: column;
-                gap: 1rem;
+        @media (max-width: 1200px) {
+            .hero {
+                padding: 3.5rem 1.5rem 1.5rem;
             }
-            
+
+            .container {
+                padding: 1.5rem;
+            }
+
+            .hero-simple {
+                max-width: 100%;
+            }
+        }
+
+        @media (max-width: 1024px) {
+            .nav-links {
+                display: none;
+            }
+
+            html {
+                overflow-x: hidden;
+            }
+
+            .navbar {
+                position: fixed;
+                width: 100%;
+            }
+
+
+
+            .menu-toggle {
+                display: inline-flex;
+            }
+
+            .hero-simple {
+                padding: 1.75rem;
+            }
+
+            .insight-grid.dual,
+            .grid-2 {
+                grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            }
+        }
+
+        @media (max-width: 768px) {
             .hero h2 {
-                font-size: 2rem;
+                font-size: 2.2rem;
             }
 
             .hero-simple {
@@ -1420,7 +1597,7 @@
                 justify-content: flex-start;
             }
             
-            .grid, .grid-2, .grid-3, .grid-4 {
+            .grid, .grid-2, .grid-3, .grid-4, .insight-grid, .stats-grid {
                 grid-template-columns: 1fr;
             }
         }
@@ -1508,6 +1685,7 @@
                     <p>AI Financial Intelligence</p>
                 </div>
             </div>
+            <button class="menu-toggle" type="button" aria-label="打开菜单" onclick="toggleDrawer()">☰</button>
             <div class="nav-links">
                 <a href="/" class="nav-link active">实时仪表盘</a>
                 <a href="/overview" class="nav-link">项目总览</a>
@@ -1522,6 +1700,34 @@
             </div>
         </div>
     </nav>
+
+    <div class="nav-overlay" id="navOverlay" onclick="toggleDrawer(false)"></div>
+    <aside class="mobile-drawer" id="mobileDrawer" aria-hidden="true">
+        <div class="drawer-header">
+            <div class="nav-brand">
+                <div class="nav-logo">WR</div>
+                <div class="nav-title">
+                    <h1>Wide Research</h1>
+                    <p>AI Financial Intelligence</p>
+                </div>
+            </div>
+            <button class="drawer-close" type="button" aria-label="关闭菜单" onclick="toggleDrawer(false)">×</button>
+        </div>
+        <nav class="drawer-links">
+            <a href="/">实时仪表盘</a>
+            <a href="/overview">项目总览</a>
+            <a href="https://github.com/ianchiou28/Wide-Research-for-Finance" target="_blank" rel="noopener">GitHub</a>
+        </nav>
+        <div class="drawer-meta">
+            <div class="nav-status">
+                <span class="status-dot live"></span>
+                <span>Agent 在线</span>
+            </div>
+            <button class="theme-toggle" onclick="toggleTheme()" title="切换主题">
+                <span id="themeIconMobile">🌙</span>
+            </button>
+        </div>
+    </aside>
 
     <!-- Hero Section -->
     <div class="hero">
@@ -1749,17 +1955,74 @@
     
     <script>
         const hotTopicsOrbElement = document.getElementById('hotTopicsOrb');
+        const heroOrbElement = document.querySelector('.hero-orb');
         const HOT_TOPICS_ORB_COLORS = ['#5eead4', '#a5b4fc', '#f472b6', '#fbbf24', '#34d399', '#60a5fa'];
         const HOT_TOPICS_ORB_SPEED = 22;
+        let latestHotTopics = [];
+        let orbResizeFrame = null;
+        const navOverlay = document.getElementById('navOverlay');
+        const mobileDrawer = document.getElementById('mobileDrawer');
+        const drawerLinks = document.querySelectorAll('.drawer-links a');
+        const themeIconDesktop = document.getElementById('themeIcon');
+        const themeIconMobile = document.getElementById('themeIconMobile');
+
+        function getDynamicOrbitRadius() {
+            if (!heroOrbElement) return 120;
+            const orbWidth = heroOrbElement.getBoundingClientRect().width || heroOrbElement.offsetWidth || 240;
+            return Math.max(70, (orbWidth / 2) - 18);
+        }
+
+        function toggleDrawer(forceState) {
+            if (!mobileDrawer) return;
+            const shouldOpen = typeof forceState === 'boolean'
+                ? forceState
+                : !mobileDrawer.classList.contains('open');
+
+            mobileDrawer.classList.toggle('open', shouldOpen);
+            mobileDrawer.setAttribute('aria-hidden', (!shouldOpen).toString());
+
+            if (navOverlay) {
+                navOverlay.classList.toggle('active', shouldOpen);
+            }
+
+            document.body.classList.toggle('drawer-open', shouldOpen);
+
+            if (shouldOpen) {
+                const focusTarget = mobileDrawer.querySelector('a, button, [tabindex]:not([tabindex="-1"])');
+                if (focusTarget) {
+                    focusTarget.focus();
+                }
+            }
+        }
+
+        drawerLinks.forEach(link => {
+            link.addEventListener('click', () => toggleDrawer(false));
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && mobileDrawer && mobileDrawer.classList.contains('open')) {
+                toggleDrawer(false);
+            }
+        });
+
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 1024) {
+                toggleDrawer(false);
+            }
+            requestOrbRerender();
+        });
 
         function renderHotTopicsOrb(topics) {
             if (!hotTopicsOrbElement) return;
-            hotTopicsOrbElement.innerHTML = '';
 
             const list = Array.isArray(topics)
                 ? topics.filter(item => typeof item === 'string' && item.trim())
                 : [];
-            const count = Math.min(list.length, 6);
+            latestHotTopics = list;
+            hotTopicsOrbElement.innerHTML = '';
+
+            const topicsForDisplay = list.slice(0, 6);
+            const count = topicsForDisplay.length;
 
             if (!count) {
                 const fallback = document.createElement('div');
@@ -1770,11 +2033,13 @@
             }
 
             const angleStep = 360 / count;
-            list.slice(0, count).forEach((topic, index) => {
+            const orbitRadius = getDynamicOrbitRadius();
+
+            topicsForDisplay.forEach((topic, index) => {
                 const wrapper = document.createElement('div');
                 wrapper.className = 'hero-orb-hotspot';
                 wrapper.style.setProperty('--start-angle', `${(angleStep * index).toFixed(2)}deg`);
-                wrapper.style.setProperty('--orbit-radius', '140px');
+                wrapper.style.setProperty('--orbit-radius', `${orbitRadius}px`);
                 wrapper.style.setProperty('--speed', `${HOT_TOPICS_ORB_SPEED}s`);
                 wrapper.style.setProperty('--delay', `${(index * 0.4).toFixed(2)}s`);
 
@@ -1791,6 +2056,14 @@
                 wrapper.appendChild(chip);
                 hotTopicsOrbElement.appendChild(wrapper);
             });
+        }
+
+        function requestOrbRerender() {
+            if (!latestHotTopics.length) return;
+            if (orbResizeFrame) {
+                cancelAnimationFrame(orbResizeFrame);
+            }
+            orbResizeFrame = requestAnimationFrame(() => renderHotTopicsOrb(latestHotTopics));
         }
 
         // 加载市场情绪
@@ -2063,6 +2336,15 @@
             }
         }
         
+        function updateThemeIcons(theme) {
+            if (themeIconDesktop) {
+                themeIconDesktop.textContent = theme === 'light' ? '☀️' : '🌙';
+            }
+            if (themeIconMobile) {
+                themeIconMobile.textContent = theme === 'light' ? '☀️' : '🌙';
+            }
+        }
+
         // 主题切换功能
         function toggleTheme() {
             const html = document.documentElement;
@@ -2071,10 +2353,7 @@
             
             html.setAttribute('data-theme', newTheme);
             localStorage.setItem('theme', newTheme);
-            
-            // 更新图标
-            const icon = document.getElementById('themeIcon');
-            icon.textContent = newTheme === 'light' ? '☀️' : '🌙';
+            updateThemeIcons(newTheme);
             
             console.log(`🎨 主题已切换为: ${newTheme === 'light' ? '亮色' : '暗色'}模式`);
         }
@@ -2083,10 +2362,7 @@
         function initTheme() {
             const savedTheme = localStorage.getItem('theme') || 'dark';
             document.documentElement.setAttribute('data-theme', savedTheme);
-            const icon = document.getElementById('themeIcon');
-            if (icon) {
-                icon.textContent = savedTheme === 'light' ? '☀️' : '🌙';
-            }
+            updateThemeIcons(savedTheme);
         }
         
         // 页面加载时初始化主题

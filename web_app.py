@@ -13,6 +13,7 @@ sys.path.append('src')
 from weekly_summary import WeeklySummary
 
 app = Flask(__name__)
+
 weekly_gen = WeeklySummary()
 
 def get_latest_report():
@@ -304,7 +305,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
     
     app.run(
-        debug=args.debug,
+        # debug=args.debug,
+        debug=True,
         host='127.0.0.1',  # 只监听本地，通过Nginx代理
         port=5000,
         threaded=True

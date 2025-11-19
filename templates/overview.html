@@ -7,8 +7,11 @@
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             --bg-primary: #0f172a;
             --bg-secondary: #1e293b;
+            --card-bg: rgba(7, 12, 28, 0.92);
+            --card-hover: rgba(15, 23, 42, 0.75);
             --text-primary: #e2e8f0;
             --text-secondary: #cbd5e1;
             --text-muted: #94a3b8;
@@ -16,8 +19,11 @@
         }
         
         [data-theme="light"] {
+            --primary-gradient: linear-gradient(135deg, #6d28d9 0%, #8b5cf6 100%);
             --bg-primary: #f8fafc;
             --bg-secondary: #ffffff;
+            --card-bg: rgba(255, 255, 255, 0.95);
+            --card-hover: rgba(248, 250, 252, 0.9);
             --text-primary: #1e293b;
             --text-secondary: #475569;
             --text-muted: #64748b;
@@ -209,13 +215,16 @@
         }
 
         .hero-orb {
-            width: min(280px, 80%);
+            --orb-size: clamp(240px, 38vw, 360px);
+            width: var(--orb-size);
             aspect-ratio: 1 / 1;
             border-radius: 50%;
             margin: 0 auto 1.5rem;
             position: relative;
             background: radial-gradient(circle, rgba(59, 130, 246, 0.45), transparent 70%);
             overflow: visible;
+            max-width: 100%;
+            flex-shrink: 0;
         }
 
         .hero-orb::after {
@@ -247,7 +256,7 @@
         }
 
         .hero-orb-hotspot {
-            --orbit-radius: 150px;
+            --orbit-radius: calc(var(--orb-size, 280px) / 2 - 24px);
             --start-angle: 0deg;
             --offset: 0deg;
             position: absolute;
@@ -922,6 +931,7 @@
             );
             transform: rotate(45deg);
             transition: all 0.6s ease;
+            pointer-events: none;
         }
         
         .section:hover::after {
@@ -1029,34 +1039,23 @@
         .metric-card:nth-child(3) .metric-value { animation-delay: 0.3s; }
         .metric-card:nth-child(4) .metric-value { animation-delay: 0.4s; }
         
-        /* Enhanced Navigation */
+        /* 全局导航（与主页面一致） */
         .navbar {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
             z-index: 1000;
+            background: rgba(3, 6, 17, 0.95);
             border-bottom: 1px solid var(--border-color);
-            background: rgba(15, 23, 42, 0.85);
-            backdrop-filter: blur(32px) saturate(180%);
-            -webkit-backdrop-filter: blur(32px) saturate(180%);
-            box-shadow: 
-                0 4px 30px rgba(0, 0, 0, 0.2),
-                inset 0 1px 0 rgba(255, 255, 255, 0.05);
-            transition: box-shadow 0.3s ease, background 0.3s ease;
+            backdrop-filter: blur(24px) saturate(180%);
+            -webkit-backdrop-filter: blur(24px) saturate(180%);
+            box-shadow: 0 20px 60px -30px rgba(15, 23, 42, 0.75);
         }
 
         [data-theme="light"] .navbar {
-            background: rgba(248, 250, 252, 0.92);
-            box-shadow: 
-                0 4px 30px rgba(0, 0, 0, 0.08),
-                inset 0 1px 0 rgba(255, 255, 255, 0.9);
-        }
-
-        .navbar:hover {
-            box-shadow: 
-                0 8px 40px rgba(102, 126, 234, 0.2),
-                inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 20px 60px -35px rgba(15, 23, 42, 0.25);
         }
 
         .nav-container {
@@ -1066,7 +1065,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            gap: 1rem;
+            gap: 1.5rem;
         }
 
         .nav-brand {
@@ -1076,96 +1075,209 @@
         }
 
         .nav-logo {
-            width: 40px;
-            height: 40px;
-            border-radius: 10px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            background: var(--primary-gradient, linear-gradient(135deg, #667eea 0%, #764ba2 100%));
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: 800;
-            font-size: 1.1rem;
+            font-size: 1.2rem;
             color: white;
             box-shadow: 0 10px 30px -10px rgba(102, 126, 234, 0.8);
         }
 
         .nav-title h1 {
-            font-size: 1.25rem;
+            font-size: 1.15rem;
             font-weight: 700;
-            margin: 0;
-            color: var(--text-primary);
+            letter-spacing: -0.02em;
+            margin-bottom: 0;
         }
 
         .nav-title p {
-            font-size: 0.75rem;
+            font-size: 0.78rem;
             color: var(--text-muted);
-            margin: 0;
         }
 
         .nav-links {
             display: flex;
             align-items: center;
-            gap: 1rem;
+            gap: 0.75rem;
+            flex-wrap: wrap;
         }
 
         .nav-link {
-            position: relative;
             padding: 0.5rem 1rem;
             border-radius: 8px;
             font-size: 0.875rem;
             font-weight: 500;
             color: var(--text-secondary);
             text-decoration: none;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.3s ease;
         }
 
-        .nav-link:hover::after {
-            content: '';
-            position: absolute;
-            bottom: -2px;
-            left: 50%;
-            width: 0;
-            height: 2px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            transform: translateX(-50%);
-            transition: width 0.3s ease;
-        }
-
-        .nav-link:hover::after,
-        .nav-link.active::after {
-            width: 80%;
+        .nav-link:hover {
+            background: var(--card-hover, rgba(15, 23, 42, 0.5));
+            color: var(--text-primary);
         }
 
         .nav-link.active {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: var(--primary-gradient, linear-gradient(135deg, #667eea 0%, #764ba2 100%));
             color: white;
-            box-shadow: 0 10px 25px -10px rgba(102, 126, 234, 0.65);
         }
-        
-        /* Theme Toggle Enhancement */
+
+        .menu-toggle {
+            display: none;
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            background: var(--card-bg, rgba(15, 23, 42, 0.8));
+            color: var(--text-primary);
+            font-size: 1.25rem;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .menu-toggle:hover {
+            background: var(--card-hover, rgba(15, 23, 42, 0.5));
+            box-shadow: 0 10px 30px -15px rgba(15, 23, 42, 0.7);
+        }
+
+        .nav-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.35rem 0.9rem;
+            border-radius: 999px;
+            border: 1px solid rgba(56, 189, 248, 0.4);
+            background: rgba(56, 189, 248, 0.08);
+            color: #7dd3fc;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        [data-theme="light"] .nav-status {
+            background: rgba(14, 165, 233, 0.1);
+            border-color: rgba(14, 165, 233, 0.35);
+            color: #0284c7;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(248, 250, 252, 0.8);
+            box-shadow: 0 0 8px rgba(248, 250, 252, 0.8);
+        }
+
+        .status-dot.live {
+            background: #22c55e;
+            box-shadow: 0 0 10px rgba(34, 197, 94, 0.8);
+        }
+
         .theme-toggle {
             width: 40px;
             height: 40px;
             border-radius: 50%;
-            border: 2px solid var(--border-color);
-            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            background: var(--card-bg);
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-            font-size: 1.2rem;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            font-size: 1.25rem;
         }
-        
+
         .theme-toggle:hover {
-            transform: rotate(180deg) scale(1.2);
-            box-shadow: 0 0 30px rgba(102, 126, 234, 0.6);
-            border-color: rgba(102, 126, 234, 0.5);
+            background: var(--card-hover, rgba(15, 23, 42, 0.5));
+            transform: rotate(15deg) scale(1.1);
         }
-        
-        .theme-toggle:active {
-            transform: rotate(180deg) scale(0.95);
+
+        .nav-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(2, 6, 23, 0.55);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            z-index: 900;
+        }
+
+        .nav-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .mobile-drawer {
+            position: fixed;
+            top: 0;
+            right: -320px;
+            width: min(80vw, 300px);
+            height: 100vh;
+            background: rgba(4, 8, 22, 0.98);
+            border-left: 1px solid rgba(148, 163, 184, 0.2);
+            box-shadow: -20px 0 60px -30px rgba(15, 23, 42, 0.8);
+            padding: 1.75rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+            transition: right 0.3s ease;
+            z-index: 950;
+        }
+
+        body.drawer-open {
+            overflow: hidden;
+        }
+
+        [data-theme="light"] .mobile-drawer {
+            background: rgba(255, 255, 255, 0.98);
+            border-color: rgba(148, 163, 184, 0.35);
+            box-shadow: -20px 0 60px -30px rgba(15, 23, 42, 0.2);
+        }
+
+        .mobile-drawer.open {
+            right: 0;
+        }
+
+        .drawer-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .drawer-close {
+            border: none;
+            background: transparent;
+            color: var(--text-primary);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .drawer-links {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .drawer-links a {
+            padding: 0.8rem 1rem;
+            border-radius: 12px;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            color: var(--text-primary);
+            font-weight: 600;
+            background: rgba(148, 163, 184, 0.08);
+        }
+
+        .drawer-meta {
+            margin-top: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
         }
         
         /* Smooth Scroll */
@@ -1184,15 +1296,47 @@
         .metrics-ribbon > *:nth-child(4) { animation-delay: 0.4s; }
         
         /* Responsive */
+        @media (max-width: 1024px) {
+            .nav-links {
+                display: none;
+            }
+
+            html {
+                overflow-x: hidden;
+            }
+
+            .navbar {
+                position: fixed;
+                width: 100%;
+            }
+
+            .menu-toggle {
+                display: inline-flex;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .live-grid {
+                grid-auto-flow: column;
+                grid-auto-columns: minmax(260px, 82vw);
+                overflow-x: auto;
+                padding-bottom: 1rem;
+                scroll-snap-type: x mandatory;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .tile {
+                scroll-snap-align: start;
+            }
+        }
+
         @media (max-width: 640px) {
             .hero-actions { flex-direction: column; }
             .hero-grid { grid-template-columns: 1fr; margin-top: 1.5rem; }
             .hero-grid .hero-content,
             .hero-visual { padding: 1.5rem; }
             .section { padding: 28px; }
-            .navbar .nav-container { flex-direction: column; gap: 1rem; }
-            .nav-links { width: 100%; justify-content: space-between; flex-wrap: wrap; }
-            .hero-orb-hotspot { --orbit-radius: 110px; }
+            .hero-orb { --orb-size: clamp(180px, 70vw, 240px); }
         }
     </style>
 </head>
@@ -1207,16 +1351,49 @@
                     <p>AI Financial Intelligence</p>
                 </div>
             </div>
+            <button class="menu-toggle" type="button" aria-label="打开菜单" onclick="toggleDrawer()">☰</button>
             <div class="nav-links">
                 <a href="/" class="nav-link">实时仪表盘</a>
                 <a href="/overview" class="nav-link active">项目总览</a>
                 <a href="https://github.com/ianchiou28/Wide-Research-for-Finance" class="nav-link" target="_blank" rel="noopener">GitHub</a>
+                <div class="nav-status">
+                    <span class="status-dot live"></span>
+                    <span>Agent 在线</span>
+                </div>
                 <button class="theme-toggle" onclick="toggleTheme()" title="切换主题">
                     <span id="themeIcon">🌙</span>
                 </button>
             </div>
         </div>
     </nav>
+
+    <div class="nav-overlay" id="navOverlay" onclick="toggleDrawer(false)"></div>
+    <aside class="mobile-drawer" id="mobileDrawer" aria-hidden="true">
+        <div class="drawer-header">
+            <div class="nav-brand">
+                <div class="nav-logo">WR</div>
+                <div class="nav-title">
+                    <h1>Wide Research</h1>
+                    <p>AI Financial Intelligence</p>
+                </div>
+            </div>
+            <button class="drawer-close" type="button" aria-label="关闭菜单" onclick="toggleDrawer(false)">×</button>
+        </div>
+        <nav class="drawer-links">
+            <a href="/">实时仪表盘</a>
+            <a href="/overview">项目总览</a>
+            <a href="https://github.com/ianchiou28/Wide-Research-for-Finance" target="_blank" rel="noopener">GitHub</a>
+        </nav>
+        <div class="drawer-meta">
+            <div class="nav-status">
+                <span class="status-dot live"></span>
+                <span>Agent 在线</span>
+            </div>
+            <button class="theme-toggle" onclick="toggleTheme()" title="切换主题">
+                <span id="themeIconMobile">🌙</span>
+            </button>
+        </div>
+    </aside>
 
     <header class="hero">
         <div class="hero-content">
@@ -1484,10 +1661,81 @@
         const weeklyList = document.getElementById('weeklyList');
         const updatedAt = document.getElementById('updatedAt');
         const orbHotspots = document.getElementById('orbHotspots');
+        const heroOrbElement = document.querySelector('.hero-orb');
+        const navOverlay = document.getElementById('navOverlay');
+        const mobileDrawer = document.getElementById('mobileDrawer');
+        const drawerLinks = document.querySelectorAll('.drawer-links a');
+        const themeIconDesktop = document.getElementById('themeIcon');
+        const themeIconMobile = document.getElementById('themeIconMobile');
         const HOTSPOT_COLORS = ['#5eead4', '#a5b4fc', '#f472b6', '#fbbf24', '#34d399', '#60a5fa'];
         const HOTSPOT_SPEED = 22; // seconds per orbit
+        let latestHeroTopics = [];
+        let heroOrbAnimationFrame = null;
 
         const clamp = (value) => Math.max(-1, Math.min(1, value ?? 0));
+
+        function toggleDrawer(forceState) {
+            if (!mobileDrawer) return;
+            const shouldOpen = typeof forceState === 'boolean'
+                ? forceState
+                : !mobileDrawer.classList.contains('open');
+
+            mobileDrawer.classList.toggle('open', shouldOpen);
+            mobileDrawer.setAttribute('aria-hidden', (!shouldOpen).toString());
+
+            if (navOverlay) {
+                navOverlay.classList.toggle('active', shouldOpen);
+            }
+
+            document.body.classList.toggle('drawer-open', shouldOpen);
+
+            if (shouldOpen) {
+                const focusTarget = mobileDrawer.querySelector('a, button, [tabindex]:not([tabindex="-1"])');
+                if (focusTarget) {
+                    focusTarget.focus();
+                }
+            }
+        }
+
+        drawerLinks.forEach(link => {
+            link.addEventListener('click', () => toggleDrawer(false));
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && mobileDrawer && mobileDrawer.classList.contains('open')) {
+                toggleDrawer(false);
+            }
+        });
+
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 1024) {
+                toggleDrawer(false);
+            }
+            requestHeroOrbRerender();
+        });
+
+        function updateThemeIcons(theme) {
+            if (themeIconDesktop) {
+                themeIconDesktop.textContent = theme === 'light' ? '☀️' : '🌙';
+            }
+            if (themeIconMobile) {
+                themeIconMobile.textContent = theme === 'light' ? '☀️' : '🌙';
+            }
+        }
+
+        function getHeroOrbitRadius() {
+            if (!heroOrbElement) return 120;
+            const orbWidth = heroOrbElement.getBoundingClientRect().width || heroOrbElement.offsetWidth || 240;
+            return Math.max(70, (orbWidth / 2) - 18);
+        }
+
+        function requestHeroOrbRerender() {
+            if (!latestHeroTopics.length) return;
+            if (heroOrbAnimationFrame) {
+                cancelAnimationFrame(heroOrbAnimationFrame);
+            }
+            heroOrbAnimationFrame = requestAnimationFrame(() => renderHeroHotspots(latestHeroTopics));
+        }
 
         function renderSentiment(data) {
             if (!data) {
@@ -1524,7 +1772,9 @@
             const list = Array.isArray(topics)
                 ? topics.filter(item => typeof item === 'string' && item.trim())
                 : [];
-            const count = Math.min(list.length, 6);
+            latestHeroTopics = list;
+            const topicsForDisplay = list.slice(0, 6);
+            const count = topicsForDisplay.length;
 
             if (!count) {
                 const fallback = document.createElement('div');
@@ -1535,11 +1785,13 @@
             }
 
             const angleStep = 360 / count;
-            list.slice(0, count).forEach((topic, index) => {
+            const orbitRadius = getHeroOrbitRadius();
+
+            topicsForDisplay.forEach((topic, index) => {
                 const wrapper = document.createElement('div');
                 wrapper.className = 'hero-orb-hotspot';
                 wrapper.style.setProperty('--start-angle', `${(angleStep * index).toFixed(2)}deg`);
-                wrapper.style.setProperty('--orbit-radius', '150px');
+                wrapper.style.setProperty('--orbit-radius', `${orbitRadius}px`);
                 wrapper.style.setProperty('--speed', `${HOTSPOT_SPEED}s`);
                 wrapper.style.setProperty('--delay', `${(index * 0.4).toFixed(2)}s`);
 
@@ -1668,9 +1920,7 @@
             
             html.setAttribute('data-theme', newTheme);
             localStorage.setItem('theme', newTheme);
-            
-            const icon = document.getElementById('themeIcon');
-            icon.textContent = newTheme === 'light' ? '☀️' : '🌙';
+            updateThemeIcons(newTheme);
             
             console.log(`🎨 主题已切换为: ${newTheme === 'light' ? '亮色' : '暗色'}模式`);
         }
@@ -1679,10 +1929,7 @@
         function initTheme() {
             const savedTheme = localStorage.getItem('theme') || 'dark';
             document.documentElement.setAttribute('data-theme', savedTheme);
-            const icon = document.getElementById('themeIcon');
-            if (icon) {
-                icon.textContent = savedTheme === 'light' ? '☀️' : '🌙';
-            }
+            updateThemeIcons(savedTheme);
         }
         
         // 页面加载时初始化主题
