@@ -49,6 +49,7 @@ class EmailSender:
                     server.send_message(msg)
             
             print("✅ 邮件发送成功")
+            self._save_local(report)
         except Exception as e:
             print(f"❌ 邮件发送失败: {e}")
             print("提示: 请检查 .env 文件中的邮箱配置")
