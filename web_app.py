@@ -249,16 +249,26 @@ def test():
 @app.route('/api/hourly_report')
 def hourly_report():
     """获取最新小时简报的完整内容"""
+    # 获取最新报告文件路径
+    reports = glob.glob('data/reports/report_*.txt')
+    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M')
+    
+    if reports:
+        latest_file = max(reports, key=os.path.getctime)
+        # 获取文件修改时间
+        mtime = os.path.getctime(latest_file)
+        timestamp = datetime.fromtimestamp(mtime).strftime('%Y-%m-%d %H:%M:%S')
+    
     content = get_latest_report()
     if not content:
         return jsonify({
             'content': '暂无数据',
-            'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M')
+            'timestamp': timestamp
         })
     
     data = parse_report(content)
     data['content'] = content  # 添加原始内容
-    data['timestamp'] = datetime.now().strftime('%Y-%m-%d %H:%M')
+    data['timestamp'] = timestamp
     return jsonify(data)
 
 @app.route('/api/daily_summary')
