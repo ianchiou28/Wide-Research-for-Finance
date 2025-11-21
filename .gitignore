@@ -9,3 +9,4 @@ data/weekly/*
 .vscode/
 .idea/
 阿里云部署指南.md
+test_official_sites.py
