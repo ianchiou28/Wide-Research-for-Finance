@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 import schedule
 import time
 from datetime import datetime
+import subprocess
 
 sys.path.append('src')
 from collector import DataCollector
@@ -50,6 +51,7 @@ def run_daily_report():
     print("4. 生成报告...")
     report_gen = ReportGenerator()
     report = report_gen.generate(processed)
+    _save_local(report)
     
     # 4. 发送邮件
     print("5. 发送报告...")
@@ -59,6 +61,25 @@ def run_daily_report():
     print(f"\n{'='*60}")
     print("报告生成完成")
     print(f"{'='*60}\n")
+
+def _save_local(report: str):
+    """保存报告到本地"""
+    os.makedirs('data/reports', exist_ok=True)
+    filename = f"data/reports/report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+    with open(filename, 'w', encoding='utf-8', errors='replace') as f:
+        f.write(report)
+    try:
+        print(f"报告已保存: {filename}")
+    except:
+        print(f"Report saved: {filename}")
+
+def run_weekly_report_script():
+    """运行周报分析脚本"""
+    print(f"\n启动周报分析 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    try:
+        subprocess.run([sys.executable, "run_weekly_analysis.py"], check=False)
+    except Exception as e:
+        print(f"周报分析运行失败: {e}")
 
 def main():
     print("Wide Research for Finance - MVP v1.0")
@@ -71,9 +92,32 @@ def main():
         return
     
     # Docker环境自动选择模式2
-    if os.getenv('DOCKER_ENV') == 'true':
-        choice = '2'
-        print("Docker环境检测到，自动启用每小时执行模式")
+    if os.getenv('DOCKER_ENV') == 'True':
+        print("Docker环境检测到，自动启用计划任务：")
+        print("- 每小时整点生成小时报 (run_daily_report)")
+        print("- 每天 08:00 和 20:00 生成12小时摘要")
+        print("- 每天 08:00 和 20:00 运行周报分析")
+
+        # 1. 小时报
+        schedule.every().hour.at(":00").do(run_daily_report)
+
+        # 2. 日报（12小时摘要）
+        try:
+            from daily_summary_main import generate_and_send_summary
+            schedule.every().day.at("08:00").do(generate_and_send_summary)
+            schedule.every().day.at("20:00").do(generate_and_send_summary)
+        except ImportError:
+            print("警告: 无法导入 daily_summary_main，跳过摘要生成任务")
+
+        # 3. 周报
+        schedule.every().day.at("08:00").do(run_weekly_report_script)
+        schedule.every().day.at("20:00").do(run_weekly_report_script)
+
+        print("后台运行中，按 Ctrl+C 停止\n")
+        while True:
+            schedule.run_pending()
+            time.sleep(60)
+        return
     else:
         # 选择运行模式
         print("\n运行模式:")
@@ -88,8 +132,7 @@ def main():
         run_daily_report()
     elif choice == '2':
         # 在每个整点执行
-        for hour in range(24):
-            schedule.every().day.at(f"{hour:02d}:00").do(run_daily_report)
+        schedule.every().hour.at(":00").do(run_daily_report)
         
         next_hour = (datetime.now().hour + 1) % 24
         print(f"\n已设置定时任务：每个整点执行（0:00, 1:00, 2:00...）")

@@ -13,8 +13,8 @@ class EmailSender:
     def send(self, report: str):
         """发送邮件报告"""
         if not all([self.from_email, self.password, self.to_email]):
-            print("邮件配置不完整，报告已保存到本地")
-            self._save_local(report)
+            print("邮件配置不完整")
+            # self._save_local(report)
             return
         
         msg = MIMEMultipart()
@@ -49,19 +49,8 @@ class EmailSender:
                     server.send_message(msg)
             
             print("✅ 邮件发送成功")
-            self._save_local(report)
+            # self._save_local(report)
         except Exception as e:
             print(f"❌ 邮件发送失败: {e}")
             print("提示: 请检查 .env 文件中的邮箱配置")
-            self._save_local(report)
-    
-    def _save_local(self, report: str):
-        """保存报告到本地"""
-        os.makedirs('data/reports', exist_ok=True)
-        filename = f"data/reports/report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
-        with open(filename, 'w', encoding='utf-8', errors='replace') as f:
-            f.write(report)
-        try:
-            print(f"报告已保存: {filename}")
-        except:
-            print(f"Report saved: {filename}")
+            # self._save_local(report)

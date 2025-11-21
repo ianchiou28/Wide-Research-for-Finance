@@ -3,6 +3,8 @@ __pycache__/
 *.pyc
 data/raw/*
 data/reports/*
+data/summaries/*
+data/weekly/*
 *.log
 .vscode/
 .idea/

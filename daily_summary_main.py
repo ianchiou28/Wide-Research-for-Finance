@@ -47,12 +47,16 @@ def generate_and_send_summary():
 def main():
     print("Wide Research for Finance - 每日摘要系统")
     print("="*60)
+
+    if os.getenv('DOCKER_ENV') == 'True':
+        choice = '2'
+        print("Docker环境检测到，自动启用每天早上8点和晚上8点自动生成模式")
+    else:
+        print("\n运行模式:")
+        print("1. 立即生成一次摘要")
+        print("2. 每天早上8点和晚上8点自动生成")
     
-    print("\n运行模式:")
-    print("1. 立即生成一次摘要")
-    print("2. 每天早上8点和晚上8点自动生成")
-    
-    choice = input("\n请选择 (1/2): ").strip().replace('、', '').replace('，', '').replace(',', '')
+        choice = input("\n请选择 (1/2): ").strip().replace('、', '').replace('，', '').replace(',', '')
     
     if choice == '1':
         generate_and_send_summary()
