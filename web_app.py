@@ -12,7 +12,12 @@ load_dotenv()
 sys.path.append('src')
 from weekly_summary import WeeklySummary
 
-app = Flask(__name__)
+# Configure Flask to serve the Vue frontend
+# static_folder points to the assets directory built by Vite
+# template_folder points to the dist directory where index.html is located
+app = Flask(__name__, static_folder="frontend/dist/assets", template_folder="frontend/dist")
+# Vite builds assets with relative paths like /assets/..., so we need to match that
+app.static_url_path = "/assets"
 
 weekly_gen = WeeklySummary()
 
@@ -235,16 +240,114 @@ def get_market_prediction():
     }
 
 @app.route('/')
-def index():
+@app.route('/<path:path>')
+def index(path=None):
+    # Serve the Vue app for the root route and any other route not matched by API
     return render_template('index.html')
 
-@app.route('/overview')
-def overview():
-    return render_template('overview.html')
+# Removed specific route for /overview as it is now handled by Vue Router
+# @app.route('/overview')
+# def overview():
+#     return render_template('overview.html')
 
 @app.route('/test')
 def test():
     return render_template('test.html')
+
+@app.route('/api/latest')
+def api_latest():
+    """聚合接口：获取首页所需的所有实时数据"""
+    report_content = get_latest_report()
+    
+    # 获取最新报告的时间戳
+    reports = glob.glob('data/reports/report_*.txt')
+    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    if reports:
+        latest_file = max(reports, key=os.path.getctime)
+        mtime = os.path.getctime(latest_file)
+        timestamp = datetime.fromtimestamp(mtime).strftime('%Y-%m-%d %H:%M:%S')
+    
+    data = {
+        'timestamp': timestamp,
+        'stats': {
+            'total_news': 0,
+            'positive_news': 0,
+            'negative_news': 0
+        },
+        'sentiment': {
+            'score': 0,
+            'label': 'Neutral',
+            'breakdown': {'positive': 0, 'neutral': 0, 'negative': 0}
+        },
+        'recommendations': {'a_shares': [], 'us_shares': []},
+        'market_prediction': [],
+        'hot_topics': []
+    }
+
+    if report_content:
+        parsed = parse_report(report_content)
+        
+        # 填充统计数据
+        data['stats']['total_news'] = parsed.get('total_news', 0)
+        # 简单估算正负面新闻数量 based on sentiment
+        sentiment_score = parsed.get('sentiment', {}).get('overall', 0)
+        data['stats']['positive_news'] = int(data['stats']['total_news'] * (0.5 + sentiment_score/2)) if sentiment_score > 0 else int(data['stats']['total_news'] * 0.3)
+        
+        # 填充情绪数据
+        # 模拟 breakdown 数据，因为 parse_report 目前只返回单一数值
+        overall_score = parsed.get('sentiment', {}).get('overall', 0)
+        cn_score = parsed.get('sentiment', {}).get('cn', 0)
+        us_score = parsed.get('sentiment', {}).get('us', 0)
+        
+        pos_pct = int(50 + overall_score * 50)
+        neg_pct = int(20 - overall_score * 20)
+        neu_pct = 100 - pos_pct - neg_pct
+        
+        data['sentiment'] = {
+            'score': overall_score,
+            'label': parsed.get('sentiment_label', {}).get('overall', '中性'),
+            'breakdown': {
+                'cn': cn_score,
+                'us': us_score,
+                'positive': max(0, pos_pct),
+                'neutral': max(0, neu_pct),
+                'negative': max(0, neg_pct)
+            }
+        }
+        
+        # 填充推荐
+        recs = get_stock_recommendations()
+        data['recommendations'] = {
+            'a_shares': recs.get('a_stocks', []),
+            'us_shares': recs.get('us_stocks', [])
+        }
+        
+        # 填充预测
+        preds = get_market_prediction()
+        data['market_prediction'] = [
+            {'name': v['name'], 'icon': v['icon'], 'trend': v['trend'], 'sentiment': f"指数: {v['sentiment']}"}
+            for k, v in preds.items()
+        ]
+        
+        # 填充热点
+        data['hot_topics'] = parsed.get('hot_topics', [])
+        
+        # Add raw content for display
+        data['content'] = report_content
+
+    return jsonify(data)
+
+@app.route('/api/report/latest')
+def api_report_latest():
+    """获取最新小时简报内容"""
+    content = get_latest_report()
+    return jsonify({'content': content if content else ''})
+
+@app.route('/api/summary/latest')
+def api_summary_latest():
+    """获取最新每日摘要内容"""
+    content = get_latest_summary()
+    return jsonify({'content': content if content else ''})
 
 @app.route('/api/hourly_report')
 def hourly_report():
