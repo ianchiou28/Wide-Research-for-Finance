@@ -24,10 +24,16 @@
             <router-link to="/" class="nav-link" active-class="active">概览仪表盘</router-link>
           </li>
           <li class="nav-item">
-            <a href="#" class="nav-link">深度分析</a>
+            <router-link to="/watchlist" class="nav-link" active-class="active">自选监控</router-link>
           </li>
           <li class="nav-item">
-            <a href="#" class="nav-link">系统设置</a>
+            <router-link to="/hot-topics" class="nav-link" active-class="active">全网热搜</router-link>
+          </li>
+          <li class="nav-item">
+            <router-link to="/crypto" class="nav-link" active-class="active">加密货币</router-link>
+          </li>
+          <li class="nav-item">
+            <router-link to="/history" class="nav-link" active-class="active">历史报告</router-link>
           </li>
           <li class="nav-item">
             <router-link to="/overview" class="nav-link" active-class="active">项目总览</router-link>

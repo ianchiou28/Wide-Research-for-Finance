@@ -14,9 +14,12 @@
         </div>
       </div>
       <div class="header-right">
+        <button class="lang-btn" @click="toggleLang">
+          {{ lang === 'zh' ? 'EN' : '中文' }}
+        </button>
         <div class="sys-status">
           <span class="status-dot"></span>
-          系统在线
+          {{ t('system_online') }}
         </div>
         <div class="sys-time">{{ currentTime }}</div>
       </div>
@@ -26,7 +29,7 @@
     <div class="kpi-bar">
       <div class="kpi-item">
         <div class="kpi-icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
             <polyline points="14 2 14 8 20 8"></polyline>
             <line x1="16" y1="13" x2="8" y2="13"></line>
@@ -35,228 +38,280 @@
           </svg>
         </div>
         <div class="kpi-content">
-          <div class="kpi-label">已处理新闻</div>
-          <div class="kpi-value">{{ stats.total_news }}</div>
+          <div class="kpi-label">{{ t('total_news') }}</div>
+          <div class="kpi-value">{{ reportData.meta?.total_news || 0 }}</div>
         </div>
       </div>
       
       <div class="kpi-item">
         <div class="kpi-icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+          </svg>
+        </div>
+        <div class="kpi-content">
+          <div class="kpi-label">{{ t('market_sentiment_kpi') }}</div>
+          <div class="kpi-value" :class="getSentimentClass(reportData.sentiment?.overall?.score)">
+            {{ reportData.sentiment?.overall?.label || '中性' }}
+          </div>
+        </div>
+      </div>
+
+      <div class="kpi-item">
+        <div class="kpi-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="4" y1="9" x2="20" y2="9"></line>
+            <line x1="4" y1="15" x2="20" y2="15"></line>
+            <line x1="10" y1="3" x2="8" y2="21"></line>
+            <line x1="16" y1="3" x2="14" y2="21"></line>
+          </svg>
+        </div>
+        <div class="kpi-content">
+          <div class="kpi-label">{{ t('hot_topics_kpi') }}</div>
+          <div class="kpi-value">{{ reportData.entities?.length || 0 }}</div>
+        </div>
+      </div>
+
+      <div class="kpi-item">
+        <div class="kpi-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="10"></circle>
-            <line x1="22" y1="12" x2="18" y2="12"></line>
-            <line x1="6" y1="12" x2="2" y2="12"></line>
-            <line x1="12" y1="6" x2="12" y2="2"></line>
-            <line x1="12" y1="22" x2="12" y2="18"></line>
+            <polyline points="12 6 12 12 16 14"></polyline>
           </svg>
         </div>
         <div class="kpi-content">
-          <div class="kpi-label">热门话题</div>
-          <div class="kpi-value">{{ hotTopics.length }}</div>
-        </div>
-      </div>
-
-      <div class="kpi-item">
-        <div class="kpi-icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
-            <polyline points="17 6 23 6 23 12"></polyline>
-          </svg>
-        </div>
-        <div class="kpi-content">
-          <div class="kpi-label">利好事件</div>
-          <div class="kpi-value">{{ stats.positive_news }}</div>
-        </div>
-      </div>
-
-      <div class="kpi-item">
-        <div class="kpi-icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-          </svg>
-        </div>
-        <div class="kpi-content">
-          <div class="kpi-label">更新时间</div>
-          <div class="kpi-value">{{ lastUpdateTime }}</div>
+          <div class="kpi-label">{{ t('updated_at') }}</div>
+          <div class="kpi-value">{{ formatTime(reportData.meta?.generated_at) }}</div>
         </div>
       </div>
     </div>
 
+    <!-- Loading State -->
+    <div v-if="loading" class="loading-overlay">
+      <div class="spinner"></div>
+      <span>{{ t('loading') }}</span>
+    </div>
+
     <!-- Main Grid -->
-    <div class="main-grid">
+    <div v-else class="main-grid">
       
-      <!-- Left Column: Intelligence & Reports -->
+      <!-- Left Column -->
       <div class="col-main">
         
-        <!-- Market Intelligence Panel -->
+        <!-- Sentiment Dashboard -->
         <div class="panel">
           <div class="panel-header">
-            <div class="panel-title">市场情报</div>
-            <div class="panel-meta">置信度: 0.92</div>
-          </div>
-          <div class="panel-body sentiment-dashboard">
-            <!-- Global Sentiment Bar -->
-            <div class="sentiment-row">
-              <div class="sent-label">全球市场</div>
-              <div class="sent-bar-container">
-                <div class="sent-bar" :style="{ width: Math.abs(sentiment.score * 100) + '%', background: getSentimentColor(sentiment.score) }"></div>
-                <div class="sent-marker"></div>
-              </div>
-              <div class="sent-value" :style="{ color: getSentimentColor(sentiment.score) }">
-                {{ sentiment.score > 0 ? '+' : '' }}{{ sentiment.score }}
-              </div>
+            <div class="panel-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px; vertical-align: text-bottom;">
+                <line x1="18" y1="20" x2="18" y2="10"></line>
+                <line x1="12" y1="20" x2="12" y2="4"></line>
+                <line x1="6" y1="20" x2="6" y2="14"></line>
+              </svg>
+              {{ t('market_sentiment') }}
             </div>
-
-            <!-- CN Sentiment Bar -->
-            <div class="sentiment-row">
-              <div class="sent-label">中国市场</div>
-              <div class="sent-bar-container">
-                <div class="sent-bar" :style="{ width: Math.abs(sentiment.breakdown?.cn * 100) + '%', background: getSentimentColor(sentiment.breakdown?.cn) }"></div>
-                <div class="sent-marker"></div>
-              </div>
-              <div class="sent-value" :style="{ color: getSentimentColor(sentiment.breakdown?.cn) }">
-                {{ sentiment.breakdown?.cn > 0 ? '+' : '' }}{{ sentiment.breakdown?.cn || '0.00' }}
-              </div>
-            </div>
-
-            <!-- US Sentiment Bar -->
-            <div class="sentiment-row">
-              <div class="sent-label">美国市场</div>
-              <div class="sent-bar-container">
-                <div class="sent-bar" :style="{ width: Math.abs(sentiment.breakdown?.us * 100) + '%', background: getSentimentColor(sentiment.breakdown?.us) }"></div>
-                <div class="sent-marker"></div>
-              </div>
-              <div class="sent-value" :style="{ color: getSentimentColor(sentiment.breakdown?.us) }">
-                {{ sentiment.breakdown?.us > 0 ? '+' : '' }}{{ sentiment.breakdown?.us || '0.00' }}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Tabbed Reports Panel -->
-        <div class="panel report-panel">
-          <div class="panel-tabs">
-            <button 
-              class="tab-btn" 
-              :class="{ active: activeTab === 'hourly' }"
-              @click="activeTab = 'hourly'"
-            >
-              每小时简报
-            </button>
-            <button 
-              class="tab-btn" 
-              :class="{ active: activeTab === 'daily' }"
-              @click="activeTab = 'daily'"
-            >
-              每日总结
-            </button>
-            <button 
-              class="tab-btn" 
-              :class="{ active: activeTab === 'weekly' }"
-              @click="activeTab = 'weekly'"
-            >
-              每周分析
-            </button>
-            <div class="tab-spacer"></div>
             <button class="refresh-btn" @click="fetchData">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M23 4v6h-6"></path>
                 <path d="M1 20v-6h6"></path>
                 <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
               </svg>
-              刷新
             </button>
           </div>
-          
-          <div class="panel-body report-content">
-            <div v-if="loading" class="loading-state">
-              <div class="spinner"></div>
-              <span>正在获取数据...</span>
+          <div class="panel-body">
+            <!-- Sentiment Bars -->
+            <div class="sentiment-grid">
+              <div class="sentiment-card" v-for="market in sentimentMarkets" :key="market.key">
+                <div class="sent-header">
+                  <span class="sent-name">{{ market.name }}</span>
+                </div>
+                <div class="sent-score" :class="getSentimentClass(market.score)">
+                  {{ market.score > 0 ? '+' : '' }}{{ market.score?.toFixed(2) || '0.00' }}
+                </div>
+                <div class="sent-label">{{ market.label }}</div>
+                <div class="sent-bar-container">
+                  <div class="sent-bar" :style="getBarStyle(market.score)"></div>
+                  <div class="sent-marker"></div>
+                </div>
+              </div>
             </div>
             
-            <div v-else-if="activeTab === 'hourly'" class="report-text" v-html="formatReport(report)"></div>
-            <div v-else-if="activeTab === 'daily'" class="report-text" v-html="formatReport(dailySummary)"></div>
-            <div v-else-if="activeTab === 'weekly'" class="report-text">
-              <div v-if="weeklyAnalysis && weeklyAnalysis.summary" v-html="formatReport(weeklyAnalysis.summary)"></div>
-              <div v-else class="empty-state">暂无周报数据</div>
+            <!-- Distribution -->
+            <div class="distribution-row">
+              <div class="dist-item positive">
+                <div class="dist-value">{{ reportData.sentiment?.distribution?.positive || 0 }}</div>
+                <div class="dist-label">{{ t('positive') }}</div>
+              </div>
+              <div class="dist-item neutral">
+                <div class="dist-value">{{ reportData.sentiment?.distribution?.neutral || 0 }}</div>
+                <div class="dist-label">{{ t('neutral') }}</div>
+              </div>
+              <div class="dist-item negative">
+                <div class="dist-value">{{ reportData.sentiment?.distribution?.negative || 0 }}</div>
+                <div class="dist-label">{{ t('negative') }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- High Impact Events -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px; vertical-align: text-bottom;">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+              </svg>
+              {{ t('key_events') }}
+            </div>
+            <div class="panel-tag">{{ reportData.events?.high_impact?.length || 0 }} 条</div>
+          </div>
+          <div class="panel-body">
+            <div v-if="!reportData.events?.high_impact?.length" class="empty-state">
+              {{ t('empty_events') }}
+            </div>
+            <div v-else class="event-list">
+              <div v-for="event in reportData.events.high_impact" :key="event.ref_id" class="event-card">
+                <div class="event-meta">
+                  <span class="event-source">{{ event.source }}</span>
+                  <span class="event-type">{{ event.event_type }}</span>
+                </div>
+                <div class="event-title">{{ event.title }}</div>
+                <div class="event-summary">{{ event.summary }}</div>
+                <div class="event-stocks" v-if="event.stock_impact?.length">
+                  <span v-for="stock in event.stock_impact" :key="stock.symbol" 
+                        class="stock-tag" :class="getDirectionClass(stock.direction)">
+                    {{ stock.symbol }} {{ getDirectionIcon(stock.direction) }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stock Impacts -->
+        <div class="panel" v-if="reportData.stock_impacts?.length">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px; vertical-align: text-bottom;">
+                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+                <polyline points="17 6 23 6 23 12"></polyline>
+              </svg>
+              {{ t('stock_prediction') }}
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="stock-grid">
+              <div v-for="stock in reportData.stock_impacts" :key="stock.symbol" class="stock-card">
+                <div class="stock-header">
+                  <span class="stock-symbol">{{ stock.symbol }}</span>
+                  <span class="stock-prediction" :class="getPredictionClass(stock.prediction)">
+                    {{ getPredictionIcon(stock.prediction) }} {{ stock.prediction }}
+                  </span>
+                </div>
+                <div class="stock-name">{{ stock.name }}</div>
+                <div class="confidence-bar">
+                  <div class="confidence-label">{{ t('confidence') }} {{ Math.round(stock.confidence * 100) }}%</div>
+                  <div class="confidence-track">
+                    <div class="confidence-fill" :style="{ width: (stock.confidence * 100) + '%' }" 
+                         :class="getPredictionClass(stock.prediction)"></div>
+                  </div>
+                </div>
+                <div class="stock-stats">
+                  {{ t('mentions') }} {{ stock.total_mentions }} {{ t('times') }} | 
+                  <span class="text-green">↑{{ stock.up_count }}</span> 
+                  <span class="text-red">↓{{ stock.down_count }}</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
       </div>
 
-      <!-- Right Column: Strategy & Trends -->
+      <!-- Right Column -->
       <div class="col-side">
         
-        <!-- Strategy Stream -->
+        <!-- Hot Entities -->
         <div class="panel">
           <div class="panel-header">
-            <div class="panel-title">策略流</div>
-            <div class="panel-tag">实时</div>
+            <div class="panel-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px; vertical-align: text-bottom;">
+                <line x1="8" y1="6" x2="21" y2="6"></line>
+                <line x1="8" y1="12" x2="21" y2="12"></line>
+                <line x1="8" y1="18" x2="21" y2="18"></line>
+                <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                <line x1="3" y1="18" x2="3.01" y2="18"></line>
+              </svg>
+              {{ t('hot_topics') }}
+            </div>
           </div>
           <div class="panel-body">
-            <div class="market-group">
-              <div class="group-label">A股市场</div>
-              <div v-if="recommendations.a_shares.length === 0" class="empty-text">暂无信号</div>
-              <div v-else class="stock-list">
-                <div v-for="stock in recommendations.a_shares" :key="stock.symbol" class="stock-row">
-                  <span class="stock-code">{{ stock.symbol }}</span>
-                  <span class="stock-name">{{ stock.name }}</span>
-                  <span class="stock-action up">买入</span>
-                </div>
-              </div>
-            </div>
-            
-            <div class="market-group">
-              <div class="group-label">美股市场</div>
-              <div v-if="recommendations.us_shares.length === 0" class="empty-text">暂无信号</div>
-              <div v-else class="stock-list">
-                <div v-for="stock in recommendations.us_shares" :key="stock.symbol" class="stock-row">
-                  <span class="stock-code">{{ stock.symbol }}</span>
-                  <span class="stock-name">{{ stock.name }}</span>
-                  <span class="stock-action up">买入</span>
-                </div>
+            <div v-if="!reportData.entities?.length" class="empty-state">{{ t('empty_topics') }}</div>
+            <div v-else class="entity-list">
+              <div v-for="(entity, index) in reportData.entities" :key="entity.name" class="entity-item">
+                <span class="entity-rank" :class="{ 'top-3': index < 3 }">{{ index + 1 }}</span>
+                <span class="entity-name">{{ entity.name }}</span>
+                <span class="entity-count">×{{ entity.count }}</span>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Hot Topics -->
+        <!-- Market Prediction -->
         <div class="panel">
           <div class="panel-header">
-            <div class="panel-title">热门话题</div>
+            <div class="panel-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px; vertical-align: text-bottom;">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>
+              </svg>
+              {{ t('market_outlook') }}
+            </div>
           </div>
           <div class="panel-body">
-            <div class="tag-cloud">
-              <span v-for="(topic, index) in hotTopics" :key="index" class="tag">
-                {{ topic }}
+            <div v-for="market in marketPredictions" :key="market.name" class="pred-row">
+              <span class="pred-name">{{ market.name }}</span>
+              <span class="pred-trend" :class="getTrendClass(market.trend)">
+                {{ market.trendIcon }} {{ market.trend }}
               </span>
             </div>
           </div>
         </div>
 
-        <!-- Predictions -->
+        <!-- Quick Stats -->
         <div class="panel">
           <div class="panel-header">
-            <div class="panel-title">市场预测</div>
+            <div class="panel-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px; vertical-align: text-bottom;">
+                <line x1="4" y1="21" x2="4" y2="14"></line>
+                <line x1="4" y1="10" x2="4" y2="3"></line>
+                <line x1="12" y1="21" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12" y2="3"></line>
+                <line x1="20" y1="21" x2="20" y2="16"></line>
+                <line x1="20" y1="12" x2="20" y2="3"></line>
+                <line x1="1" y1="14" x2="7" y2="14"></line>
+                <line x1="9" y1="8" x2="15" y2="8"></line>
+                <line x1="17" y1="16" x2="23" y2="16"></line>
+              </svg>
+              {{ t('statistics') }}
+            </div>
           </div>
           <div class="panel-body">
-            <div v-for="market in marketPrediction" :key="market.name" class="pred-row">
-              <div class="pred-name">{{ market.name }}</div>
-              <div class="pred-trend-container">
-                <span class="pred-trend-text">{{ formatTrendText(market.trend) }}</span>
-                <span class="pred-icon" :class="getTrendClass(market.trend)">
-                  <svg v-if="getTrendClass(market.trend) === 'up'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="18 15 12 9 6 15"></polyline>
-                  </svg>
-                  <svg v-else-if="getTrendClass(market.trend) === 'down'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="6 9 12 15 18 9"></polyline>
-                  </svg>
-                  <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                  </svg>
-                </span>
-              </div>
+            <div class="stat-row">
+              <span class="stat-label">{{ t('beijing_time') }}</span>
+              <span class="stat-value">{{ reportData.meta?.beijing_time || '--:--' }}</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">{{ t('newyork_time') }}</span>
+              <span class="stat-value">{{ reportData.meta?.newyork_time || '--:--' }}</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">{{ t('event_count') }}</span>
+              <span class="stat-value">{{ reportData.events?.high_impact?.length || 0 }} 条</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">{{ t('stock_signal_count') }}</span>
+              <span class="stat-value">{{ reportData.stock_impacts?.length || 0 }} 个</span>
             </div>
           </div>
         </div>
@@ -268,90 +323,149 @@
 
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import axios from 'axios'
 
 const loading = ref(true)
-const activeTab = ref('hourly')
-const report = ref(null)
-const dailySummary = ref(null)
-const weeklyAnalysis = ref(null)
-const lastUpdateTime = ref('--:--:--')
 const currentTime = ref('00:00:00')
+const lang = ref('zh') // Default to Chinese
 
-const stats = ref({
-  total_news: 0,
-  positive_news: 0,
-  negative_news: 0
-})
-
-const sentiment = ref({
-  label: 'Neutral',
-  score: 0,
-  breakdown: { cn: 0, us: 0 }
-})
-
-const hotTopics = ref([])
-const recommendations = ref({ a_shares: [], us_shares: [] })
-const marketPrediction = ref([])
-
-const getSentimentColor = (score) => {
-  if (score > 0.1) return '#4CAF50' // Green
-  if (score < -0.1) return '#F44336' // Red
-  return '#FF9800' // Orange/Neutral
+const translations = {
+  market_sentiment: { zh: '市场情绪', en: 'MARKET SENTIMENT' },
+  key_events: { zh: '关键事件', en: 'KEY EVENTS' },
+  stock_prediction: { zh: '个股预测', en: 'STOCK PREDICTION' },
+  hot_topics: { zh: '热门话题', en: 'HOT TOPICS' },
+  market_outlook: { zh: '市场展望', en: 'MARKET OUTLOOK' },
+  statistics: { zh: '统计数据', en: 'STATISTICS' },
+  total_news: { zh: '已分析新闻', en: 'Total News' },
+  market_sentiment_kpi: { zh: '市场情绪', en: 'Sentiment' },
+  hot_topics_kpi: { zh: '热门话题', en: 'Hot Topics' },
+  updated_at: { zh: '更新时间', en: 'Updated At' },
+  system_online: { zh: '系统在线', en: 'System Online' },
+  loading: { zh: '正在加载数据...', en: 'Loading data...' },
+  empty_events: { zh: '暂无重大事件', en: 'No key events found' },
+  empty_topics: { zh: '暂无热门话题', en: 'No hot topics found' },
+  beijing_time: { zh: '北京时间', en: 'Beijing Time' },
+  newyork_time: { zh: '纽约时间', en: 'New York Time' },
+  event_count: { zh: '重大事件', en: 'Key Events' },
+  stock_signal_count: { zh: '股票信号', en: 'Stock Signals' },
+  positive: { zh: '积极', en: 'Positive' },
+  neutral: { zh: '中性', en: 'Neutral' },
+  negative: { zh: '消极', en: 'Negative' },
+  confidence: { zh: '置信度', en: 'Confidence' },
+  mentions: { zh: '提及', en: 'Mentions' },
+  times: { zh: '次', en: 'times' }
 }
 
-const formatReport = (text) => {
-  if (!text) return ''
-  // Remove markdown-style headers and clean up
-  let formatted = text
-    .replace(/={3,}/g, '') // Remove separator lines
-    .replace(/【(.*?)】/g, '<h4 class="report-section-title">$1</h4>') // Format section headers
+const t = (key) => {
+  return translations[key]?.[lang.value] || key
+}
+
+const toggleLang = () => {
+  lang.value = lang.value === 'zh' ? 'en' : 'zh'
+}
+
+const reportData = ref({
+  meta: {},
+  sentiment: {},
+  entities: [],
+  events: {},
+  stock_impacts: []
+})
+
+// Computed: Sentiment Markets
+const sentimentMarkets = computed(() => {
+  const s = reportData.value.sentiment || {}
+  return [
+    { key: 'overall', name: '全球市场', score: s.overall?.score || 0, label: s.overall?.label || '中性' },
+    { key: 'cn', name: '中国市场', score: s.cn?.score || 0, label: s.cn?.label || '中性' },
+    { key: 'us', name: '美国市场', score: s.us?.score || 0, label: s.us?.label || '中性' }
+  ]
+})
+
+// Computed: Market Predictions
+const marketPredictions = computed(() => {
+  const s = reportData.value.sentiment || {}
   
-  return formatted.split('\n').map(line => {
-    if (line.trim().startsWith('-') || line.trim().startsWith('•')) {
-      return `<div class="report-list-item"><span class="bullet">›</span> ${line.substring(1)}</div>`
-    }
-    if (line.trim().length === 0) return '<div class="spacer"></div>'
-    return `<div class="report-p">${line}</div>`
-  }).join('')
+  const getPrediction = (score) => {
+    if (score > 0.3) return { trend: '看涨', trendIcon: '↑' }
+    if (score < -0.3) return { trend: '看跌', trendIcon: '↓' }
+    return { trend: '震荡', trendIcon: '→' }
+  }
+  
+  return [
+    { name: 'A股', ...getPrediction(s.cn?.score || 0) },
+    { name: '美股', ...getPrediction(s.us?.score || 0) },
+    { name: '全球', ...getPrediction(s.overall?.score || 0) }
+  ]
+})
+
+// Helper Functions
+const getSentimentClass = (score) => {
+  if (score > 0.1) return 'positive'
+  if (score < -0.1) return 'negative'
+  return 'neutral'
 }
 
-const formatTrendText = (trend) => {
-  // Remove arrows and emojis from trend string
-  return trend.replace(/[↑↓➡️]/g, '').trim()
+const getBarStyle = (score) => {
+  const val = score || 0
+  const width = Math.min(Math.abs(val) * 50, 50)
+  const color = val > 0.1 ? '#4CAF50' : val < -0.1 ? '#F44336' : '#FF9800'
+  return {
+    width: `${width}%`,
+    background: color,
+    [val >= 0 ? 'left' : 'right']: '50%'
+  }
 }
 
-const getTrendClass = (trend) => {
-  if (trend.includes('↑') || trend.includes('上涨')) return 'up'
-  if (trend.includes('↓') || trend.includes('下跌')) return 'down'
+const getDirectionClass = (direction) => {
+  if (direction === '上涨') return 'up'
+  if (direction === '下跌') return 'down'
   return 'flat'
 }
 
+const getDirectionIcon = (direction) => {
+  if (direction === '上涨') return '↑'
+  if (direction === '下跌') return '↓'
+  return '→'
+}
+
+const getPredictionClass = (prediction) => {
+  if (prediction === '看涨') return 'positive'
+  if (prediction === '看跌') return 'negative'
+  return 'neutral'
+}
+
+const getPredictionIcon = (prediction) => {
+  if (prediction === '看涨') return '↑'
+  if (prediction === '看跌') return '↓'
+  return '→'
+}
+
+const getTrendClass = (trend) => {
+  if (trend === '看涨') return 'positive'
+  if (trend === '看跌') return 'negative'
+  return 'neutral'
+}
+
+const formatTime = (isoString) => {
+  if (!isoString) return '--:--'
+  try {
+    const date = new Date(isoString)
+    return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+  } catch {
+    return '--:--'
+  }
+}
+
+// Fetch Data
 const fetchData = async () => {
   loading.value = true
   try {
-    const response = await axios.get('/api/latest')
-    if (response.data) {
-      report.value = response.data.content
-      if (response.data.stats) stats.value = response.data.stats
-      if (response.data.sentiment) sentiment.value = response.data.sentiment
-      if (response.data.hot_topics) hotTopics.value = response.data.hot_topics
-      if (response.data.recommendations) recommendations.value = response.data.recommendations
-      if (response.data.market_prediction) marketPrediction.value = response.data.market_prediction
-      lastUpdateTime.value = response.data.timestamp || new Date().toLocaleTimeString()
+    const res = await axios.get('/api/report/structured')
+    if (res.data) {
+      reportData.value = res.data
     }
-
-    const dailyRes = await axios.get('/api/daily_summary')
-    if (dailyRes.data && dailyRes.data.content) {
-      dailySummary.value = dailyRes.data.content
-    }
-
-    const weeklyRes = await axios.get('/api/weekly_analysis')
-    if (weeklyRes.data) {
-      weeklyAnalysis.value = weeklyRes.data
-    }
-
   } catch (error) {
     console.error('Error fetching data:', error)
   } finally {
@@ -359,23 +473,19 @@ const fetchData = async () => {
   }
 }
 
-let timer
+// Clock
 let clockTimer
-
 const updateClock = () => {
-  const now = new Date()
-  currentTime.value = now.toLocaleTimeString('en-GB', { hour12: false })
+  currentTime.value = new Date().toLocaleTimeString('en-GB', { hour12: false })
 }
 
 onMounted(() => {
   fetchData()
   updateClock()
-  timer = setInterval(fetchData, 300000)
   clockTimer = setInterval(updateClock, 1000)
 })
 
 onUnmounted(() => {
-  clearInterval(timer)
   clearInterval(clockTimer)
 })
 </script>
@@ -434,6 +544,25 @@ onUnmounted(() => {
 
 .header-right {
   text-align: right;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.lang-btn {
+  background: none;
+  border: 1px solid var(--c-ink);
+  padding: 0.2rem 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  cursor: pointer;
+  color: var(--c-ink);
+  transition: all 0.2s;
+}
+
+.lang-btn:hover {
+  background: var(--c-ink);
+  color: var(--c-bg);
 }
 
 .sys-status {
@@ -470,22 +599,21 @@ onUnmounted(() => {
 
 .kpi-item {
   background: var(--c-paper);
-  border: 1px solid var(--c-grid);
+  border: 2px solid var(--c-ink);
   padding: 1rem;
   display: flex;
   align-items: center;
   gap: 1rem;
-  box-shadow: 2px 2px 0 rgba(0,0,0,0.05);
+  box-shadow: 4px 4px 0 rgba(0,0,0,0.1);
 }
 
 .kpi-icon {
-  background: rgba(0,0,0,0.03);
+  font-size: 2rem;
   width: 48px;
   height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--c-ink);
 }
 
 .kpi-content {
@@ -506,6 +634,34 @@ onUnmounted(() => {
   color: var(--c-ink);
 }
 
+.kpi-value.positive { color: #4CAF50; }
+.kpi-value.negative { color: #F44336; }
+.kpi-value.neutral { color: #FF9800; }
+
+/* Loading */
+.loading-overlay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem;
+  gap: 1rem;
+  color: #888;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(0,0,0,0.1);
+  border-top-color: var(--c-amber);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 /* Main Grid */
 .main-grid {
   display: grid;
@@ -513,19 +669,13 @@ onUnmounted(() => {
   gap: 2rem;
 }
 
-.col-main {
+.col-main, .col-side {
   display: flex;
   flex-direction: column;
   gap: 2rem;
 }
 
-.col-side {
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-}
-
-/* Panels */
+/* Panel */
 .panel {
   background: var(--c-paper);
   border: 2px solid var(--c-ink);
@@ -544,51 +694,90 @@ onUnmounted(() => {
 .panel-title {
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 1.1rem;
-  letter-spacing: 0.05em;
+  font-size: 1rem;
 }
 
-.panel-meta, .panel-tag {
+.panel-tag {
   font-family: var(--font-mono);
   font-size: 0.7rem;
   background: var(--c-ink);
   color: var(--c-bg);
-  padding: 0.1rem 0.4rem;
+  padding: 0.2rem 0.5rem;
 }
 
 .panel-body {
   padding: 1.5rem;
 }
 
-/* Sentiment Dashboard */
-.sentiment-dashboard {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
+.refresh-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #666;
+  padding: 0.25rem;
 }
 
-.sentiment-row {
+.refresh-btn:hover {
+  color: var(--c-ink);
+}
+
+/* Sentiment Grid */
+.sentiment-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.sentiment-card {
+  background: #f9f9f9;
+  padding: 1rem;
+  text-align: center;
+}
+
+.sent-header {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
 }
 
-.sent-label {
-  width: 120px;
-  font-size: 0.8rem;
+.sent-icon {
+  font-size: 1.2rem;
+}
+
+.sent-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.sent-score {
+  font-family: var(--font-mono);
+  font-size: 2rem;
   font-weight: 700;
 }
 
+.sent-score.positive { color: #4CAF50; }
+.sent-score.negative { color: #F44336; }
+.sent-score.neutral { color: #FF9800; }
+
+.sent-label {
+  font-size: 0.75rem;
+  color: #666;
+  margin-bottom: 0.75rem;
+}
+
 .sent-bar-container {
-  flex: 1;
-  height: 24px;
-  background: rgba(0,0,0,0.05);
+  height: 8px;
+  background: #eee;
   position: relative;
-  display: flex;
-  align-items: center;
+  border-radius: 4px;
+  overflow: hidden;
 }
 
 .sent-bar {
+  position: absolute;
   height: 100%;
   transition: width 0.5s ease;
 }
@@ -597,238 +786,275 @@ onUnmounted(() => {
   position: absolute;
   left: 50%;
   top: 0;
-  bottom: 0;
   width: 2px;
+  height: 100%;
   background: var(--c-ink);
   opacity: 0.3;
 }
 
-.sent-value {
-  width: 60px;
-  text-align: right;
+/* Distribution */
+.distribution-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  background: #f5f5f5;
+  padding: 1rem;
+  border-radius: 4px;
+}
+
+.dist-item {
+  text-align: center;
+}
+
+.dist-value {
   font-family: var(--font-mono);
+  font-size: 1.5rem;
   font-weight: 700;
-  font-size: 1.1rem;
 }
 
-/* Tabs */
-.panel-tabs {
-  display: flex;
-  border-bottom: 1px solid var(--c-ink);
-  background: rgba(0,0,0,0.02);
-}
+.dist-item.positive .dist-value { color: #4CAF50; }
+.dist-item.negative .dist-value { color: #F44336; }
+.dist-item.neutral .dist-value { color: #FF9800; }
 
-.tab-btn {
-  background: none;
-  border: none;
-  border-right: 1px solid var(--c-ink);
-  padding: 1rem 1.5rem;
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 0.9rem;
-  cursor: pointer;
-  color: #666;
-  transition: all 0.2s;
-}
-
-.tab-btn:hover {
-  background: rgba(0,0,0,0.05);
-  color: var(--c-ink);
-}
-
-.tab-btn.active {
-  background: var(--c-paper);
-  color: var(--c-amber);
-  border-bottom: 2px solid var(--c-paper); /* Hide bottom border */
-  margin-bottom: -1px;
-}
-
-.tab-spacer {
-  flex: 1;
-}
-
-.refresh-btn {
-  background: none;
-  border: none;
-  padding: 0 1.5rem;
-  font-family: var(--font-mono);
+.dist-label {
   font-size: 0.75rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
   color: #666;
 }
 
-.refresh-btn:hover {
-  color: var(--c-ink);
-}
-
-/* Report Content */
-.report-content {
-  min-height: 400px;
-  max-height: 600px;
-  overflow-y: auto;
-}
-
-.report-text :deep(.report-section-title) {
-  font-family: var(--font-display);
-  font-size: 1.1rem;
-  margin: 1.5rem 0 1rem 0;
-  border-left: 4px solid var(--c-amber);
-  padding-left: 0.75rem;
-  color: var(--c-ink);
-}
-
-.report-text :deep(.report-list-item) {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
-  line-height: 1.5;
-}
-
-.report-text :deep(.bullet) {
-  color: var(--c-amber);
-  font-weight: 700;
-}
-
-.report-text :deep(.report-p) {
-  margin-bottom: 0.75rem;
-  line-height: 1.6;
-}
-
-.report-text :deep(.spacer) {
-  height: 1rem;
-}
-
-/* Side Panel Items */
-.market-group {
-  margin-bottom: 2rem;
-}
-
-.group-label {
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: #888;
-  margin-bottom: 0.75rem;
-  border-bottom: 1px dashed var(--c-grid);
-  padding-bottom: 0.25rem;
-}
-
-.stock-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.5rem 0;
-  border-bottom: 1px solid rgba(0,0,0,0.05);
-}
-
-.stock-code {
-  font-family: var(--font-mono);
-  font-weight: 700;
-  background: var(--c-ink);
-  color: var(--c-bg);
-  padding: 0.1rem 0.3rem;
-  font-size: 0.8rem;
-}
-
-.stock-name {
-  font-size: 0.9rem;
-  flex: 1;
-  margin-left: 0.75rem;
-}
-
-.stock-action {
-  font-size: 0.7rem;
-  font-weight: 700;
-  padding: 0.1rem 0.4rem;
-  border-radius: 2px;
-}
-
-.stock-action.up {
-  background: rgba(76, 175, 80, 0.1);
-  color: #4CAF50;
-}
-
-.tag-cloud {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.tag {
-  border: 1px solid var(--c-ink);
-  padding: 0.2rem 0.6rem;
-  font-size: 0.75rem;
-  font-weight: 700;
-  background: white;
-  box-shadow: 2px 2px 0 rgba(0,0,0,0.1);
-}
-
-.pred-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.75rem 0;
-  border-bottom: 1px dashed var(--c-grid);
-}
-
-.pred-name {
-  font-weight: 700;
-}
-
-.pred-trend-container {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.pred-trend-text {
-  font-family: var(--font-mono);
-  font-size: 0.9rem;
-  font-weight: 700;
-}
-
-.pred-icon {
-  display: flex;
-  align-items: center;
-}
-
-.pred-icon.up { color: #4CAF50; }
-.pred-icon.down { color: #F44336; }
-.pred-icon.flat { color: #FF9800; }
-
-.loading-state {
+/* Event List */
+.event-list {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 200px;
-  color: #888;
   gap: 1rem;
 }
 
-.spinner {
-  width: 30px;
-  height: 30px;
-  border: 3px solid rgba(0,0,0,0.1);
-  border-top-color: var(--c-amber);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
+.event-card {
+  padding: 1rem;
+  border: 1px solid #eee;
+  background: #fafafa;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
+.event-meta {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
 }
 
+.event-source {
+  background: var(--c-ink);
+  color: white;
+  padding: 0.1rem 0.4rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.event-type {
+  background: var(--c-amber);
+  color: white;
+  padding: 0.1rem 0.4rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.event-title {
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.event-summary {
+  font-size: 0.9rem;
+  color: #666;
+  line-height: 1.5;
+}
+
+.event-stocks {
+  margin-top: 0.75rem;
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.stock-tag {
+  padding: 0.2rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border-radius: 2px;
+}
+
+.stock-tag.up { background: rgba(76, 175, 80, 0.1); color: #4CAF50; }
+.stock-tag.down { background: rgba(244, 67, 54, 0.1); color: #F44336; }
+.stock-tag.flat { background: #eee; color: #666; }
+
+/* Stock Grid */
+.stock-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.stock-card {
+  background: #f9f9f9;
+  padding: 1rem;
+  border-radius: 4px;
+}
+
+.stock-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.stock-symbol {
+  font-family: var(--font-mono);
+  font-weight: 700;
+}
+
+.stock-prediction {
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.stock-prediction.positive { color: #4CAF50; }
+.stock-prediction.negative { color: #F44336; }
+.stock-prediction.neutral { color: #FF9800; }
+
+.stock-name {
+  font-size: 0.8rem;
+  color: #666;
+  margin: 0.25rem 0 0.75rem;
+}
+
+.confidence-bar {
+  margin-bottom: 0.5rem;
+}
+
+.confidence-label {
+  font-size: 0.7rem;
+  color: #888;
+  margin-bottom: 0.25rem;
+}
+
+.confidence-track {
+  height: 4px;
+  background: #ddd;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.confidence-fill {
+  height: 100%;
+  border-radius: 2px;
+}
+
+.confidence-fill.positive { background: #4CAF50; }
+.confidence-fill.negative { background: #F44336; }
+.confidence-fill.neutral { background: #FF9800; }
+
+.stock-stats {
+  font-size: 0.75rem;
+  color: #888;
+}
+
+.text-green { color: #4CAF50; }
+.text-red { color: #F44336; }
+
+/* Entity List */
+.entity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.entity-item {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem;
+  background: #f9f9f9;
+}
+
+.entity-rank {
+  width: 24px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: #ccc;
+  font-style: italic;
+}
+
+.entity-rank.top-3 { color: var(--c-amber); }
+
+.entity-name {
+  flex: 1;
+  font-weight: 500;
+}
+
+.entity-count {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: #888;
+}
+
+/* Prediction Row */
+.pred-row {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px dashed #eee;
+}
+
+.pred-icon {
+  font-size: 1.2rem;
+  margin-right: 0.75rem;
+}
+
+.pred-name {
+  flex: 1;
+  font-weight: 600;
+}
+
+.pred-trend {
+  font-family: var(--font-mono);
+  font-weight: 700;
+}
+
+.pred-trend.positive { color: #4CAF50; }
+.pred-trend.negative { color: #F44336; }
+.pred-trend.neutral { color: #FF9800; }
+
+/* Stat Row */
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #eee;
+}
+
+.stat-label {
+  color: #888;
+  font-size: 0.85rem;
+}
+
+.stat-value {
+  font-family: var(--font-mono);
+  font-weight: 700;
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 2rem;
+  color: #888;
+}
+
+/* Responsive */
 @media (max-width: 1200px) {
   .main-grid { grid-template-columns: 1fr; }
-  .kpi-bar { grid-template-columns: 1fr 1fr; }
+  .kpi-bar { grid-template-columns: repeat(2, 1fr); }
+  .sentiment-grid { grid-template-columns: 1fr; }
+  .stock-grid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 768px) {
   .kpi-bar { grid-template-columns: 1fr; }
-  .dashboard-header { flex-direction: column; align-items: flex-start; gap: 1rem; }
-  .header-right { text-align: left; }
+  .distribution-row { grid-template-columns: 1fr; }
 }
 </style>
