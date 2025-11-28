@@ -35,42 +35,44 @@
       </div>
       <div class="card-body">
         <div v-if="loading" class="text-center">加载中...</div>
-        <table v-else class="data-table">
-          <thead>
-            <tr>
-              <th>排名</th>
-              <th>名称</th>
-              <th>价格 (USD)</th>
-              <th>24h 涨跌</th>
-              <th>24h 最高/最低</th>
-              <th>24h 成交量</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(coin, index) in marketData" :key="coin.symbol">
-              <td>{{ coin.market_cap_rank || index + 1 }}</td>
-              <td>
-                <div class="coin-name-cell">
-                  <img v-if="coin.image" :src="coin.image" class="coin-icon" />
-                  <span class="coin-icon-placeholder" v-else>{{ coin.symbol?.charAt(0) }}</span>
-                  <span>{{ coin.name || coin.symbol }}</span>
-                  <span class="text-gray">{{ coin.symbol }}</span>
-                </div>
-              </td>
-              <td class="font-mono">${{ formatPrice(coin.price_usd) }}</td>
-              <td>
-                <span :class="getChangeClass(coin.change_24h)">
-                  {{ coin.change_24h >= 0 ? '+' : '' }}{{ coin.change_24h?.toFixed(2) || '0.00' }}%
-                </span>
-              </td>
-              <td class="font-mono text-sm">
-                <span class="text-green">${{ formatPrice(coin.high_24h) }}</span> /
-                <span class="text-red">${{ formatPrice(coin.low_24h) }}</span>
-              </td>
-              <td class="font-mono">${{ formatVolume(coin.volume_24h) }}</td>
-            </tr>
-          </tbody>
-        </table>
+        <div v-else class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>排名</th>
+                <th>名称</th>
+                <th>价格 (USD)</th>
+                <th>24h 涨跌</th>
+                <th class="hide-mobile">24h 最高/最低</th>
+                <th class="hide-mobile">24h 成交量</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(coin, index) in marketData" :key="coin.symbol">
+                <td>{{ coin.market_cap_rank || index + 1 }}</td>
+                <td>
+                  <div class="coin-name-cell">
+                    <img v-if="coin.image" :src="coin.image" class="coin-icon" />
+                    <span class="coin-icon-placeholder" v-else>{{ coin.symbol?.charAt(0) }}</span>
+                    <span>{{ coin.name || coin.symbol }}</span>
+                    <span class="text-gray">{{ coin.symbol }}</span>
+                  </div>
+                </td>
+                <td class="font-mono">${{ formatPrice(coin.price_usd) }}</td>
+                <td>
+                  <span :class="getChangeClass(coin.change_24h)">
+                    {{ coin.change_24h >= 0 ? '+' : '' }}{{ coin.change_24h?.toFixed(2) || '0.00' }}%
+                  </span>
+                </td>
+                <td class="font-mono text-sm hide-mobile">
+                  <span class="text-green">${{ formatPrice(coin.high_24h) }}</span> /
+                  <span class="text-red">${{ formatPrice(coin.low_24h) }}</span>
+                </td>
+                <td class="font-mono hide-mobile">${{ formatVolume(coin.volume_24h) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>

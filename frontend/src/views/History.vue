@@ -202,4 +202,26 @@ onMounted(() => {
   color: #888;
   font-weight: 700;
 }
+
+@media (max-width: 768px) {
+  .page-container {
+    height: auto;
+    display: block;
+  }
+
+  .layout-split {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .timeline-list {
+    height: 300px; /* Fixed height for list on mobile */
+    margin-bottom: 1rem;
+  }
+
+  .report-viewer {
+    height: 600px; /* Fixed height for viewer on mobile */
+  }
+}
 </style>

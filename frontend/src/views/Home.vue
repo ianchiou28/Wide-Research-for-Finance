@@ -9,8 +9,8 @@
           </svg>
         </div>
         <div class="brand-text">
-          <span class="brand-title">金融终端</span>
-          <span class="brand-subtitle">DeepSeek 智能引擎</span>
+          <span class="brand-title">{{ t('brand_title') }}</span>
+          <span class="brand-subtitle">{{ t('brand_subtitle') }}</span>
         </div>
       </div>
       <div class="header-right">
@@ -52,7 +52,7 @@
         <div class="kpi-content">
           <div class="kpi-label">{{ t('market_sentiment_kpi') }}</div>
           <div class="kpi-value" :class="getSentimentClass(reportData.sentiment?.overall?.score)">
-            {{ reportData.sentiment?.overall?.label || '中性' }}
+            {{ getSentimentLabel(reportData.sentiment?.overall?.score) }}
           </div>
         </div>
       </div>
@@ -162,7 +162,7 @@
               </svg>
               {{ t('key_events') }}
             </div>
-            <div class="panel-tag">{{ reportData.events?.high_impact?.length || 0 }} 条</div>
+            <div class="panel-tag">{{ reportData.events?.high_impact?.length || 0 }} {{ t('unit_items') }}</div>
           </div>
           <div class="panel-body">
             <div v-if="!reportData.events?.high_impact?.length" class="empty-state">
@@ -271,7 +271,7 @@
           <div class="panel-body">
             <div v-for="market in marketPredictions" :key="market.name" class="pred-row">
               <span class="pred-name">{{ market.name }}</span>
-              <span class="pred-trend" :class="getTrendClass(market.trend)">
+              <span class="pred-trend" :class="getTrendClass(market.trendType)">
                 {{ market.trendIcon }} {{ market.trend }}
               </span>
             </div>
@@ -307,11 +307,11 @@
             </div>
             <div class="stat-row">
               <span class="stat-label">{{ t('event_count') }}</span>
-              <span class="stat-value">{{ reportData.events?.high_impact?.length || 0 }} 条</span>
+              <span class="stat-value">{{ reportData.events?.high_impact?.length || 0 }} {{ t('unit_items') }}</span>
             </div>
             <div class="stat-row">
               <span class="stat-label">{{ t('stock_signal_count') }}</span>
-              <span class="stat-value">{{ reportData.stock_impacts?.length || 0 }} 个</span>
+              <span class="stat-value">{{ reportData.stock_impacts?.length || 0 }} {{ t('unit_count') }}</span>
             </div>
           </div>
         </div>
@@ -354,7 +354,20 @@ const translations = {
   negative: { zh: '消极', en: 'Negative' },
   confidence: { zh: '置信度', en: 'Confidence' },
   mentions: { zh: '提及', en: 'Mentions' },
-  times: { zh: '次', en: 'times' }
+  times: { zh: '次', en: 'times' },
+  brand_title: { zh: '金融终端', en: 'FINANCE TERMINAL' },
+  brand_subtitle: { zh: 'DeepSeek 智能引擎', en: 'DeepSeek AI ENGINE' },
+  market_global: { zh: '全球市场', en: 'Global Market' },
+  market_cn: { zh: '中国市场', en: 'China Market' },
+  market_us: { zh: '美国市场', en: 'US Market' },
+  market_a_share: { zh: 'A股', en: 'A-Share' },
+  market_us_stock: { zh: '美股', en: 'US Stock' },
+  market_global_short: { zh: '全球', en: 'Global' },
+  trend_bullish: { zh: '看涨', en: 'Bullish' },
+  trend_bearish: { zh: '看跌', en: 'Bearish' },
+  trend_sideways: { zh: '震荡', en: 'Sideways' },
+  unit_items: { zh: '条', en: '' },
+  unit_count: { zh: '个', en: '' }
 }
 
 const t = (key) => {
@@ -373,13 +386,20 @@ const reportData = ref({
   stock_impacts: []
 })
 
+// Helper for sentiment label
+const getSentimentLabel = (score) => {
+  if (score > 0.1) return t('positive')
+  if (score < -0.1) return t('negative')
+  return t('neutral')
+}
+
 // Computed: Sentiment Markets
 const sentimentMarkets = computed(() => {
   const s = reportData.value.sentiment || {}
   return [
-    { key: 'overall', name: '全球市场', score: s.overall?.score || 0, label: s.overall?.label || '中性' },
-    { key: 'cn', name: '中国市场', score: s.cn?.score || 0, label: s.cn?.label || '中性' },
-    { key: 'us', name: '美国市场', score: s.us?.score || 0, label: s.us?.label || '中性' }
+    { key: 'overall', name: t('market_global'), score: s.overall?.score || 0, label: getSentimentLabel(s.overall?.score || 0) },
+    { key: 'cn', name: t('market_cn'), score: s.cn?.score || 0, label: getSentimentLabel(s.cn?.score || 0) },
+    { key: 'us', name: t('market_us'), score: s.us?.score || 0, label: getSentimentLabel(s.us?.score || 0) }
   ]
 })
 
@@ -388,15 +408,15 @@ const marketPredictions = computed(() => {
   const s = reportData.value.sentiment || {}
   
   const getPrediction = (score) => {
-    if (score > 0.3) return { trend: '看涨', trendIcon: '↑' }
-    if (score < -0.3) return { trend: '看跌', trendIcon: '↓' }
-    return { trend: '震荡', trendIcon: '→' }
+    if (score > 0.3) return { trend: t('trend_bullish'), trendType: 'bullish', trendIcon: '↑' }
+    if (score < -0.3) return { trend: t('trend_bearish'), trendType: 'bearish', trendIcon: '↓' }
+    return { trend: t('trend_sideways'), trendType: 'sideways', trendIcon: '→' }
   }
   
   return [
-    { name: 'A股', ...getPrediction(s.cn?.score || 0) },
-    { name: '美股', ...getPrediction(s.us?.score || 0) },
-    { name: '全球', ...getPrediction(s.overall?.score || 0) }
+    { name: t('market_a_share'), ...getPrediction(s.cn?.score || 0) },
+    { name: t('market_us_stock'), ...getPrediction(s.us?.score || 0) },
+    { name: t('market_global_short'), ...getPrediction(s.overall?.score || 0) }
   ]
 })
 
@@ -442,9 +462,9 @@ const getPredictionIcon = (prediction) => {
   return '→'
 }
 
-const getTrendClass = (trend) => {
-  if (trend === '看涨') return 'positive'
-  if (trend === '看跌') return 'negative'
+const getTrendClass = (trendType) => {
+  if (trendType === 'bullish') return 'positive'
+  if (trendType === 'bearish') return 'negative'
   return 'neutral'
 }
 
@@ -452,7 +472,8 @@ const formatTime = (isoString) => {
   if (!isoString) return '--:--'
   try {
     const date = new Date(isoString)
-    return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+    const locale = lang.value === 'zh' ? 'zh-CN' : 'en-US'
+    return date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
   } catch {
     return '--:--'
   }
@@ -1054,6 +1075,25 @@ onUnmounted(() => {
 }
 
 @media (max-width: 768px) {
+  .dashboard-container {
+    padding: 0;
+  }
+
+  .dashboard-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  .header-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .sys-time {
+    font-size: 1rem;
+  }
+
   .kpi-bar { grid-template-columns: 1fr; }
   .distribution-row { grid-template-columns: 1fr; }
 }

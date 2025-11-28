@@ -6,9 +6,19 @@
 
     <!-- Top Bar -->
     <header class="top-bar">
-      <div class="top-bar-logo">
-        <div class="top-bar-icon"></div>
-        <span>WIDE RESEARCH // FINANCE TERMINAL</span>
+      <div class="top-bar-left">
+        <button class="menu-toggle" @click="toggleDrawer">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+        <div class="top-bar-logo">
+          <div class="top-bar-icon"></div>
+          <span class="desktop-title">WIDE RESEARCH // FINANCE TERMINAL</span>
+          <span class="mobile-title">WIDE RESEARCH</span>
+        </div>
       </div>
       <div class="top-bar-info">
         DATE: {{ currentDate }}
@@ -16,27 +26,30 @@
     </header>
 
     <div class="layout">
+      <!-- Drawer Overlay -->
+      <div class="drawer-overlay" v-if="isDrawerOpen" @click="closeDrawer"></div>
+
       <!-- Sidebar -->
-      <aside class="sidebar">
+      <aside class="sidebar" :class="{ 'mobile-open': isDrawerOpen }">
         <div class="sidebar-section-title">NAVIGATION // 导航</div>
         <ul class="nav-menu">
           <li class="nav-item">
-            <router-link to="/" class="nav-link" active-class="active">概览仪表盘</router-link>
+            <router-link to="/" class="nav-link" active-class="active" @click="closeDrawer">概览仪表盘</router-link>
           </li>
           <li class="nav-item">
-            <router-link to="/watchlist" class="nav-link" active-class="active">自选监控</router-link>
+            <router-link to="/watchlist" class="nav-link" active-class="active" @click="closeDrawer">自选监控</router-link>
           </li>
           <li class="nav-item">
-            <router-link to="/hot-topics" class="nav-link" active-class="active">全网热搜</router-link>
+            <router-link to="/hot-topics" class="nav-link" active-class="active" @click="closeDrawer">全网热搜</router-link>
           </li>
           <li class="nav-item">
-            <router-link to="/crypto" class="nav-link" active-class="active">加密货币</router-link>
+            <router-link to="/crypto" class="nav-link" active-class="active" @click="closeDrawer">加密货币</router-link>
           </li>
           <li class="nav-item">
-            <router-link to="/history" class="nav-link" active-class="active">历史报告</router-link>
+            <router-link to="/history" class="nav-link" active-class="active" @click="closeDrawer">历史报告</router-link>
           </li>
           <li class="nav-item">
-            <router-link to="/overview" class="nav-link" active-class="active">项目总览</router-link>
+            <router-link to="/overview" class="nav-link" active-class="active" @click="closeDrawer">项目总览</router-link>
           </li>
         </ul>
 
@@ -70,6 +83,15 @@ import { ref, onMounted, onUnmounted } from 'vue'
 
 const currentDate = ref(new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-'))
 const lastSyncTime = ref(new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }))
+const isDrawerOpen = ref(false)
+
+const toggleDrawer = () => {
+  isDrawerOpen.value = !isDrawerOpen.value
+}
+
+const closeDrawer = () => {
+  isDrawerOpen.value = false
+}
 
 let timer
 onMounted(() => {
@@ -83,6 +105,7 @@ onUnmounted(() => {
 })
 </script>
 
+<!-- Styles -->
 <style scoped>
 /* Top Bar */
 .top-bar {
@@ -103,10 +126,44 @@ onUnmounted(() => {
     justify-content: space-between;
 }
 
+.top-bar-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.menu-toggle {
+    display: none;
+    background: transparent;
+    border: 2px solid var(--c-ink);
+    color: var(--c-ink);
+    cursor: pointer;
+    padding: 4px;
+    margin-right: 1rem;
+    border-radius: 0;
+    transition: all 0.1s;
+    width: 40px;
+    height: 40px;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 3px 3px 0 var(--c-ink);
+}
+
+.menu-toggle:active {
+    transform: translate(3px, 3px);
+    box-shadow: none;
+    background: var(--c-ink);
+    color: var(--c-amber);
+}
+
 .top-bar-logo {
     display: flex;
     align-items: center;
     gap: 1rem;
+}
+
+.mobile-title {
+    display: none;
 }
 
 .top-bar-icon {
@@ -138,6 +195,8 @@ onUnmounted(() => {
     height: calc(100vh - 48px);
     position: sticky;
     top: 48px;
+    z-index: 90;
+    transition: transform 0.3s ease-in-out;
 }
 
 .sidebar-section-title {
@@ -223,8 +282,60 @@ onUnmounted(() => {
     animation: blink-status 2s infinite;
 }
 
+/* Drawer Overlay */
+.drawer-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 80;
+    backdrop-filter: blur(2px);
+}
+
 @keyframes blink-status {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.4; }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .top-bar {
+        padding: 0 0.75rem;
+    }
+
+    .menu-toggle {
+        display: flex;
+    }
+
+    .sidebar {
+        position: fixed;
+        top: 48px;
+        left: 0;
+        bottom: 0;
+        width: 280px;
+        transform: translateX(-100%);
+        box-shadow: 4px 0 10px rgba(0,0,0,0.1);
+    }
+
+    .sidebar.mobile-open {
+        transform: translateX(0);
+    }
+    
+    .desktop-title {
+        display: none;
+    }
+
+    .mobile-title {
+        display: block;
+        font-weight: 800;
+        font-size: 1.1rem;
+        letter-spacing: 0.05em;
+    }
+
+    .top-bar-info {
+        display: none;
+    }
 }
 </style>

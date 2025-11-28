@@ -28,54 +28,58 @@
         </div>
       </div>
       <div class="card-body">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>代码</th>
-              <th>名称</th>
-              <th>最新价</th>
-              <th>涨跌幅</th>
-              <th>成交量</th>
-              <th>更新时间</th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-if="loading">
-              <td colspan="7" class="text-center">加载中...</td>
-            </tr>
-            <tr v-else-if="watchlist.length === 0">
-              <td colspan="7" class="text-center">暂无关注股票，请添加。</td>
-            </tr>
-            <tr v-for="stock in watchlist" :key="stock.symbol" class="stock-row" @click="openDetail(stock)">
-              <td><span class="badge badge-gray">{{ stock.symbol }}</span></td>
-              <td><strong>{{ stock.name }}</strong></td>
-              <td class="font-mono">{{ formatPrice(stock.price) }}</td>
-              <td>
-                <span :class="getChangeClass(stock.change_percent)">
-                  {{ formatChangePercent(stock.change_percent) }}
-                </span>
-              </td>
-              <td class="font-mono">{{ formatVolume(stock.volume) }}</td>
-              <td class="font-mono text-sm">{{ stock.timestamp }}</td>
-              <td>
-                <button class="btn btn-sm btn-ghost" @click.stop="openDetail(stock)">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
-                    <circle cx="12" cy="12" r="3"></circle>
-                  </svg>
-                  详情
-                </button>
-                <button class="btn btn-sm btn-ghost btn-del" @click.stop="removeStock(stock.symbol)">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
-                  </svg>
-                  删除
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>代码</th>
+                <th>名称</th>
+                <th>最新价</th>
+                <th>涨跌幅</th>
+                <th class="hide-mobile">成交量</th>
+                <th class="hide-mobile">更新时间</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-if="loading">
+                <td colspan="7" class="text-center">加载中...</td>
+              </tr>
+              <tr v-else-if="watchlist.length === 0">
+                <td colspan="7" class="text-center">暂无关注股票，请添加。</td>
+              </tr>
+              <tr v-for="stock in watchlist" :key="stock.symbol" class="stock-row" @click="openDetail(stock)">
+                <td><span class="badge badge-gray">{{ stock.symbol }}</span></td>
+                <td><strong>{{ stock.name }}</strong></td>
+                <td class="font-mono">{{ formatPrice(stock.price) }}</td>
+                <td>
+                  <span :class="getChangeClass(stock.change_percent)">
+                    {{ formatChangePercent(stock.change_percent) }}
+                  </span>
+                </td>
+                <td class="font-mono hide-mobile">{{ formatVolume(stock.volume) }}</td>
+                <td class="font-mono text-sm hide-mobile">{{ stock.timestamp }}</td>
+                <td>
+                  <div class="action-buttons">
+                    <button class="btn btn-sm btn-ghost" @click.stop="openDetail(stock)">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                      </svg>
+                      <span class="btn-text">详情</span>
+                    </button>
+                    <button class="btn btn-sm btn-ghost btn-del" @click.stop="removeStock(stock.symbol)">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                      </svg>
+                      <span class="btn-text">删除</span>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
 
@@ -850,5 +854,83 @@ onMounted(() => {
   font-size: 0.7rem;
   color: #888;
   white-space: nowrap;
+}
+
+/* Responsive Adjustments */
+.table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+@media (max-width: 768px) {
+  :deep(.page-header) {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 1rem;
+  }
+  
+  .hide-mobile {
+    display: none;
+  }
+  
+  .btn-text {
+    display: none;
+  }
+  
+  .btn-sm.btn-ghost {
+    padding: 0.4rem;
+    margin-right: 0;
+  }
+  
+  .add-stock-form {
+    width: 100%;
+  }
+  
+  .input-field.sm {
+    width: 100%;
+    flex: 1;
+  }
+  
+  .card-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+  
+  .actions {
+    width: 100%;
+  }
+
+  /* Modal Mobile Adjustments */
+  .modal-overlay {
+    padding: 0.5rem;
+  }
+
+  .modal-card {
+    max-height: 85vh;
+    width: 100%;
+  }
+
+  .modal-body {
+    padding: 1rem;
+  }
+
+  .quote-panel {
+    padding: 1rem;
+  }
+
+  .quote-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  .big-price {
+    font-size: 2.5rem;
+  }
 }
 </style>
