@@ -1,16 +1,22 @@
+<script setup>
+import { useLocale } from '../composables/useLocale'
+
+const { t } = useLocale()
+</script>
+
 <template>
   <div class="page-container">
     <header class="page-header">
       <div>
-        <div class="page-title-wrapper">SYSTEM OVERVIEW</div>
-        <h1 class="page-title">系统<span>架构</span></h1>
+        <div class="page-title-wrapper">{{ t('system_overview') }}</div>
+        <h1 class="page-title">{{ t('system_architecture') }}<span>{{ t('architecture') }}</span></h1>
       </div>
       <div class="meta-bar">
         <a href="https://github.com/ianchiou28/Wide-Research-for-Finance" target="_blank" class="github-link">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
           </svg>
-          GITHUB REPO
+          {{ t('github_repo') }}
         </a>
         <span>VERSION: v2.4.0</span>
         <span>STATUS: ONLINE</span>
@@ -23,7 +29,7 @@
         <!-- Tech Stack -->
         <div class="card mb-2">
           <div class="card-header">
-            <span class="card-title">技术栈 // TECH STACK</span>
+            <span class="card-title">{{ t('tech_stack') }}</span>
           </div>
           <div class="card-body tech-stack">
             <span class="badge badge-ink">Python 3.11</span>
@@ -38,39 +44,39 @@
         <!-- Workflow -->
         <div class="card mb-2">
           <div class="card-header">
-            <span class="card-title">处理链路 // PIPELINE</span>
+            <span class="card-title">{{ t('pipeline') }}</span>
           </div>
           <div class="card-body">
             <div class="pipeline-steps">
               <div class="step">
                 <div class="step-num">01</div>
                 <div class="step-content">
-                  <div class="step-title">多源采集</div>
-                  <div class="step-desc">RSS/API 轮询 17+ 国际财经源</div>
+                  <div class="step-title">{{ t('step1_title') }}</div>
+                  <div class="step-desc">{{ t('step1_desc') }}</div>
                 </div>
               </div>
               <div class="step-line"></div>
               <div class="step">
                 <div class="step-num">02</div>
                 <div class="step-content">
-                  <div class="step-title">智能清洗</div>
-                  <div class="step-desc">DeepSeek 初筛，去重与价值评估</div>
+                  <div class="step-title">{{ t('step2_title') }}</div>
+                  <div class="step-desc">{{ t('step2_desc') }}</div>
                 </div>
               </div>
               <div class="step-line"></div>
               <div class="step">
                 <div class="step-num">03</div>
                 <div class="step-content">
-                  <div class="step-title">深度分析</div>
-                  <div class="step-desc">全文提取，实体识别，情感打分</div>
+                  <div class="step-title">{{ t('step3_title') }}</div>
+                  <div class="step-desc">{{ t('step3_desc') }}</div>
                 </div>
               </div>
               <div class="step-line"></div>
               <div class="step">
                 <div class="step-num">04</div>
                 <div class="step-content">
-                  <div class="step-title">终端呈现</div>
-                  <div class="step-desc">Web 仪表盘，实时推送，历史归档</div>
+                  <div class="step-title">{{ t('step4_title') }}</div>
+                  <div class="step-desc">{{ t('step4_desc') }}</div>
                 </div>
               </div>
             </div>
@@ -80,7 +86,7 @@
         <!-- Data Coverage (Restored) -->
         <div class="card">
           <div class="card-header">
-            <span class="card-title">数据覆盖 // COVERAGE</span>
+            <span class="card-title">{{ t('coverage') }}</span>
           </div>
           <div class="card-body">
             <div class="coverage-list">
@@ -93,7 +99,7 @@
                   </svg>
                 </div>
                 <div class="cov-content">
-                  <strong>国际财经</strong>
+                  <strong>{{ t('intl_finance') }}</strong>
                   <span>Bloomberg, WSJ, CNBC, MarketWatch, Forbes, FT, Reuters</span>
                 </div>
               </div>
@@ -106,7 +112,7 @@
                   </svg>
                 </div>
                 <div class="cov-content">
-                  <strong>机构分析</strong>
+                  <strong>{{ t('inst_analysis') }}</strong>
                   <span>Seeking Alpha, 雪球, Benzinga, The Motley Fool</span>
                 </div>
               </div>
@@ -117,7 +123,7 @@
                   </svg>
                 </div>
                 <div class="cov-content">
-                  <strong>科技/加密</strong>
+                  <strong>{{ t('tech_crypto') }}</strong>
                   <span>CoinDesk, TechCrunch, VentureBeat</span>
                 </div>
               </div>
@@ -128,8 +134,8 @@
                   </svg>
                 </div>
                 <div class="cov-content">
-                  <strong>官方机构</strong>
-                  <span>美联储, SEC, 央行, 证监会</span>
+                  <strong>{{ t('official_inst') }}</strong>
+                  <span>{{ t('official_inst_sources') }}</span>
                 </div>
               </div>
             </div>
@@ -142,24 +148,24 @@
         <!-- Core Metrics -->
         <div class="card mb-2">
           <div class="card-header">
-            <span class="card-title">核心指标 // METRICS</span>
+            <span class="card-title">{{ t('metrics') }}</span>
           </div>
           <div class="card-body">
             <div class="metric-grid">
               <div class="metric-box">
-                <div class="m-label">响应速度</div>
+                <div class="m-label">{{ t('response_speed') }}</div>
                 <div class="m-value">&lt;15s</div>
               </div>
               <div class="metric-box">
-                <div class="m-label">覆盖源</div>
+                <div class="m-label">{{ t('source_count') }}</div>
                 <div class="m-value">17+</div>
               </div>
               <div class="metric-box">
-                <div class="m-label">AI 模型</div>
+                <div class="m-label">{{ t('ai_model') }}</div>
                 <div class="m-value">DeepSeek</div>
               </div>
               <div class="metric-box">
-                <div class="m-label">运行成本</div>
+                <div class="m-label">{{ t('running_cost') }}</div>
                 <div class="m-value">Low</div>
               </div>
             </div>
@@ -169,7 +175,7 @@
         <!-- Module Map -->
         <div class="card mb-2">
           <div class="card-header">
-            <span class="card-title">功能模块 // MODULES</span>
+            <span class="card-title">{{ t('modules') }}</span>
           </div>
           <div class="card-body module-list">
             <div class="module-item">
@@ -181,8 +187,8 @@
                 </svg>
               </span>
               <div class="mod-info">
-                <div class="mod-name">概览仪表盘</div>
-                <div class="mod-desc">实时市场情绪与关键事件</div>
+                <div class="mod-name">{{ t('mod_dashboard_name') }}</div>
+                <div class="mod-desc">{{ t('mod_dashboard_desc') }}</div>
               </div>
             </div>
             <div class="module-item">
@@ -193,8 +199,8 @@
                 </svg>
               </span>
               <div class="mod-info">
-                <div class="mod-name">自选监控</div>
-                <div class="mod-desc">个股 K 线与实时报价</div>
+                <div class="mod-name">{{ t('mod_watchlist_name') }}</div>
+                <div class="mod-desc">{{ t('mod_watchlist_desc') }}</div>
               </div>
             </div>
             <div class="module-item">
@@ -206,8 +212,8 @@
                 </svg>
               </span>
               <div class="mod-info">
-                <div class="mod-name">全网热搜</div>
-                <div class="mod-desc">微博/抖音/百度热点聚合</div>
+                <div class="mod-name">{{ t('mod_hot_name') }}</div>
+                <div class="mod-desc">{{ t('mod_hot_desc') }}</div>
               </div>
             </div>
             <div class="module-item">
@@ -220,8 +226,8 @@
                 </svg>
               </span>
               <div class="mod-info">
-                <div class="mod-name">加密货币</div>
-                <div class="mod-desc">主流币种行情与市值</div>
+                <div class="mod-name">{{ t('mod_crypto_name') }}</div>
+                <div class="mod-desc">{{ t('mod_crypto_desc') }}</div>
               </div>
             </div>
             <div class="module-item">
@@ -235,8 +241,8 @@
                 </svg>
               </span>
               <div class="mod-info">
-                <div class="mod-name">历史报告</div>
-                <div class="mod-desc">每日/每周深度分析归档</div>
+                <div class="mod-name">{{ t('mod_history_name') }}</div>
+                <div class="mod-desc">{{ t('mod_history_desc') }}</div>
               </div>
             </div>
           </div>
@@ -245,15 +251,15 @@
         <!-- Quick Start (Restored) -->
         <div class="card">
           <div class="card-header">
-            <span class="card-title">快速开始 // START</span>
+            <span class="card-title">{{ t('start') }}</span>
           </div>
           <div class="card-body">
             <div class="start-item">
-              <strong class="start-label">启动仪表盘</strong>
+              <strong class="start-label">{{ t('start_dashboard') }}</strong>
               <code class="start-code">python web_app.py</code>
             </div>
             <div class="start-item">
-              <strong class="start-label">自动调度</strong>
+              <strong class="start-label">{{ t('auto_schedule') }}</strong>
               <code class="start-code">python main.py</code>
             </div>
           </div>

@@ -104,7 +104,58 @@ const translations = {
   overview_title: { zh: '项目总览', en: 'PROJECT OVERVIEW' },
   features: { zh: '功能模块', en: 'Features' },
   data_coverage: { zh: '数据覆盖', en: 'Data Coverage' },
-  quick_start: { zh: '快速开始', en: 'Quick Start' }
+  quick_start: { zh: '快速开始', en: 'Quick Start' },
+  
+  // Overview Page Details
+  system_overview: { zh: 'SYSTEM OVERVIEW', en: 'SYSTEM OVERVIEW' },
+  system_architecture: { zh: '系统', en: 'System' },
+  architecture: { zh: '架构', en: 'Architecture' },
+  github_repo: { zh: 'GITHUB REPO', en: 'GITHUB REPO' },
+  tech_stack: { zh: '技术栈 // TECH STACK', en: 'TECH STACK' },
+  pipeline: { zh: '处理链路 // PIPELINE', en: 'PIPELINE' },
+  coverage: { zh: '数据覆盖 // COVERAGE', en: 'DATA COVERAGE' },
+  metrics: { zh: '核心指标 // METRICS', en: 'CORE METRICS' },
+  modules: { zh: '功能模块 // MODULES', en: 'MODULES' },
+  start: { zh: '快速开始 // START', en: 'QUICK START' },
+  
+  // Pipeline Steps
+  step1_title: { zh: '多源采集', en: 'Multi-Source Collection' },
+  step1_desc: { zh: 'RSS/API 轮询 17+ 国际财经源', en: 'RSS/API polling 17+ international finance sources' },
+  step2_title: { zh: '智能清洗', en: 'Smart Processing' },
+  step2_desc: { zh: 'DeepSeek 初筛，去重与价值评估', en: 'DeepSeek filtering, dedup & value assessment' },
+  step3_title: { zh: '深度分析', en: 'Deep Analysis' },
+  step3_desc: { zh: '全文提取，实体识别，情感打分', en: 'Full-text extraction, NER, sentiment scoring' },
+  step4_title: { zh: '终端呈现', en: 'Terminal Display' },
+  step4_desc: { zh: 'Web 仪表盘，实时推送，历史归档', en: 'Web dashboard, real-time push, history archive' },
+  
+  // Data Coverage
+  intl_finance: { zh: '国际财经', en: 'International Finance' },
+  inst_analysis: { zh: '机构分析', en: 'Institutional Analysis' },
+  tech_crypto: { zh: '科技/加密', en: 'Tech/Crypto' },
+  official_inst: { zh: '官方机构', en: 'Official Institutions' },
+  official_inst_sources: { zh: '美联储, SEC, 央行, 证监会', en: 'Fed, SEC, Central Banks, CSRC' },
+  
+  // Metrics
+  response_speed: { zh: '响应速度', en: 'Response' },
+  source_count: { zh: '覆盖源', en: 'Sources' },
+  ai_model: { zh: 'AI 模型', en: 'AI Model' },
+  running_cost: { zh: '运行成本', en: 'Cost' },
+  
+  // Modules
+  mod_dashboard_name: { zh: '概览仪表盘', en: 'Dashboard' },
+  mod_dashboard_desc: { zh: '实时市场情绪与关键事件', en: 'Real-time sentiment & key events' },
+  mod_watchlist_name: { zh: '自选监控', en: 'Watchlist' },
+  mod_watchlist_desc: { zh: '个股 K 线与实时报价', en: 'Stock K-line & real-time quotes' },
+  mod_hot_name: { zh: '全网热搜', en: 'Hot Topics' },
+  mod_hot_desc: { zh: '微博/抖音/百度热点聚合', en: 'Weibo/Douyin/Baidu trends' },
+  mod_crypto_name: { zh: '加密货币', en: 'Cryptocurrency' },
+  mod_crypto_desc: { zh: '主流币种行情与市值', en: 'Major coins price & market cap' },
+  mod_history_name: { zh: '历史报告', en: 'History' },
+  mod_history_desc: { zh: '每日/每周深度分析归档', en: 'Daily/weekly analysis archive' },
+  
+  // Quick Start
+  start_dashboard: { zh: '启动仪表盘', en: 'Start Dashboard' },
+  auto_schedule: { zh: '自动调度', en: 'Auto Schedule' }
 }
 
 export function useLocale() {
