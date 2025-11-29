@@ -3,10 +3,10 @@
     <header class="page-header">
       <div>
         <div class="page-title-wrapper">DIGITAL ASSETS</div>
-        <h1 class="page-title">加密<span>货币</span></h1>
+        <h1 class="page-title">{{ locale === 'zh' ? '加密' : 'CRYPTO' }}<span>{{ locale === 'zh' ? '货币' : 'CURRENCY' }}</span></h1>
       </div>
       <div class="meta-bar">
-        <span>MARKET CAP: ${{ formatMarketCap(globalData.total_market_cap) }}</span>
+        <span>{{ t('market_cap') }}: ${{ formatMarketCap(globalData.total_market_cap) }}</span>
         <span>BTC DOM: {{ globalData.btc_dominance?.toFixed(1) || '52' }}%</span>
       </div>
     </header>
@@ -30,21 +30,21 @@
     <!-- Main Table -->
     <div class="card">
       <div class="card-header">
-        <div class="card-title">市场概览</div>
-        <button class="btn btn-sm btn-outline" @click="fetchCrypto">刷新</button>
+        <div class="card-title">{{ locale === 'zh' ? '市场概览' : 'Market Overview' }}</div>
+        <button class="btn btn-sm btn-outline" @click="fetchCrypto">{{ locale === 'zh' ? '刷新' : 'Refresh' }}</button>
       </div>
       <div class="card-body">
-        <div v-if="loading" class="text-center">加载中...</div>
+        <div v-if="loading" class="text-center">{{ t('loading') }}</div>
         <div v-else class="table-responsive">
           <table class="data-table">
             <thead>
               <tr>
-                <th>排名</th>
-                <th>名称</th>
-                <th>价格 (USD)</th>
-                <th>24h 涨跌</th>
-                <th class="hide-mobile">24h 最高/最低</th>
-                <th class="hide-mobile">24h 成交量</th>
+                <th>{{ locale === 'zh' ? '排名' : 'Rank' }}</th>
+                <th>{{ locale === 'zh' ? '名称' : 'Name' }}</th>
+                <th>{{ locale === 'zh' ? '价格 (USD)' : 'Price (USD)' }}</th>
+                <th>{{ t('price_change_24h') }}</th>
+                <th class="hide-mobile">24h {{ t('high') }}/{{ t('low') }}</th>
+                <th class="hide-mobile">{{ t('volume_24h') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -81,6 +81,9 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
+import { useLocale } from '../composables/useLocale'
+
+const { locale, t } = useLocale()
 
 const marketData = ref([])
 const globalData = ref({})
@@ -182,8 +185,8 @@ onMounted(() => {
 
 .text-green { color: #4CAF50; }
 .text-red { color: #F44336; }
-.text-gray { color: #888; }
-.text-center { text-align: center; padding: 2rem; color: #888; }
+.text-gray { color: var(--c-muted); }
+.text-center { text-align: center; padding: 2rem; color: var(--c-muted); }
 .text-sm { font-size: 0.8rem; }
 
 .coin-name-cell {

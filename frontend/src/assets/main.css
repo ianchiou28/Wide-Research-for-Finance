@@ -4,10 +4,27 @@
     --c-ink: #111111;
     --c-grid: #E0E0D8;
     --c-paper: #FFFFFF;
+    --c-muted: #666666;
+    --c-border: #111111;
+    --c-shadow: rgba(0, 0, 0, 0.15);
+    --c-hover: rgba(0, 0, 0, 0.02);
     
     --font-mono: 'JetBrains Mono', monospace;
     --font-display: 'Oswald', sans-serif;
     --font-body: 'Noto Sans SC', sans-serif;
+}
+
+/* Dark Mode - Industrial Terminal Theme */
+[data-theme="dark"] {
+    --c-amber: #FF6B1A;
+    --c-bg: #0D0D0D;
+    --c-ink: #E8E8E0;
+    --c-grid: #1A1A1A;
+    --c-paper: #141414;
+    --c-muted: #888888;
+    --c-border: #333333;
+    --c-shadow: rgba(0, 0, 0, 0.5);
+    --c-hover: rgba(255, 255, 255, 0.03);
 }
 
 /* CRT Scanline Overlay */
@@ -30,6 +47,16 @@
     animation: scanline 10s linear infinite;
 }
 
+[data-theme="dark"] .crt-overlay {
+    background: linear-gradient(
+        to bottom,
+        rgba(0,0,0,0),
+        rgba(0,0,0,0) 50%,
+        rgba(255,107,26,0.03) 50%,
+        rgba(255,107,26,0.03)
+    );
+}
+
 .crt-flicker {
     position: fixed;
     top: 0;
@@ -41,6 +68,10 @@
     pointer-events: none;
     z-index: 9998;
     animation: flicker 0.15s infinite;
+}
+
+[data-theme="dark"] .crt-flicker {
+    background: rgba(255, 107, 26, 0.02);
 }
 
 @keyframes scanline {
@@ -113,7 +144,7 @@ body {
     line-height: 1;
     text-transform: uppercase;
     color: var(--c-ink);
-    text-shadow: 4px 4px 0 rgba(0,0,0,0.1);
+    text-shadow: 4px 4px 0 var(--c-shadow);
 }
 
 .page-title span {
@@ -133,25 +164,25 @@ body {
 /* Cards */
 .card {
     background: var(--c-paper);
-    border: 2px solid var(--c-ink);
+    border: 2px solid var(--c-border);
     padding: 0;
     margin-bottom: 2rem;
-    box-shadow: 8px 8px 0 rgba(0,0,0,0.15);
+    box-shadow: 8px 8px 0 var(--c-shadow);
     transition: transform 0.2s;
 }
 
 .card:hover {
     transform: translate(-2px, -2px);
-    box-shadow: 10px 10px 0 rgba(0,0,0,0.15);
+    box-shadow: 10px 10px 0 var(--c-shadow);
 }
 
 .card-header {
-    border-bottom: 2px solid var(--c-ink);
+    border-bottom: 2px solid var(--c-border);
     padding: 1rem 1.5rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: rgba(0,0,0,0.02);
+    background: var(--c-hover);
 }
 
 .card-title {
@@ -179,7 +210,7 @@ body {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 1rem;
-    border-bottom: 1px dashed var(--c-ink);
+    border-bottom: 1px dashed var(--c-border);
     padding-bottom: 0.5rem;
 }
 
@@ -212,8 +243,16 @@ body {
 }
 
 .input-field:focus {
-    box-shadow: 4px 4px 0 rgba(0,0,0,0.1);
+    box-shadow: 4px 4px 0 var(--c-shadow);
     border-color: var(--c-amber);
+}
+
+[data-theme="dark"] .input-field {
+    color: var(--c-ink);
+}
+
+[data-theme="dark"] .input-field::placeholder {
+    color: var(--c-muted);
 }
 
 /* Buttons */
@@ -248,7 +287,7 @@ body {
 .btn-outline:hover {
     background: var(--c-ink);
     color: var(--c-bg);
-    box-shadow: 4px 4px 0 rgba(0,0,0,0.1);
+    box-shadow: 4px 4px 0 var(--c-shadow);
 }
 
 .btn-sm {
@@ -275,21 +314,21 @@ body {
 .data-table th {
     text-align: left;
     padding: 1rem;
-    border-bottom: 2px solid var(--c-ink);
+    border-bottom: 2px solid var(--c-border);
     font-family: var(--font-display);
     font-weight: 700;
     text-transform: uppercase;
-    color: #666;
+    color: var(--c-muted);
     font-size: 0.8rem;
 }
 
 .data-table td {
     padding: 1rem;
-    border-bottom: 1px solid rgba(0,0,0,0.1);
+    border-bottom: 1px solid var(--c-grid);
 }
 
 .data-table tr:hover td {
-    background: rgba(0,0,0,0.02);
+    background: var(--c-hover);
 }
 
 /* Grid Layouts */
@@ -312,9 +351,12 @@ body {
     font-weight: 700;
     border-radius: 2px;
 }
-.badge-red { background: rgba(244, 67, 54, 0.1); color: #F44336; }
-.badge-green { background: rgba(76, 175, 80, 0.1); color: #4CAF50; }
-.badge-gray { background: #eee; color: #666; }
+.badge-red { background: rgba(244, 67, 54, 0.15); color: #F44336; }
+.badge-green { background: rgba(76, 175, 80, 0.15); color: #4CAF50; }
+.badge-gray { background: var(--c-grid); color: var(--c-muted); }
+
+[data-theme="dark"] .badge-red { background: rgba(244, 67, 54, 0.2); color: #FF6B6B; }
+[data-theme="dark"] .badge-green { background: rgba(76, 175, 80, 0.2); color: #69F0AE; }
 
 /* Responsive Layout Overrides */
 @media (max-width: 768px) {

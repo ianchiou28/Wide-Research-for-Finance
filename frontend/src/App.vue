@@ -20,8 +20,33 @@
           <span class="mobile-title">WIDE RESEARCH</span>
         </div>
       </div>
-      <div class="top-bar-info">
-        DATE: {{ currentDate }}
+      <div class="top-bar-right">
+        <!-- Language Toggle -->
+        <button class="lang-toggle" @click="toggleLocale" :title="locale === 'zh' ? 'Switch to English' : '切换到中文'">
+          {{ locale === 'zh' ? 'EN' : '中文' }}
+        </button>
+        <!-- Theme Toggle -->
+        <button class="theme-toggle" @click="toggleTheme" :title="isDark ? '切换亮色模式' : '切换深色模式'">
+          <!-- Sun Icon -->
+          <svg v-if="isDark" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+          <!-- Moon Icon -->
+          <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+        </button>
+        <div class="top-bar-info">
+          DATE: {{ currentDate }}
+        </div>
       </div>
     </header>
 
@@ -31,40 +56,40 @@
 
       <!-- Sidebar -->
       <aside class="sidebar" :class="{ 'mobile-open': isDrawerOpen }">
-        <div class="sidebar-section-title">NAVIGATION // 导航</div>
+        <div class="sidebar-section-title">NAVIGATION // {{ locale === 'zh' ? '导航' : 'NAV' }}</div>
         <ul class="nav-menu">
           <li class="nav-item">
-            <router-link to="/" class="nav-link" active-class="active" @click="closeDrawer">概览仪表盘</router-link>
+            <router-link to="/" class="nav-link" active-class="active" @click="closeDrawer">{{ t('nav_dashboard') }}</router-link>
           </li>
           <li class="nav-item">
-            <router-link to="/watchlist" class="nav-link" active-class="active" @click="closeDrawer">自选监控</router-link>
+            <router-link to="/watchlist" class="nav-link" active-class="active" @click="closeDrawer">{{ t('nav_watchlist') }}</router-link>
           </li>
           <li class="nav-item">
-            <router-link to="/hot-topics" class="nav-link" active-class="active" @click="closeDrawer">全网热搜</router-link>
+            <router-link to="/hot-topics" class="nav-link" active-class="active" @click="closeDrawer">{{ t('nav_hot_topics') }}</router-link>
           </li>
           <li class="nav-item">
-            <router-link to="/crypto" class="nav-link" active-class="active" @click="closeDrawer">加密货币</router-link>
+            <router-link to="/crypto" class="nav-link" active-class="active" @click="closeDrawer">{{ t('nav_crypto') }}</router-link>
           </li>
           <li class="nav-item">
-            <router-link to="/history" class="nav-link" active-class="active" @click="closeDrawer">历史报告</router-link>
+            <router-link to="/history" class="nav-link" active-class="active" @click="closeDrawer">{{ t('nav_history') }}</router-link>
           </li>
           <li class="nav-item">
-            <router-link to="/overview" class="nav-link" active-class="active" @click="closeDrawer">项目总览</router-link>
+            <router-link to="/overview" class="nav-link" active-class="active" @click="closeDrawer">{{ t('nav_overview') }}</router-link>
           </li>
         </ul>
 
         <div class="system-config">
-          <div class="config-header">SYSTEM STATUS // 系统状态</div>
+          <div class="config-header">SYSTEM STATUS // {{ t('system_status') }}</div>
           <div class="status-row">
-            <span>连接状态</span>
+            <span>{{ t('connection_status') }}</span>
             <span><span class="status-indicator"></span>ONLINE</span>
           </div>
           <div class="status-row">
-            <span>上次同步</span>
+            <span>{{ t('last_sync') }}</span>
             <span>{{ lastSyncTime }}</span>
           </div>
           <div class="status-row">
-            <span>版本</span>
+            <span>{{ t('version') }}</span>
             <span>v2.4.0</span>
           </div>
         </div>
@@ -79,11 +104,21 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { useLocale } from './composables/useLocale'
 
-const currentDate = ref(new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-'))
+const { locale, t, toggleLocale } = useLocale()
+
+const currentDate = computed(() => {
+  const now = new Date()
+  if (locale.value === 'zh') {
+    return now.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-')
+  }
+  return now.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+})
 const lastSyncTime = ref(new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }))
 const isDrawerOpen = ref(false)
+const isDark = ref(false)
 
 const toggleDrawer = () => {
   isDrawerOpen.value = !isDrawerOpen.value
@@ -93,8 +128,27 @@ const closeDrawer = () => {
   isDrawerOpen.value = false
 }
 
+const toggleTheme = () => {
+  isDark.value = !isDark.value
+  document.documentElement.setAttribute('data-theme', isDark.value ? 'dark' : 'light')
+  localStorage.setItem('theme', isDark.value ? 'dark' : 'light')
+}
+
+const initTheme = () => {
+  // Check localStorage first
+  const savedTheme = localStorage.getItem('theme')
+  if (savedTheme) {
+    isDark.value = savedTheme === 'dark'
+  } else {
+    // Check system preference
+    isDark.value = window.matchMedia('(prefers-color-scheme: dark)').matches
+  }
+  document.documentElement.setAttribute('data-theme', isDark.value ? 'dark' : 'light')
+}
+
 let timer
 onMounted(() => {
+  initTheme()
   timer = setInterval(() => {
     lastSyncTime.value = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' })
   }, 60000)
@@ -130,6 +184,60 @@ onUnmounted(() => {
     display: flex;
     align-items: center;
     gap: 1rem;
+}
+
+.top-bar-right {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.lang-toggle {
+    background: transparent;
+    border: 2px solid var(--c-ink);
+    color: var(--c-ink);
+    cursor: pointer;
+    padding: 4px 10px;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 700;
+    transition: all 0.15s;
+    box-shadow: 2px 2px 0 var(--c-ink);
+}
+
+.lang-toggle:hover {
+    background: var(--c-ink);
+    color: var(--c-amber);
+    transform: translate(-1px, -1px);
+    box-shadow: 3px 3px 0 var(--c-ink);
+}
+
+.lang-toggle:active {
+    transform: translate(1px, 1px);
+    box-shadow: 1px 1px 0 var(--c-ink);
+}
+
+.theme-toggle {
+    background: transparent;
+    border: 2px solid var(--c-ink);
+    color: var(--c-ink);
+    cursor: pointer;
+    padding: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    box-shadow: 2px 2px 0 var(--c-ink);
+}
+
+.theme-toggle:hover {
+    background: var(--c-ink);
+    color: var(--c-amber);
+}
+
+.theme-toggle:active {
+    transform: translate(2px, 2px);
+    box-shadow: none;
 }
 
 .menu-toggle {
@@ -188,7 +296,7 @@ onUnmounted(() => {
 /* Sidebar */
 .sidebar {
     background: var(--c-bg);
-    border-right: 2px solid var(--c-ink);
+    border-right: 2px solid var(--c-border);
     padding: 1.5rem;
     display: flex;
     flex-direction: column;
@@ -206,7 +314,7 @@ onUnmounted(() => {
     margin-bottom: 1rem;
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    color: #666;
+    color: var(--c-muted);
 }
 
 .nav-menu {
@@ -224,18 +332,18 @@ onUnmounted(() => {
     padding: 0.75rem 1rem;
     text-decoration: none;
     color: var(--c-ink);
-    border: 2px solid var(--c-ink);
+    border: 2px solid var(--c-border);
     background: var(--c-paper);
     font-weight: 700;
     font-family: var(--font-body);
     transition: all 0.1s;
-    box-shadow: 4px 4px 0 rgba(0,0,0,0.1);
+    box-shadow: 4px 4px 0 var(--c-shadow);
     position: relative;
 }
 
 .nav-link:hover, .nav-link.active {
     transform: translate(2px, 2px);
-    box-shadow: 2px 2px 0 rgba(0,0,0,0.1);
+    box-shadow: 2px 2px 0 var(--c-shadow);
     background: var(--c-ink);
     color: var(--c-bg);
 }
@@ -250,7 +358,7 @@ onUnmounted(() => {
 /* System Config Panel */
 .system-config {
     margin-top: auto;
-    border: 2px solid var(--c-ink);
+    border: 2px solid var(--c-border);
     background: var(--c-paper);
     padding: 1rem;
 }
@@ -260,7 +368,7 @@ onUnmounted(() => {
     font-weight: 700;
     margin-bottom: 0.75rem;
     text-transform: uppercase;
-    border-bottom: 1px solid var(--c-ink);
+    border-bottom: 1px solid var(--c-border);
     padding-bottom: 0.25rem;
 }
 
@@ -316,7 +424,7 @@ onUnmounted(() => {
         bottom: 0;
         width: 280px;
         transform: translateX(-100%);
-        box-shadow: 4px 0 10px rgba(0,0,0,0.1);
+        box-shadow: 4px 0 10px var(--c-shadow);
     }
 
     .sidebar.mobile-open {

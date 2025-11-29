@@ -3,7 +3,7 @@
     <header class="page-header">
       <div>
         <div class="page-title-wrapper">ARCHIVE</div>
-        <h1 class="page-title">历史<span>报告</span></h1>
+        <h1 class="page-title">{{ locale === 'zh' ? '历史' : 'HISTORY' }}<span>{{ locale === 'zh' ? '报告' : 'REPORTS' }}</span></h1>
       </div>
     </header>
 
@@ -11,7 +11,7 @@
       <!-- Timeline Sidebar -->
       <div class="timeline-list card">
         <div class="card-header">
-          <div class="card-title">时间轴</div>
+          <div class="card-title">{{ t('report_list') }}</div>
         </div>
         <div class="list-body">
           <div 
@@ -22,7 +22,7 @@
             @click="selectReport(item)"
           >
             <div class="item-date">{{ formatDate(item.timestamp) }}</div>
-            <div class="item-title">{{ item.type === 'daily' ? '每日总结' : '深度报告' }}</div>
+            <div class="item-title">{{ item.type === 'daily' ? (locale === 'zh' ? '每日总结' : 'Daily Summary') : (locale === 'zh' ? '深度报告' : 'Deep Report') }}</div>
           </div>
         </div>
       </div>
@@ -30,15 +30,15 @@
       <!-- Report Viewer -->
       <div class="report-viewer card">
         <div class="card-header">
-          <div class="card-title">{{ selectedReport ? formatDate(selectedReport.timestamp) : '选择报告' }}</div>
+          <div class="card-title">{{ selectedReport ? formatDate(selectedReport.timestamp) : t('report_content') }}</div>
           <div class="actions" v-if="selectedReport">
-            <button class="btn btn-sm btn-outline">导出 PDF</button>
+            <button class="btn btn-sm btn-outline">{{ locale === 'zh' ? '导出 PDF' : 'Export PDF' }}</button>
           </div>
         </div>
         <div class="card-body report-content-area">
-          <div v-if="loading" class="loading">加载中...</div>
+          <div v-if="loading" class="loading">{{ t('loading') }}</div>
           <div v-else-if="selectedReportContent" class="markdown-body" v-html="formatContent(selectedReportContent)"></div>
-          <div v-else class="empty-state">请从左侧选择一份报告查看详情</div>
+          <div v-else class="empty-state">{{ t('select_report') }}</div>
         </div>
       </div>
     </div>
@@ -48,6 +48,9 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
+import { useLocale } from '../composables/useLocale'
+
+const { locale, t } = useLocale()
 
 const history = ref([])
 const selectedReport = ref(null)
@@ -127,14 +130,14 @@ onMounted(() => {
 
 .timeline-item {
   padding: 1rem;
-  border-bottom: 1px solid rgba(0,0,0,0.1);
+  border-bottom: 1px solid var(--c-grid);
   cursor: pointer;
   transition: all 0.2s;
   border-left: 4px solid transparent;
 }
 
 .timeline-item:hover {
-  background: rgba(0,0,0,0.02);
+  background: var(--c-hover);
 }
 
 .timeline-item.active {
@@ -168,7 +171,7 @@ onMounted(() => {
   font-family: var(--font-body);
   line-height: 1.8;
   padding: 2rem;
-  background: #fff;
+  background: var(--c-paper);
 }
 
 .markdown-body {
@@ -199,7 +202,7 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: #888;
+  color: var(--c-muted);
   font-weight: 700;
 }
 

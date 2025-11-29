@@ -14,9 +14,6 @@
         </div>
       </div>
       <div class="header-right">
-        <button class="lang-btn" @click="toggleLang">
-          {{ lang === 'zh' ? 'EN' : '中文' }}
-        </button>
         <div class="sys-status">
           <span class="status-dot"></span>
           {{ t('system_online') }}
@@ -325,58 +322,12 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import axios from 'axios'
+import { useLocale } from '../composables/useLocale'
+
+const { locale, t } = useLocale()
 
 const loading = ref(true)
 const currentTime = ref('00:00:00')
-const lang = ref('zh') // Default to Chinese
-
-const translations = {
-  market_sentiment: { zh: '市场情绪', en: 'MARKET SENTIMENT' },
-  key_events: { zh: '关键事件', en: 'KEY EVENTS' },
-  stock_prediction: { zh: '个股预测', en: 'STOCK PREDICTION' },
-  hot_topics: { zh: '热门话题', en: 'HOT TOPICS' },
-  market_outlook: { zh: '市场展望', en: 'MARKET OUTLOOK' },
-  statistics: { zh: '统计数据', en: 'STATISTICS' },
-  total_news: { zh: '已分析新闻', en: 'Total News' },
-  market_sentiment_kpi: { zh: '市场情绪', en: 'Sentiment' },
-  hot_topics_kpi: { zh: '热门话题', en: 'Hot Topics' },
-  updated_at: { zh: '更新时间', en: 'Updated At' },
-  system_online: { zh: '系统在线', en: 'System Online' },
-  loading: { zh: '正在加载数据...', en: 'Loading data...' },
-  empty_events: { zh: '暂无重大事件', en: 'No key events found' },
-  empty_topics: { zh: '暂无热门话题', en: 'No hot topics found' },
-  beijing_time: { zh: '北京时间', en: 'Beijing Time' },
-  newyork_time: { zh: '纽约时间', en: 'New York Time' },
-  event_count: { zh: '重大事件', en: 'Key Events' },
-  stock_signal_count: { zh: '股票信号', en: 'Stock Signals' },
-  positive: { zh: '积极', en: 'Positive' },
-  neutral: { zh: '中性', en: 'Neutral' },
-  negative: { zh: '消极', en: 'Negative' },
-  confidence: { zh: '置信度', en: 'Confidence' },
-  mentions: { zh: '提及', en: 'Mentions' },
-  times: { zh: '次', en: 'times' },
-  brand_title: { zh: '金融终端', en: 'FINANCE TERMINAL' },
-  brand_subtitle: { zh: 'DeepSeek 智能引擎', en: 'DeepSeek AI ENGINE' },
-  market_global: { zh: '全球市场', en: 'Global Market' },
-  market_cn: { zh: '中国市场', en: 'China Market' },
-  market_us: { zh: '美国市场', en: 'US Market' },
-  market_a_share: { zh: 'A股', en: 'A-Share' },
-  market_us_stock: { zh: '美股', en: 'US Stock' },
-  market_global_short: { zh: '全球', en: 'Global' },
-  trend_bullish: { zh: '看涨', en: 'Bullish' },
-  trend_bearish: { zh: '看跌', en: 'Bearish' },
-  trend_sideways: { zh: '震荡', en: 'Sideways' },
-  unit_items: { zh: '条', en: '' },
-  unit_count: { zh: '个', en: '' }
-}
-
-const t = (key) => {
-  return translations[key]?.[lang.value] || key
-}
-
-const toggleLang = () => {
-  lang.value = lang.value === 'zh' ? 'en' : 'zh'
-}
 
 const reportData = ref({
   meta: {},
@@ -472,8 +423,8 @@ const formatTime = (isoString) => {
   if (!isoString) return '--:--'
   try {
     const date = new Date(isoString)
-    const locale = lang.value === 'zh' ? 'zh-CN' : 'en-US'
-    return date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
+    const loc = locale.value === 'zh' ? 'zh-CN' : 'en-US'
+    return date.toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' })
   } catch {
     return '--:--'
   }
@@ -570,22 +521,6 @@ onUnmounted(() => {
   gap: 1rem;
 }
 
-.lang-btn {
-  background: none;
-  border: 1px solid var(--c-ink);
-  padding: 0.2rem 0.5rem;
-  font-size: 0.7rem;
-  font-weight: 700;
-  cursor: pointer;
-  color: var(--c-ink);
-  transition: all 0.2s;
-}
-
-.lang-btn:hover {
-  background: var(--c-ink);
-  color: var(--c-bg);
-}
-
 .sys-status {
   font-size: 0.7rem;
   font-weight: 700;
@@ -667,13 +602,13 @@ onUnmounted(() => {
   justify-content: center;
   padding: 4rem;
   gap: 1rem;
-  color: #888;
+  color: var(--c-muted);
 }
 
 .spinner {
   width: 40px;
   height: 40px;
-  border: 4px solid rgba(0,0,0,0.1);
+  border: 4px solid var(--c-grid);
   border-top-color: var(--c-amber);
   border-radius: 50%;
   animation: spin 1s linear infinite;
@@ -699,13 +634,13 @@ onUnmounted(() => {
 /* Panel */
 .panel {
   background: var(--c-paper);
-  border: 2px solid var(--c-ink);
-  box-shadow: 4px 4px 0 rgba(0,0,0,0.1);
+  border: 2px solid var(--c-border);
+  box-shadow: 4px 4px 0 var(--c-shadow);
 }
 
 .panel-header {
-  background: rgba(0,0,0,0.02);
-  border-bottom: 1px solid var(--c-ink);
+  background: var(--c-hover);
+  border-bottom: 1px solid var(--c-border);
   padding: 0.75rem 1rem;
   display: flex;
   justify-content: space-between;
@@ -734,7 +669,7 @@ onUnmounted(() => {
   background: none;
   border: none;
   cursor: pointer;
-  color: #666;
+  color: var(--c-muted);
   padding: 0.25rem;
 }
 
@@ -751,9 +686,10 @@ onUnmounted(() => {
 }
 
 .sentiment-card {
-  background: #f9f9f9;
+  background: var(--c-hover);
   padding: 1rem;
   text-align: center;
+  border: 1px solid var(--c-grid);
 }
 
 .sent-header {
@@ -785,13 +721,13 @@ onUnmounted(() => {
 
 .sent-label {
   font-size: 0.75rem;
-  color: #666;
+  color: var(--c-muted);
   margin-bottom: 0.75rem;
 }
 
 .sent-bar-container {
   height: 8px;
-  background: #eee;
+  background: var(--c-grid);
   position: relative;
   border-radius: 4px;
   overflow: hidden;
@@ -818,9 +754,10 @@ onUnmounted(() => {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 1rem;
-  background: #f5f5f5;
+  background: var(--c-hover);
   padding: 1rem;
   border-radius: 4px;
+  border: 1px solid var(--c-grid);
 }
 
 .dist-item {
@@ -839,7 +776,7 @@ onUnmounted(() => {
 
 .dist-label {
   font-size: 0.75rem;
-  color: #666;
+  color: var(--c-muted);
 }
 
 /* Event List */
@@ -851,8 +788,8 @@ onUnmounted(() => {
 
 .event-card {
   padding: 1rem;
-  border: 1px solid #eee;
-  background: #fafafa;
+  border: 1px solid var(--c-grid);
+  background: var(--c-hover);
 }
 
 .event-meta {
@@ -863,7 +800,7 @@ onUnmounted(() => {
 
 .event-source {
   background: var(--c-ink);
-  color: white;
+  color: var(--c-bg);
   padding: 0.1rem 0.4rem;
   font-size: 0.7rem;
   font-weight: 700;
@@ -871,7 +808,7 @@ onUnmounted(() => {
 
 .event-type {
   background: var(--c-amber);
-  color: white;
+  color: var(--c-bg);
   padding: 0.1rem 0.4rem;
   font-size: 0.7rem;
   font-weight: 700;
@@ -884,7 +821,7 @@ onUnmounted(() => {
 
 .event-summary {
   font-size: 0.9rem;
-  color: #666;
+  color: var(--c-muted);
   line-height: 1.5;
 }
 
@@ -902,9 +839,9 @@ onUnmounted(() => {
   border-radius: 2px;
 }
 
-.stock-tag.up { background: rgba(76, 175, 80, 0.1); color: #4CAF50; }
-.stock-tag.down { background: rgba(244, 67, 54, 0.1); color: #F44336; }
-.stock-tag.flat { background: #eee; color: #666; }
+.stock-tag.up { background: rgba(76, 175, 80, 0.15); color: #4CAF50; }
+.stock-tag.down { background: rgba(244, 67, 54, 0.15); color: #F44336; }
+.stock-tag.flat { background: var(--c-hover); color: var(--c-muted); }
 
 /* Stock Grid */
 .stock-grid {
@@ -914,9 +851,10 @@ onUnmounted(() => {
 }
 
 .stock-card {
-  background: #f9f9f9;
+  background: var(--c-hover);
   padding: 1rem;
   border-radius: 4px;
+  border: 1px solid var(--c-grid);
 }
 
 .stock-header {
@@ -941,7 +879,7 @@ onUnmounted(() => {
 
 .stock-name {
   font-size: 0.8rem;
-  color: #666;
+  color: var(--c-muted);
   margin: 0.25rem 0 0.75rem;
 }
 
@@ -951,13 +889,13 @@ onUnmounted(() => {
 
 .confidence-label {
   font-size: 0.7rem;
-  color: #888;
+  color: var(--c-muted);
   margin-bottom: 0.25rem;
 }
 
 .confidence-track {
   height: 4px;
-  background: #ddd;
+  background: var(--c-grid);
   border-radius: 2px;
   overflow: hidden;
 }
@@ -973,7 +911,7 @@ onUnmounted(() => {
 
 .stock-stats {
   font-size: 0.75rem;
-  color: #888;
+  color: var(--c-muted);
 }
 
 .text-green { color: #4CAF50; }
@@ -990,14 +928,15 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   padding: 0.5rem;
-  background: #f9f9f9;
+  background: var(--c-hover);
+  border: 1px solid var(--c-grid);
 }
 
 .entity-rank {
   width: 24px;
   font-family: var(--font-display);
   font-weight: 700;
-  color: #ccc;
+  color: var(--c-grid);
   font-style: italic;
 }
 
@@ -1011,7 +950,7 @@ onUnmounted(() => {
 .entity-count {
   font-family: var(--font-mono);
   font-size: 0.8rem;
-  color: #888;
+  color: var(--c-muted);
 }
 
 /* Prediction Row */
@@ -1019,7 +958,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   padding: 0.75rem 0;
-  border-bottom: 1px dashed #eee;
+  border-bottom: 1px dashed var(--c-grid);
 }
 
 .pred-icon {
@@ -1046,11 +985,11 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   padding: 0.5rem 0;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--c-grid);
 }
 
 .stat-label {
-  color: #888;
+  color: var(--c-muted);
   font-size: 0.85rem;
 }
 
@@ -1063,7 +1002,7 @@ onUnmounted(() => {
 .empty-state {
   text-align: center;
   padding: 2rem;
-  color: #888;
+  color: var(--c-muted);
 }
 
 /* Responsive */

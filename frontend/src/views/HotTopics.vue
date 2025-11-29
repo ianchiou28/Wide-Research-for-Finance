@@ -3,17 +3,17 @@
     <header class="page-header">
       <div>
         <div class="page-title-wrapper">MARKET SENTIMENT</div>
-        <h1 class="page-title">全网<span>热搜</span></h1>
+        <h1 class="page-title">{{ locale === 'zh' ? '全网' : 'HOT' }}<span>{{ locale === 'zh' ? '热搜' : 'TOPICS' }}</span></h1>
       </div>
       <div class="meta-bar">
-        <span>SOURCES: {{ Object.keys(hotSearches).length }}</span>
-        <span>UPDATE: {{ lastUpdate }}</span>
+        <span>{{ t('sources') }}: {{ Object.keys(hotSearches).length }}</span>
+        <span>{{ t('update') }}: {{ lastUpdate }}</span>
       </div>
     </header>
 
     <div v-if="loading" class="loading-state">
       <div class="spinner"></div>
-      <span>正在获取各平台热搜数据...</span>
+      <span>{{ t('loading') }}</span>
     </div>
 
     <div v-else class="grid-3">
@@ -24,7 +24,7 @@
         </div>
         <div class="card-body p-0">
           <div v-if="!items || items.length === 0" class="empty-state">
-            暂无数据或采集失败
+            {{ t('no_data_or_failed') }}
           </div>
           <div v-else class="topic-list">
             <div v-for="(item, index) in items.slice(0, 10)" :key="index" class="topic-item">
@@ -44,6 +44,9 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
+import { useLocale } from '../composables/useLocale'
+
+const { locale, t } = useLocale()
 
 const hotSearches = ref({})
 const lastUpdate = ref('--:--')
@@ -51,8 +54,9 @@ const loading = ref(true)
 
 const formatHeat = (val) => {
   if (!val) return '-'
-  if (val >= 10000000) return (val / 10000000).toFixed(1) + '千万'
-  if (val >= 10000) return (val / 10000).toFixed(1) + '万'
+  const suffix = locale.value === 'zh' ? { million: '千万', tenThousand: '万' } : { million: 'M', tenThousand: 'K' }
+  if (val >= 10000000) return (val / 10000000).toFixed(1) + suffix.million
+  if (val >= 10000) return (val / 10000).toFixed(1) + suffix.tenThousand
   if (val >= 1000) return (val / 1000).toFixed(1) + 'k'
   return val
 }
@@ -163,10 +167,11 @@ onMounted(() => {
 .topic-heat {
   font-family: var(--font-mono);
   font-size: 0.75rem;
-  color: #888;
-  background: #eee;
+  color: var(--c-ink);
+  background: var(--c-grid);
   padding: 0.1rem 0.3rem;
   border-radius: 2px;
   white-space: nowrap;
+  border: 1px solid var(--c-border);
 }
 </style>

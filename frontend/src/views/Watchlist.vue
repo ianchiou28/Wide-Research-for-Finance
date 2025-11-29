@@ -3,7 +3,7 @@
     <header class="page-header">
       <div>
         <div class="page-title-wrapper">ASSET TRACKING</div>
-        <h1 class="page-title">自选<span>监控</span></h1>
+        <h1 class="page-title">{{ t('nav_watchlist').split('').slice(0,2).join('') }}<span>{{ t('nav_watchlist').split('').slice(2).join('') }}</span></h1>
       </div>
       <div class="meta-bar">
         <span>TOTAL ASSETS: {{ watchlist.length }}</span>
@@ -13,16 +13,16 @@
 
     <div class="card">
       <div class="card-header">
-        <div class="card-title">我的关注列表</div>
+        <div class="card-title">{{ t('watchlist_title') }}</div>
         <div class="actions">
           <div class="add-stock-form">
-            <input v-model="newStockSymbol" placeholder="输入代码 (e.g. 002242)" class="input-field sm" @keyup.enter="addStock" />
+            <input v-model="newStockSymbol" :placeholder="t('stock_code') + ' (e.g. 002242)'" class="input-field sm" @keyup.enter="addStock" />
             <button class="btn btn-sm" @click="addStock">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="12" y1="5" x2="12" y2="19"></line>
                 <line x1="5" y1="12" x2="19" y2="12"></line>
               </svg>
-              添加
+              {{ t('add_stock') }}
             </button>
           </div>
         </div>
@@ -32,21 +32,21 @@
           <table class="data-table">
             <thead>
               <tr>
-                <th>代码</th>
-                <th>名称</th>
-                <th>最新价</th>
-                <th>涨跌幅</th>
-                <th class="hide-mobile">成交量</th>
-                <th class="hide-mobile">更新时间</th>
-                <th>操作</th>
+                <th>{{ t('stock_code') }}</th>
+                <th>{{ t('stock_name') }}</th>
+                <th>{{ t('current_price') }}</th>
+                <th>{{ t('change_pct') }}</th>
+                <th class="hide-mobile">{{ t('volume') }}</th>
+                <th class="hide-mobile">{{ t('updated_at') }}</th>
+                <th>{{ t('action') }}</th>
               </tr>
             </thead>
             <tbody>
               <tr v-if="loading">
-                <td colspan="7" class="text-center">加载中...</td>
+                <td colspan="7" class="text-center">{{ t('loading') }}</td>
               </tr>
               <tr v-else-if="watchlist.length === 0">
-                <td colspan="7" class="text-center">暂无关注股票，请添加。</td>
+                <td colspan="7" class="text-center">{{ t('no_data') }}</td>
               </tr>
               <tr v-for="stock in watchlist" :key="stock.symbol" class="stock-row" @click="openDetail(stock)">
                 <td><span class="badge badge-gray">{{ stock.symbol }}</span></td>
@@ -103,7 +103,7 @@
           <!-- 加载状态 -->
           <div v-if="detailLoading" class="modal-loading">
             <div class="loader-lg"></div>
-            <span>正在加载数据...</span>
+            <span>{{ t('loading') }}</span>
           </div>
 
           <template v-else>
@@ -111,7 +111,7 @@
           <div class="quote-panel" v-if="detailData.quote">
             <div class="quote-main">
               <div class="quote-price-section">
-                <div class="label-tag">实时报价</div>
+                <div class="label-tag">{{ t('current_price') }}</div>
                 <div class="big-price" :class="detailData.quote.change >= 0 ? 'price-up' : 'price-down'">
                   {{ formatPrice(detailData.quote.price) }}
                 </div>
@@ -129,27 +129,27 @@
             
             <div class="quote-stats-grid">
               <div class="stat-box">
-                <div class="stat-name">今开</div>
+                <div class="stat-name">{{ t('open') }}</div>
                 <div class="stat-num">{{ formatPrice(detailData.quote.open) }}</div>
               </div>
               <div class="stat-box">
-                <div class="stat-name">昨收</div>
+                <div class="stat-name">{{ t('prev_close') }}</div>
                 <div class="stat-num">{{ formatPrice(detailData.quote.prev_close) }}</div>
               </div>
               <div class="stat-box">
-                <div class="stat-name">最高</div>
+                <div class="stat-name">{{ t('high') }}</div>
                 <div class="stat-num price-up">{{ formatPrice(detailData.quote.high) }}</div>
               </div>
               <div class="stat-box">
-                <div class="stat-name">最低</div>
+                <div class="stat-name">{{ t('low') }}</div>
                 <div class="stat-num price-down">{{ formatPrice(detailData.quote.low) }}</div>
               </div>
               <div class="stat-box">
-                <div class="stat-name">成交量</div>
+                <div class="stat-name">{{ t('volume') }}</div>
                 <div class="stat-num">{{ formatVolume(detailData.quote.volume) }}</div>
               </div>
               <div class="stat-box">
-                <div class="stat-name">成交额</div>
+                <div class="stat-name">{{ t('amount') }}</div>
                 <div class="stat-num">{{ formatAmount(detailData.quote.amount) }}</div>
               </div>
             </div>
@@ -160,7 +160,7 @@
             <div class="panel-header">
               <div class="panel-label">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
-                K线走势
+                {{ t('kline_chart') }}
               </div>
               <div class="period-btns">
                 <button 
@@ -175,10 +175,10 @@
             <div class="chart-area" ref="klineChartRef">
               <div v-if="klineLoading" class="chart-loading">
                 <div class="loader"></div>
-                <span>加载中...</span>
+                <span>{{ t('loading') }}</span>
               </div>
               <div v-else-if="!detailData.kline || detailData.kline.length === 0" class="chart-empty">
-                暂无数据
+                {{ t('no_data') }}
               </div>
               <canvas v-show="!klineLoading && detailData.kline && detailData.kline.length > 0" ref="klineCanvas"></canvas>
             </div>
@@ -189,7 +189,7 @@
             <div class="panel-header">
               <div class="panel-label">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                相关资讯
+                {{ t('related_news') }}
               </div>
             </div>
             <div class="news-items">
@@ -207,8 +207,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick, watch } from 'vue'
+import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import axios from 'axios'
+import { useLocale } from '../composables/useLocale'
+
+const { t } = useLocale()
 
 const watchlist = ref([])
 const loading = ref(false)
@@ -224,11 +227,11 @@ const klinePeriod = ref('daily')
 const klineCanvas = ref(null)
 const klineChartRef = ref(null)
 
-const periods = [
-  { label: '日K', value: 'daily' },
-  { label: '周K', value: 'weekly' },
-  { label: '月K', value: 'monthly' }
-]
+const periods = computed(() => [
+  { label: t('period_daily'), value: 'daily' },
+  { label: t('period_weekly'), value: 'weekly' },
+  { label: t('period_monthly'), value: 'monthly' }
+])
 
 const getChangeClass = (change) => {
   if (change > 0) return 'badge badge-green'
@@ -394,8 +397,14 @@ const drawKlineChart = (klineData) => {
   const chartWidth = width - padding.left - padding.right
   const chartHeight = height - padding.top - padding.bottom
   
-  // 清空画布 - 浅色背景
-  ctx.fillStyle = '#fafaf5'
+  // 获取当前主题颜色
+  const styles = getComputedStyle(document.documentElement)
+  const bgColor = styles.getPropertyValue('--c-bg').trim() || '#F2F2E9'
+  const gridColor = styles.getPropertyValue('--c-grid').trim() || '#E0E0D8'
+  const textColor = styles.getPropertyValue('--c-muted').trim() || '#666666'
+  
+  // 清空画布
+  ctx.fillStyle = bgColor
   ctx.fillRect(0, 0, width, height)
   
   // 计算价格范围
@@ -414,9 +423,9 @@ const drawKlineChart = (klineData) => {
   const barGap = chartWidth / klineData.length
   
   // 绘制网格线和价格刻度
-  ctx.strokeStyle = 'rgba(0,0,0,0.08)'
+  ctx.strokeStyle = gridColor
   ctx.lineWidth = 1
-  ctx.fillStyle = '#666'
+  ctx.fillStyle = textColor
   ctx.font = '10px monospace'
   ctx.textAlign = 'right'
   
@@ -436,7 +445,7 @@ const drawKlineChart = (klineData) => {
   klineData.forEach((d, i) => {
     const x = padding.left + i * barGap + barGap / 2
     const isUp = d.close >= d.open
-    const color = isUp ? '#22a06b' : '#de350b'
+    const color = isUp ? '#4CAF50' : '#F44336'
     
     // 计算位置
     const openY = padding.top + ((maxPrice - d.open) / (maxPrice - minPrice)) * chartHeight
@@ -460,7 +469,7 @@ const drawKlineChart = (klineData) => {
   })
   
   // 绘制日期标签 (显示5个)
-  ctx.fillStyle = '#666'
+  ctx.fillStyle = textColor
   ctx.font = '9px monospace'
   ctx.textAlign = 'center'
   const step = Math.floor(klineData.length / 5)
@@ -486,8 +495,8 @@ onMounted(() => {
   padding: 0.4rem 0.8rem;
   width: 200px;
 }
-.text-center { text-align: center; color: #888; }
-.text-sm { font-size: 0.8rem; color: #666; }
+.text-center { text-align: center; color: var(--c-muted); }
+.text-sm { font-size: 0.8rem; color: var(--c-muted); }
 .font-mono { font-family: var(--font-mono); }
 
 .stock-row {
@@ -495,7 +504,7 @@ onMounted(() => {
   transition: background 0.2s;
 }
 .stock-row:hover {
-  background: rgba(255, 85, 0, 0.05);
+  background: var(--c-hover);
 }
 
 /* 列表操作按钮 */
@@ -524,7 +533,7 @@ onMounted(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.7);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -540,7 +549,7 @@ onMounted(() => {
   max-height: 90vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 12px 12px 0 rgba(0, 0, 0, 0.2);
+  box-shadow: 12px 12px 0 var(--c-shadow);
   position: relative;
 }
 
@@ -550,7 +559,7 @@ onMounted(() => {
   align-items: center;
   padding: 1rem 1.5rem;
   border-bottom: 3px solid var(--c-ink, #111);
-  background: rgba(0, 0, 0, 0.02);
+  background: var(--c-hover);
 }
 
 .modal-title-row {
@@ -613,7 +622,7 @@ onMounted(() => {
   background: var(--c-paper, #fff);
   border: 2px solid var(--c-ink, #111);
   padding: 1.5rem;
-  box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.1);
+  box-shadow: 6px 6px 0 var(--c-shadow);
 }
 
 .quote-main {
@@ -670,13 +679,13 @@ onMounted(() => {
 
 .stat-box {
   padding: 0.75rem;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  background: rgba(0, 0, 0, 0.02);
+  border: 1px solid var(--c-grid);
+  background: var(--c-hover);
 }
 
 .stat-name {
   font-size: 0.7rem;
-  color: #666;
+  color: var(--c-muted);
   text-transform: uppercase;
   font-weight: 700;
   margin-bottom: 0.3rem;
@@ -693,7 +702,7 @@ onMounted(() => {
 .chart-panel, .news-panel {
   background: var(--c-paper, #fff);
   border: 2px solid var(--c-ink, #111);
-  box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.1);
+  box-shadow: 6px 6px 0 var(--c-shadow);
 }
 
 .panel-header {
@@ -702,7 +711,7 @@ onMounted(() => {
   align-items: center;
   padding: 0.75rem 1rem;
   border-bottom: 2px solid var(--c-ink, #111);
-  background: rgba(0, 0, 0, 0.02);
+  background: var(--c-hover);
 }
 
 .panel-label {
@@ -757,7 +766,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #fafaf5;
+  background: var(--c-bg);
   border-top: none;
   position: relative;
 }
@@ -773,7 +782,7 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   gap: 0.75rem;
-  color: #888;
+  color: var(--c-muted);
   font-family: var(--font-mono);
   font-size: 0.85rem;
 }
@@ -781,7 +790,7 @@ onMounted(() => {
 .loader {
   width: 28px;
   height: 28px;
-  border: 3px solid #ddd;
+  border: 3px solid var(--c-grid);
   border-top-color: var(--c-amber, #FF5500);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
@@ -795,7 +804,7 @@ onMounted(() => {
   justify-content: center;
   gap: 1rem;
   padding: 4rem 2rem;
-  color: #666;
+  color: var(--c-muted);
   font-family: var(--font-mono);
   font-size: 0.9rem;
 }
@@ -803,7 +812,7 @@ onMounted(() => {
 .loader-lg {
   width: 48px;
   height: 48px;
-  border: 4px solid #e0e0e0;
+  border: 4px solid var(--c-grid);
   border-top-color: var(--c-amber, #FF5500);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
@@ -824,7 +833,7 @@ onMounted(() => {
   align-items: center;
   gap: 1rem;
   padding: 0.9rem 1rem;
-  border-bottom: 1px dashed rgba(0, 0, 0, 0.15);
+  border-bottom: 1px dashed var(--c-grid);
   text-decoration: none;
   color: var(--c-ink, #111);
   transition: all 0.15s;
@@ -835,7 +844,7 @@ onMounted(() => {
 }
 
 .news-row:hover {
-  background: rgba(255, 85, 0, 0.05);
+  background: var(--c-hover);
   padding-left: 1.5rem;
 }
 
@@ -852,7 +861,7 @@ onMounted(() => {
 .news-date {
   font-family: var(--font-mono);
   font-size: 0.7rem;
-  color: #888;
+  color: var(--c-muted);
   white-space: nowrap;
 }
 

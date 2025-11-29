@@ -328,13 +328,13 @@
 
 .step-desc {
   font-size: 0.85rem;
-  color: #666;
+  color: var(--c-muted);
 }
 
 .step-line {
   width: 2px;
   height: 20px;
-  background: #ddd;
+  background: var(--c-grid);
   margin-left: 1rem; /* Align with num center approx */
 }
 
@@ -346,14 +346,14 @@
 }
 
 .metric-box {
-  background: #f9f9f9;
+  background: var(--c-hover);
   padding: 1rem;
-  border: 1px solid #eee;
+  border: 1px solid var(--c-grid);
 }
 
 .m-label {
   font-size: 0.75rem;
-  color: #888;
+  color: var(--c-muted);
   margin-bottom: 0.5rem;
 }
 
@@ -381,8 +381,8 @@
 }
 
 .module-item:hover {
-  background: rgba(0,0,0,0.02);
-  border-color: #eee;
+  background: var(--c-hover);
+  border-color: var(--c-grid);
   transform: translateX(5px);
 }
 
@@ -402,7 +402,7 @@
 
 .mod-desc {
   font-size: 0.8rem;
-  color: #666;
+  color: var(--c-muted);
 }
 
 /* Coverage */
@@ -424,7 +424,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f5f5f5;
+  background: var(--c-hover);
   border-radius: 4px;
   color: var(--c-ink);
 }
@@ -442,7 +442,7 @@
 
 .cov-content span {
   font-size: 0.8rem;
-  color: #666;
+  color: var(--c-muted);
   line-height: 1.4;
 }
 
@@ -463,7 +463,7 @@
 
 .start-code {
   display: block;
-  background: #eee;
+  background: var(--c-hover);
   padding: 0.5rem;
   font-family: var(--font-mono);
   font-size: 0.85rem;

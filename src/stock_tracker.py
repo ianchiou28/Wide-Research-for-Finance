@@ -125,13 +125,13 @@ class StockTracker:
     def _get_us_stock_quote(self, symbol: str) -> Optional[Dict]:
         """获取美股行情"""
         try:
-            # 使用东方财富美股接口
-            url = f"https://push2.eastmoney.com/api/qt/stock/get?secid=105.{symbol}&fields=f57,f58,f43,f44,f45,f46,f47,f60,f169,f170"
+            # 使用东方财富美股接口 - 添加更多字段
+            url = f"https://push2.eastmoney.com/api/qt/stock/get?secid=105.{symbol}&fields=f57,f58,f43,f44,f45,f46,f47,f48,f60,f169,f170"
             
             response = self.session.get(url, timeout=10)
             if response.status_code == 200:
                 data = response.json().get('data', {})
-                if data:
+                if data and data.get('f43'):
                     return {
                         'symbol': symbol,
                         'name': data.get('f58', ''),
@@ -139,30 +139,66 @@ class StockTracker:
                         'price': data.get('f43', 0) / 100 if data.get('f43') else 0,
                         'change': data.get('f169', 0) / 100 if data.get('f169') else 0,
                         'change_pct': data.get('f170', 0) / 100 if data.get('f170') else 0,
+                        'open': data.get('f46', 0) / 100 if data.get('f46') else 0,
+                        'high': data.get('f44', 0) / 100 if data.get('f44') else 0,
+                        'low': data.get('f45', 0) / 100 if data.get('f45') else 0,
+                        'prev_close': data.get('f60', 0) / 100 if data.get('f60') else 0,
+                        'volume': data.get('f47', 0),
+                        'amount': data.get('f48', 0),
                         'currency': 'USD',
                         'timestamp': datetime.now().isoformat()
                     }
         except Exception as e:
-            print(f"获取美股行情失败: {e}")
+            print(f"获取美股行情失败(东方财富): {e}")
         
-        # 备用：Yahoo Finance
+        # 备用：Yahoo Finance - 获取完整数据
         try:
-            url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?interval=1d&range=1d"
+            url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?interval=1d&range=5d"
             response = requests.get(url, headers=self.headers, timeout=10)
             if response.status_code == 200:
                 data = response.json()
                 result = data.get('chart', {}).get('result', [{}])[0]
                 meta = result.get('meta', {})
-                return {
-                    'symbol': symbol,
-                    'name': meta.get('shortName', symbol),
-                    'market': 'us',
-                    'price': meta.get('regularMarketPrice', 0),
-                    'prev_close': meta.get('chartPreviousClose', 0),
-                    'change_pct': ((meta.get('regularMarketPrice', 0) - meta.get('chartPreviousClose', 1)) / meta.get('chartPreviousClose', 1)) * 100,
-                    'currency': meta.get('currency', 'USD'),
-                    'timestamp': datetime.now().isoformat()
-                }
+                
+                # 获取最新的 OHLCV 数据
+                quote = result.get('indicators', {}).get('quote', [{}])[0]
+                timestamps = result.get('timestamp', [])
+                
+                # 取最后一个交易日的数据
+                if timestamps and quote.get('close'):
+                    last_idx = -1
+                    # 找到最后一个有效数据点
+                    for i in range(len(timestamps) - 1, -1, -1):
+                        if quote.get('close', [])[i] is not None:
+                            last_idx = i
+                            break
+                    
+                    if last_idx >= 0:
+                        opens = quote.get('open', [])
+                        closes = quote.get('close', [])
+                        highs = quote.get('high', [])
+                        lows = quote.get('low', [])
+                        volumes = quote.get('volume', [])
+                        
+                        current_price = meta.get('regularMarketPrice', closes[last_idx] or 0)
+                        prev_close = meta.get('chartPreviousClose', 0) or meta.get('previousClose', 0)
+                        
+                        return {
+                            'symbol': symbol,
+                            'name': meta.get('shortName', symbol),
+                            'market': 'us',
+                            'price': round(current_price, 2),
+                            'open': round(opens[last_idx] or 0, 2),
+                            'high': round(highs[last_idx] or 0, 2),
+                            'low': round(lows[last_idx] or 0, 2),
+                            'prev_close': round(prev_close, 2),
+                            'change': round(current_price - prev_close, 2) if prev_close else 0,
+                            'change_pct': round(((current_price - prev_close) / prev_close) * 100, 2) if prev_close else 0,
+                            'volume': int(volumes[last_idx] or 0),
+                            'amount': 0,  # Yahoo Finance 不提供成交额
+                            'currency': meta.get('currency', 'USD'),
+                            'timestamp': datetime.now().isoformat()
+                        }
         except Exception as e:
             print(f"Yahoo Finance获取失败: {e}")
         
@@ -448,9 +484,24 @@ class StockTracker:
             interval_map = {'daily': '1d', 'weekly': '1wk', 'monthly': '1mo'}
             interval = interval_map.get(period, '1d')
             
-            url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?interval={interval}&range=3mo"
+            # 根据周期和数量动态设置range
+            # 美股需要更大的时间范围，但要限制以避免超时
+            if period == 'monthly':
+                # 月K线：限制最多请求24条（2年），避免超时
+                actual_limit = min(limit, 24)
+                range_param = '2y'
+            elif period == 'weekly':
+                # 周K线：限制最多请求52条（1年）
+                actual_limit = min(limit, 52)
+                range_param = '1y'
+            else:
+                # 日K线：最多60条（约3个月）
+                actual_limit = min(limit, 60)
+                range_param = '3mo'
             
-            response = requests.get(url, headers=self.headers, timeout=10)
+            url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?interval={interval}&range={range_param}"
+            
+            response = requests.get(url, headers=self.headers, timeout=15)
             if response.status_code == 200:
                 data = response.json()
                 result = data.get('chart', {}).get('result', [{}])[0]
@@ -464,18 +515,21 @@ class StockTracker:
                 lows = quote.get('low', [])
                 volumes = quote.get('volume', [])
                 
-                for i in range(min(len(timestamps), limit)):
-                    if timestamps[i] and closes[i]:
-                        kline_data.append({
-                            'date': datetime.fromtimestamp(timestamps[i]).strftime('%Y-%m-%d'),
-                            'open': round(opens[i] or 0, 2),
-                            'close': round(closes[i] or 0, 2),
-                            'high': round(highs[i] or 0, 2),
-                            'low': round(lows[i] or 0, 2),
-                            'volume': int(volumes[i] or 0),
-                            'amount': 0,
-                            'change_pct': 0
-                        })
+                # 只取最后 actual_limit 条有效数据
+                valid_indices = [i for i in range(len(timestamps)) if timestamps[i] and closes[i]]
+                valid_indices = valid_indices[-actual_limit:] if len(valid_indices) > actual_limit else valid_indices
+                
+                for i in valid_indices:
+                    kline_data.append({
+                        'date': datetime.fromtimestamp(timestamps[i]).strftime('%Y-%m-%d'),
+                        'open': round(opens[i] or 0, 2),
+                        'close': round(closes[i] or 0, 2),
+                        'high': round(highs[i] or 0, 2),
+                        'low': round(lows[i] or 0, 2),
+                        'volume': int(volumes[i] or 0),
+                        'amount': 0,
+                        'change_pct': 0
+                    })
         except Exception as e:
             print(f"获取美股K线失败: {e}")
         
