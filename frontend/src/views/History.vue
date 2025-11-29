@@ -53,7 +53,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import axios from 'axios'
 import { useLocale } from '../composables/useLocale'
 
@@ -64,6 +64,11 @@ const selectedReport = ref(null)
 const selectedReportContent = ref('')
 const loading = ref(false)
 const exporting = ref(false)
+
+// 监听语言变化，重新获取数据
+watch(locale, () => {
+  fetchHistory()
+})
 
 const formatDate = (ts) => {
   if (!ts) return ''
@@ -82,7 +87,7 @@ const formatContent = (text) => {
 
 const fetchHistory = async () => {
   try {
-    const res = await axios.get('/api/reports/history')
+    const res = await axios.get('/api/reports/history', { params: { lang: locale.value } })
     history.value = res.data.data || []
   } catch (e) {
     console.error(e)

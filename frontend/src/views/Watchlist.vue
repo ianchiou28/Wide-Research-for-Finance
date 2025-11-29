@@ -66,13 +66,13 @@
                         <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
                         <circle cx="12" cy="12" r="3"></circle>
                       </svg>
-                      <span class="btn-text">详情</span>
+                      <span class="btn-text">{{ t('view') }}</span>
                     </button>
                     <button class="btn btn-sm btn-ghost btn-del" @click.stop="removeStock(stock.symbol)">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
                       </svg>
-                      <span class="btn-text">删除</span>
+                      <span class="btn-text">{{ t('delete') }}</span>
                     </button>
                   </div>
                 </td>
@@ -211,11 +211,16 @@ import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import axios from 'axios'
 import { useLocale } from '../composables/useLocale'
 
-const { t } = useLocale()
+const { t, locale } = useLocale()
 
 const watchlist = ref([])
 const loading = ref(false)
 const newStockSymbol = ref('')
+
+// 监听语言变化，重新获取数据
+watch(locale, () => {
+  fetchWatchlist()
+})
 
 // 详情弹窗相关
 const showDetail = ref(false)
@@ -267,7 +272,7 @@ const formatAmount = (amt) => {
 const fetchWatchlist = async () => {
   loading.value = true
   try {
-    const res = await axios.get('/api/watchlist')
+    const res = await axios.get('/api/watchlist', { params: { lang: locale.value } })
     watchlist.value = res.data.data.map(item => {
       const quote = item.quote || {}
       return {
@@ -304,17 +309,20 @@ const addStock = async () => {
     newStockSymbol.value = ''
     fetchWatchlist()
   } catch (e) {
-    alert('添加失败: ' + (e.response?.data?.error || e.message))
+    const msg = locale.value === 'zh' ? '添加失败: ' : 'Failed to add: '
+    alert(msg + (e.response?.data?.error || e.message))
   }
 }
 
 const removeStock = async (symbol) => {
-  if (!confirm('确定删除?')) return
+  const confirmMsg = locale.value === 'zh' ? '确定删除?' : 'Confirm delete?'
+  if (!confirm(confirmMsg)) return
   try {
     await axios.delete(`/api/watchlist/${symbol}`)
     fetchWatchlist()
   } catch (e) {
-    alert('删除失败')
+    const errMsg = locale.value === 'zh' ? '删除失败' : 'Failed to delete'
+    alert(errMsg)
   }
 }
 

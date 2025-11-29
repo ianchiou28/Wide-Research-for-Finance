@@ -320,7 +320,7 @@
 
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import axios from 'axios'
 import { useLocale } from '../composables/useLocale'
 
@@ -335,6 +335,11 @@ const reportData = ref({
   entities: [],
   events: {},
   stock_impacts: []
+})
+
+// 监听语言变化，重新获取数据
+watch(locale, () => {
+  fetchData()
 })
 
 // Helper for sentiment label
@@ -434,7 +439,9 @@ const formatTime = (isoString) => {
 const fetchData = async () => {
   loading.value = true
   try {
-    const res = await axios.get('/api/report/structured')
+    const res = await axios.get('/api/report/structured', {
+      params: { lang: locale.value }
+    })
     if (res.data) {
       reportData.value = res.data
     }

@@ -11,6 +11,16 @@
       </div>
     </header>
 
+    <!-- 英文模式提示 -->
+    <div v-if="locale === 'en'" class="locale-notice">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="16" x2="12" y2="12"></line>
+        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+      </svg>
+      <span>Trending topics from Chinese platforms (Baidu, Douyin, Toutiao, Weibo, Zhihu) - Content shown in original language</span>
+    </div>
+
     <div v-if="loading" class="loading-state">
       <div class="spinner"></div>
       <span>{{ t('loading') }}</span>
@@ -54,11 +64,19 @@ const loading = ref(true)
 
 const formatHeat = (val) => {
   if (!val) return '-'
-  const suffix = locale.value === 'zh' ? { million: '千万', tenThousand: '万' } : { million: 'M', tenThousand: 'K' }
-  if (val >= 10000000) return (val / 10000000).toFixed(1) + suffix.million
-  if (val >= 10000) return (val / 10000).toFixed(1) + suffix.tenThousand
-  if (val >= 1000) return (val / 1000).toFixed(1) + 'k'
-  return val
+  
+  if (locale.value === 'zh') {
+    // 中文：用万、千万
+    if (val >= 10000000) return (val / 10000000).toFixed(1) + '千万'
+    if (val >= 10000) return (val / 10000).toFixed(1) + '万'
+    if (val >= 1000) return (val / 1000).toFixed(1) + 'k'
+    return val
+  } else {
+    // 英文：用 K (千), M (百万)
+    if (val >= 1000000) return (val / 1000000).toFixed(1) + 'M'
+    if (val >= 1000) return (val / 1000).toFixed(1) + 'K'
+    return val
+  }
 }
 
 const fetchHotSearches = async () => {
@@ -83,6 +101,23 @@ onMounted(() => {
 
 <style scoped>
 .p-0 { padding: 0; }
+
+.locale-notice {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: var(--c-hover);
+  border: 1px solid var(--c-grid);
+  margin-bottom: 1.5rem;
+  font-size: 0.85rem;
+  color: var(--c-muted);
+}
+
+.locale-notice svg {
+  flex-shrink: 0;
+  color: var(--c-amber);
+}
 
 .loading-state {
   display: flex;

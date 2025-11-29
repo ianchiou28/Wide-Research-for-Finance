@@ -12,6 +12,26 @@ load_dotenv()
 sys.path.append('src')
 from weekly_summary import WeeklySummary
 
+# 导入翻译服务
+def get_translator():
+    try:
+        from translator import translate_response, translate_report_data, translate_stock_data, translate_text
+        return {
+            'translate_response': translate_response,
+            'translate_report_data': translate_report_data,
+            'translate_stock_data': translate_stock_data,
+            'translate_text': translate_text
+        }
+    except ImportError as e:
+        print(f"Warning: Could not import translator: {e}")
+        # 返回空操作函数
+        return {
+            'translate_response': lambda data, lang: data,
+            'translate_report_data': lambda data, lang: data,
+            'translate_stock_data': lambda data, lang: data,
+            'translate_text': lambda text, lang: text
+        }
+
 # 导入新模块（延迟加载以避免启动错误）
 def get_hot_search_collector():
     try:
@@ -501,13 +521,17 @@ def weekly_analysis():
 @app.route('/api/report/structured')
 def api_report_structured():
     """获取结构化报告数据（供前端可视化）"""
+    lang = request.args.get('lang', 'zh')  # 支持 'zh' 或 'en'
+    translator = get_translator()
+    
     # 优先从 reports_json 目录读取
     json_reports = glob.glob('data/reports_json/report_*.json')
     if json_reports:
         latest = max(json_reports, key=os.path.getctime)
         try:
             with open(latest, 'r', encoding='utf-8') as f:
-                return jsonify(json.load(f))
+                data = json.load(f)
+                return jsonify(translator['translate_report_data'](data, lang))
         except:
             pass
     
@@ -517,9 +541,9 @@ def api_report_structured():
         return jsonify({
             'meta': {'total_news': 0, 'generated_at': datetime.now().isoformat()},
             'sentiment': {
-                'overall': {'score': 0, 'label': '中性'},
-                'cn': {'score': 0, 'label': '中性'},
-                'us': {'score': 0, 'label': '中性'},
+                'overall': {'score': 0, 'label': '中性' if lang == 'zh' else 'Neutral'},
+                'cn': {'score': 0, 'label': '中性' if lang == 'zh' else 'Neutral'},
+                'us': {'score': 0, 'label': '中性' if lang == 'zh' else 'Neutral'},
                 'distribution': {'positive': 0, 'neutral': 0, 'negative': 0}
             },
             'entities': [],
@@ -537,9 +561,14 @@ def api_report_structured():
     sentiment_us = parsed.get('sentiment', {}).get('us', 0)
     
     def get_label(score):
-        if score > 0.3: return '积极'
-        if score < -0.3: return '消极'
-        return '中性'
+        if lang == 'en':
+            if score > 0.3: return 'Positive'
+            if score < -0.3: return 'Negative'
+            return 'Neutral'
+        else:
+            if score > 0.3: return '积极'
+            if score < -0.3: return '消极'
+            return '中性'
     
     # 获取时间戳
     reports = glob.glob('data/reports/report_*.txt')
@@ -552,6 +581,56 @@ def api_report_structured():
     now = datetime.now()
     beijing_hour = now.hour
     ny_hour = (beijing_hour - 13) % 24
+    
+    # 翻译实体名称（如果是英文模式）
+    entities = parsed.get('hot_topics', [])[:10]
+    if lang == 'en':
+        entities = [translator['translate_response'](e, lang) for e in entities]
+    
+    # 翻译事件
+    events_data = []
+    for i, e in enumerate(parsed.get('major_events', [])):
+        event = {
+            'ref_id': i + 1,
+            'title': e.get('title', ''),
+            'summary': e.get('summary', ''),
+            'source': e.get('source', ''),
+            'url': '',
+            'event_type': 'Major Event' if lang == 'en' else '重大事件',
+            'sentiment': {'overall': 0, 'cn': 0, 'us': 0},
+            'stock_impact': []
+        }
+        if lang == 'en':
+            event['title'] = translator['translate_response'](event['title'], lang)
+            event['summary'] = translator['translate_response'](event['summary'], lang)
+        events_data.append(event)
+    
+    # 翻译股票影响
+    def get_prediction(direction):
+        if lang == 'en':
+            if direction == '上涨': return 'Bullish'
+            if direction == '下跌': return 'Bearish'
+            return 'Neutral'
+        else:
+            if direction == '上涨': return '看涨'
+            if direction == '下跌': return '看跌'
+            return '中性'
+    
+    stock_impacts = []
+    for s in parsed.get('stocks', [])[:6]:
+        stock = {
+            'symbol': s.get('symbol', ''),
+            'name': s.get('name', ''),
+            'prediction': get_prediction(s.get('direction', '')),
+            'confidence': 0.6,
+            'total_mentions': 1,
+            'up_count': 1 if s.get('direction') == '上涨' else 0,
+            'down_count': 1 if s.get('direction') == '下跌' else 0,
+            'neutral_count': 0
+        }
+        if lang == 'en':
+            stock['name'] = translator['translate_response'](stock['name'], lang)
+        stock_impacts.append(stock)
     
     return jsonify({
         'meta': {
@@ -571,36 +650,14 @@ def api_report_structured():
                 'negative': int(parsed.get('total_news', 0) * 0.2)
             }
         },
-        'entities': [{'name': e, 'count': 1, 'avg_sentiment': 0} for e in parsed.get('hot_topics', [])[:10]],
+        'entities': [{'name': e, 'count': 1, 'avg_sentiment': 0} for e in entities],
         'events': {
-            'high_impact': [{
-                'ref_id': i + 1,
-                'title': e.get('title', ''),
-                'summary': e.get('summary', ''),
-                'source': e.get('source', ''),
-                'url': '',
-                'event_type': '重大事件',
-                'sentiment': {
-                    'overall': 0,
-                    'cn': 0,
-                    'us': 0
-                },
-                'stock_impact': []
-            } for i, e in enumerate(parsed.get('major_events', []))],
+            'high_impact': events_data,
             'hot_search': [],
             'stock_specific': [],
             'other': []
         },
-        'stock_impacts': [{
-            'symbol': s.get('symbol', ''),
-            'name': s.get('name', ''),
-            'prediction': '看涨' if s.get('direction') == '上涨' else '看跌' if s.get('direction') == '下跌' else '中性',
-            'confidence': 0.6,
-            'total_mentions': 1,
-            'up_count': 1 if s.get('direction') == '上涨' else 0,
-            'down_count': 1 if s.get('direction') == '下跌' else 0,
-            'neutral_count': 0
-        } for s in parsed.get('stocks', [])[:6]],
+        'stock_impacts': stock_impacts,
         'news_list': []
     })
 
@@ -613,6 +670,7 @@ def api_reports_history():
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 20, type=int)
     report_type = request.args.get('type', 'all')  # all, hourly, daily, weekly
+    lang = request.args.get('lang', 'zh')
     
     reports = []
     
@@ -624,7 +682,7 @@ def api_reports_history():
             reports.append({
                 'id': os.path.basename(f).replace('report_', '').replace('.txt', ''),
                 'type': 'hourly',
-                'title': '每小时简报',
+                'title': 'Hourly Brief' if lang == 'en' else '每小时简报',
                 'timestamp': datetime.fromtimestamp(mtime).isoformat(),
                 'file_path': f
             })
@@ -637,7 +695,7 @@ def api_reports_history():
             reports.append({
                 'id': os.path.basename(f).replace('summary_', '').replace('.txt', ''),
                 'type': 'daily',
-                'title': '每日摘要',
+                'title': 'Daily Summary' if lang == 'en' else '每日摘要',
                 'timestamp': datetime.fromtimestamp(mtime).isoformat(),
                 'file_path': f
             })
@@ -650,7 +708,7 @@ def api_reports_history():
             reports.append({
                 'id': os.path.basename(f).replace('analysis_', '').replace('.json', ''),
                 'type': 'weekly',
-                'title': '周度分析',
+                'title': 'Weekly Analysis' if lang == 'en' else '周度分析',
                 'timestamp': datetime.fromtimestamp(mtime).isoformat(),
                 'file_path': f
             })
@@ -857,6 +915,9 @@ def api_stock_detail(symbol):
 def api_get_watchlist():
     """获取自选股列表"""
     category = request.args.get('category', None)  # stock, crypto
+    lang = request.args.get('lang', 'zh')
+    translator = get_translator()
+    translate_text = translator['translate_text']
     
     try:
         from database import get_watchlist
@@ -870,10 +931,16 @@ def api_get_watchlist():
                     quote = tracker.get_stock_quote(item['symbol'])
                     if quote:
                         item['quote'] = quote
+                        # 翻译 quote 中的股票名称
+                        if lang == 'en' and quote.get('name'):
+                            item['quote']['name'] = translate_text(quote['name'], lang)
+                # 翻译股票名称
+                if lang == 'en' and item.get('name'):
+                    item['name'] = translate_text(item['name'], lang)
         
         return jsonify({'data': watchlist})
     except ImportError:
-        return jsonify({'error': '数据库模块未加载'}), 500
+        return jsonify({'error': 'Database module not loaded' if lang == 'en' else '数据库模块未加载'}), 500
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
