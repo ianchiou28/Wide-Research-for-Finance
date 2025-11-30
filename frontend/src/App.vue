@@ -1,8 +1,8 @@
 <template>
   <div class="app-container">
     <!-- CRT Effects -->
-    <div class="crt-overlay"></div>
-    <div class="crt-flicker"></div>
+    <div class="crt-overlay" :class="{ 'crt-paused': !crtEnabled }"></div>
+    <div class="crt-flicker" :class="{ 'crt-paused': !crtEnabled }"></div>
 
     <!-- Top Bar -->
     <header class="top-bar">
@@ -24,6 +24,17 @@
         <!-- Language Toggle -->
         <button class="lang-toggle" @click="toggleLocale" :title="locale === 'zh' ? 'Switch to English' : '切换到中文'">
           {{ locale === 'zh' ? 'EN' : '中文' }}
+        </button>
+        <!-- CRT Toggle -->
+        <button class="crt-toggle" @click="toggleCRT" :title="crtEnabled ? (locale === 'zh' ? '关闭扫描线' : 'Disable Scanlines') : (locale === 'zh' ? '开启扫描线' : 'Enable Scanlines')">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+            <line x1="8" y1="21" x2="16" y2="21"></line>
+            <line x1="12" y1="17" x2="12" y2="21"></line>
+            <line v-if="crtEnabled" x1="6" y1="8" x2="18" y2="8" stroke-dasharray="2,2"></line>
+            <line v-if="crtEnabled" x1="6" y1="12" x2="18" y2="12" stroke-dasharray="2,2"></line>
+            <line v-if="!crtEnabled" x1="4" y1="1" x2="20" y2="19" stroke="currentColor" stroke-width="2"></line>
+          </svg>
         </button>
         <!-- Theme Toggle -->
         <button class="theme-toggle" @click="toggleTheme" :title="isDark ? '切换亮色模式' : '切换深色模式'">
@@ -119,6 +130,7 @@ const currentDate = computed(() => {
 const lastSyncTime = ref(new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }))
 const isDrawerOpen = ref(false)
 const isDark = ref(false)
+const crtEnabled = ref(true)
 
 const toggleDrawer = () => {
   isDrawerOpen.value = !isDrawerOpen.value
@@ -134,6 +146,11 @@ const toggleTheme = () => {
   localStorage.setItem('theme', isDark.value ? 'dark' : 'light')
 }
 
+const toggleCRT = () => {
+  crtEnabled.value = !crtEnabled.value
+  localStorage.setItem('crtEnabled', crtEnabled.value ? 'true' : 'false')
+}
+
 const initTheme = () => {
   // Check localStorage first
   const savedTheme = localStorage.getItem('theme')
@@ -144,6 +161,12 @@ const initTheme = () => {
     isDark.value = window.matchMedia('(prefers-color-scheme: dark)').matches
   }
   document.documentElement.setAttribute('data-theme', isDark.value ? 'dark' : 'light')
+  
+  // Init CRT setting
+  const savedCRT = localStorage.getItem('crtEnabled')
+  if (savedCRT !== null) {
+    crtEnabled.value = savedCRT === 'true'
+  }
 }
 
 let timer
@@ -236,6 +259,29 @@ onUnmounted(() => {
 }
 
 .theme-toggle:active {
+    transform: translate(2px, 2px);
+    box-shadow: none;
+}
+
+.crt-toggle {
+    background: transparent;
+    border: 2px solid var(--c-ink);
+    color: var(--c-ink);
+    cursor: pointer;
+    padding: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    box-shadow: 2px 2px 0 var(--c-ink);
+}
+
+.crt-toggle:hover {
+    background: var(--c-ink);
+    color: var(--c-amber);
+}
+
+.crt-toggle:active {
     transform: translate(2px, 2px);
     box-shadow: none;
 }

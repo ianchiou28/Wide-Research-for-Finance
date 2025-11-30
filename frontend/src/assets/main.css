@@ -75,6 +75,13 @@
     100% { opacity: 0.02; }
 }
 
+/* CRT Paused State */
+.crt-overlay.crt-paused,
+.crt-flicker.crt-paused {
+    animation: none;
+    opacity: 0;
+}
+
 * {
     box-sizing: border-box;
     margin: 0;
