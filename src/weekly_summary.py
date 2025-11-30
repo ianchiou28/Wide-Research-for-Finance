@@ -73,7 +73,7 @@ class WeeklySummary:
             return {'stocks': [], 'summary': '未配置 DeepSeek API，暂无周度分析'}
 
         try:
-            response = self.client.responses.create(
+            response = self.client.chat.completions.create(
                 model="deepseek-chat",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.3,
