@@ -1,6 +1,7 @@
 import os
 import sys
 import glob
+import json
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 
@@ -9,8 +10,77 @@ from weekly_summary import WeeklySummary
 
 load_dotenv()
 
+def parse_json_report(json_data):
+    """解析JSON格式的报告"""
+    if not json_data:
+        return {}
+    
+    data = {
+        'sentiment': {'overall': 0, 'cn': 0, 'us': 0},
+        'stocks': [],
+        'events': []
+    }
+    
+    # 解析情绪数据
+    if 'sentiment' in json_data:
+        sentiment = json_data['sentiment']
+        if 'overall' in sentiment:
+            data['sentiment']['overall'] = sentiment['overall'].get('score', 0)
+        if 'cn' in sentiment:
+            data['sentiment']['cn'] = sentiment['cn'].get('score', 0)
+        if 'us' in sentiment:
+            data['sentiment']['us'] = sentiment['us'].get('score', 0)
+    
+    # 从事件中提取股票影响
+    stock_map = {}  # 用于去重和合并
+    
+    events = json_data.get('events', {})
+    all_events = []
+    all_events.extend(events.get('high_impact', []))
+    all_events.extend(events.get('stock_specific', []))
+    all_events.extend(events.get('other', []))
+    
+    for event in all_events:
+        stock_impacts = event.get('stock_impact', [])
+        event_sentiment = event.get('sentiment', {})
+        overall_sentiment = event_sentiment.get('overall', 0) if isinstance(event_sentiment, dict) else event_sentiment
+        
+        for symbol in stock_impacts:
+            if symbol not in stock_map:
+                stock_map[symbol] = {
+                    'symbol': symbol,
+                    'name': symbol,  # 默认使用symbol作为名称
+                    'direction': '上涨' if overall_sentiment > 0.2 else '下跌' if overall_sentiment < -0.2 else '中性',
+                    'sentiment_sum': overall_sentiment,
+                    'count': 1,
+                    'events': [event.get('summary', event.get('title', ''))]
+                }
+            else:
+                stock_map[symbol]['sentiment_sum'] += overall_sentiment
+                stock_map[symbol]['count'] += 1
+                stock_map[symbol]['events'].append(event.get('summary', event.get('title', '')))
+        
+        # 保存事件信息
+        if event.get('summary') or event.get('title'):
+            data['events'].append({
+                'title': event.get('title', ''),
+                'summary': event.get('summary', ''),
+                'sentiment': overall_sentiment,
+                'stocks': stock_impacts
+            })
+    
+    # 计算平均情绪并确定方向
+    for symbol, stock_data in stock_map.items():
+        avg_sentiment = stock_data['sentiment_sum'] / stock_data['count']
+        stock_data['direction'] = '上涨' if avg_sentiment > 0.2 else '下跌' if avg_sentiment < -0.2 else '中性'
+        stock_data['avg_sentiment'] = avg_sentiment
+        del stock_data['sentiment_sum']
+        data['stocks'].append(stock_data)
+    
+    return data
+
 def parse_report(content):
-    """解析报告内容"""
+    """解析文本格式报告（兼容旧格式）"""
     if not content:
         return {}
     
@@ -53,37 +123,60 @@ def parse_report(content):
     return data
 
 def get_weekly_reports():
-    """获取过去7天的报告"""
-    reports = glob.glob('data/reports/report_*.txt')
-    if not reports:
-        return []
-    
+    """获取过去7天的报告，优先使用JSON格式"""
     now = datetime.now()
     week_ago = now - timedelta(days=7)
     weekly = []
     
-    for report_path in reports:
-        try:
-            mtime = datetime.fromtimestamp(os.path.getctime(report_path))
-            if mtime >= week_ago:
-                with open(report_path, 'r', encoding='utf-8') as f:
-                    weekly.append(f.read())
-        except:
-            pass
+    # 优先使用JSON格式报告
+    json_reports = glob.glob('data/reports_json/report_*.json')
+    if json_reports:
+        for report_path in json_reports:
+            try:
+                mtime = datetime.fromtimestamp(os.path.getctime(report_path))
+                if mtime >= week_ago:
+                    with open(report_path, 'r', encoding='utf-8') as f:
+                        json_data = json.load(f)
+                        parsed = parse_json_report(json_data)
+                        if parsed and (parsed.get('stocks') or parsed.get('events')):
+                            weekly.append(parsed)
+            except Exception as e:
+                print(f"解析JSON报告失败 {report_path}: {e}")
+        
+        if weekly:
+            return weekly
+    
+    # 回退到文本格式
+    txt_reports = glob.glob('data/reports/report_*.txt')
+    if txt_reports:
+        for report_path in txt_reports:
+            try:
+                mtime = datetime.fromtimestamp(os.path.getctime(report_path))
+                if mtime >= week_ago:
+                    with open(report_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                        parsed = parse_report(content)
+                        if parsed:
+                            weekly.append(parsed)
+            except:
+                pass
     
     return weekly
 
 if __name__ == '__main__':
     print("开始生成周报分析...\n")
     
-    reports = get_weekly_reports()
-    if not reports:
+    parsed_reports = get_weekly_reports()
+    if not parsed_reports:
         print("❌ 无可用报告数据")
         sys.exit(1)
     
-    print(f"✓ 找到 {len(reports)} 份报告\n")
-    
-    parsed_reports = [parse_report(r) for r in reports]
+    # 统计找到的股票数
+    total_stocks = sum(len(r.get('stocks', [])) for r in parsed_reports)
+    total_events = sum(len(r.get('events', [])) for r in parsed_reports)
+    print(f"✓ 找到 {len(parsed_reports)} 份报告")
+    print(f"✓ 共计 {total_stocks} 条股票提及")
+    print(f"✓ 共计 {total_events} 条事件\n")
     
     print("正在分析数据并生成预测...\n")
     weekly_gen = WeeklySummary()
