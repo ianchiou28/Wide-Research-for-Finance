@@ -137,7 +137,7 @@ class DailySummary:
         for i, item in enumerate(news_items[-10:][::-1], 1):
             sentiment_info = item.get('sentiment', '中性')
             if 'sentiment_cn' in item and 'sentiment_us' in item:
-                sentiment_info += f" | 🇨🇳{item['sentiment_cn']} 🇺🇸{item['sentiment_us']}"
+                sentiment_info += f" | CN:{item['sentiment_cn']} US:{item['sentiment_us']}"
             
             summary += f"""
 {i}. [{item.get('source', '未知')}]
@@ -154,21 +154,21 @@ class DailySummary:
         # 根据情绪给出建议
         if sentiment_counts.get('消极', 0) > sentiment_counts.get('积极', 0):
             summary += """
-⚠️ 市场情绪偏消极，建议：
+[风险提示] 市场情绪偏消极，建议：
 - 关注风险控制，适当降低仓位
 - 重点关注避险资产（黄金、国债）
 - 警惕市场波动加剧
 """
         elif sentiment_counts.get('积极', 0) > sentiment_counts.get('消极', 0) * 1.5:
             summary += """
-✅ 市场情绪积极，建议：
+[积极信号] 市场情绪积极，建议：
 - 可适当增加风险资产配置
 - 关注热点板块机会
 - 注意获利回吐风险
 """
         else:
             summary += """
-➡️ 市场情绪中性，建议：
+[中性观望] 市场情绪中性，建议：
 - 保持现有仓位，观望为主
 - 关注重大政策和数据发布
 - 等待明确方向信号
@@ -177,13 +177,13 @@ class DailySummary:
         # 市场分化建议
         if cn_negative > cn_positive and us_positive > us_negative:
             summary += """
-🌏 市场分化明显：
+[市场分化] 市场分化明显：
 - 中国市场承压，美国市场相对强势
 - 建议关注全球配置平衡
 """
         elif cn_positive > cn_negative and us_negative > us_positive:
             summary += """
-🌏 市场分化明显：
+[市场分化] 市场分化明显：
 - 中国市场表现较好，美国市场承压
 - 可关注A股机会，美股谨慎
 """
@@ -204,7 +204,7 @@ class DailySummary:
         with open(filename, 'w', encoding='utf-8') as f:
             f.write(summary)
         try:
-            print(f"✅ 摘要已保存: {filename}")
+            print(f"摘要已保存: {filename}")
         except:
             print(f"Summary saved: {filename}")
         return filename

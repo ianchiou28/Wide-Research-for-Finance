@@ -11,7 +11,9 @@ from collector import DataCollector
 from web_scraper import WebScraper
 from processor import NLPProcessor
 from report_generator import ReportGenerator
+from report_generator_v2 import ReportGeneratorV2
 from email_sender import EmailSender
+from email_template import EmailTemplateGenerator
 
 load_dotenv()
 
@@ -49,14 +51,25 @@ def run_daily_report():
     
     # 3. 生成报告
     print("4. 生成报告...")
-    report_gen = ReportGenerator()
-    report = report_gen.generate(processed)
-    _save_local(report)
     
-    # 4. 发送邮件
+    # 生成纯文本报告（用于本地保存）
+    report_gen = ReportGenerator()
+    report_text = report_gen.generate(processed)
+    _save_local(report_text)
+    
+    # 生成结构化报告（用于可视化邮件和前端）
+    report_gen_v2 = ReportGeneratorV2()
+    report_data = report_gen_v2.generate(processed)
+    _save_json(report_data)
+    
+    # 4. 发送邮件（使用HTML模板）
     print("5. 发送报告...")
     sender = EmailSender()
-    sender.send(report)
+    
+    # 生成HTML邮件并发送
+    template_gen = EmailTemplateGenerator()
+    html_content = template_gen.generate_email_html(report_data)
+    sender.send(report_text, html_content=html_content)
     
     print(f"\n{'='*60}")
     print("报告生成完成")
@@ -72,6 +85,18 @@ def _save_local(report: str):
         print(f"报告已保存: {filename}")
     except:
         print(f"Report saved: {filename}")
+
+def _save_json(report_data: dict):
+    """保存结构化报告为JSON（供前端读取）"""
+    import json
+    os.makedirs('data/reports_json', exist_ok=True)
+    filename = f"data/reports_json/report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+    with open(filename, 'w', encoding='utf-8') as f:
+        json.dump(report_data, f, ensure_ascii=False, indent=2)
+    try:
+        print(f"JSON报告已保存: {filename}")
+    except:
+        print(f"JSON report saved: {filename}")
 
 def run_weekly_report_script():
     """运行周报分析脚本"""
