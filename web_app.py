@@ -483,10 +483,31 @@ def hourly_report():
 
 @app.route('/api/daily_summary')
 def daily_summary():
+    # 获取所有摘要文件列表
+    summary_files = glob.glob('data/summaries/summary_*.txt')
+    summary_files.sort(key=os.path.getctime, reverse=True)
+    
+    # 如果请求特定文件
+    requested_file = request.args.get('file')
+    if requested_file:
+        file_path = f'data/summaries/{requested_file}'
+        if os.path.exists(file_path):
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                return jsonify({'content': content, 'file': requested_file})
+            except:
+                pass
+        return jsonify({'content': '无法读取文件', 'error': True})
+    
+    # 返回文件列表和最新内容
+    file_names = [os.path.basename(f) for f in summary_files]
     content = get_latest_summary()
-    if content:
-        return jsonify({'content': content})
-    return jsonify({'content': '暂无每日摘要'})
+    return jsonify({
+        'files': file_names,
+        'content': content if content else '暂无每日摘要',
+        'latest': file_names[0] if file_names else None
+    })
 
 @app.route('/api/stock_recommendations')
 def stock_recommendations():
@@ -504,18 +525,43 @@ def sentiment():
 
 @app.route('/api/weekly_analysis')
 def weekly_analysis():
-    # 优先读取最新的周报JSON文件
+    # 获取所有周报文件列表
     weekly_files = glob.glob('data/weekly/analysis_*.json')
+    weekly_files.sort(key=os.path.getctime, reverse=True)
+    
+    # 如果请求特定文件
+    requested_file = request.args.get('file')
+    if requested_file:
+        file_path = f'data/weekly/{requested_file}'
+        if os.path.exists(file_path):
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    data['file'] = requested_file
+                    return jsonify(data)
+            except:
+                pass
+        return jsonify({'error': True, 'message': '无法读取文件'})
+    
+    # 返回文件列表
+    file_names = [os.path.basename(f) for f in weekly_files]
+    
+    # 获取最新的周报数据
     if weekly_files:
-        latest = max(weekly_files, key=os.path.getctime)
+        latest = weekly_files[0]
         try:
             with open(latest, 'r', encoding='utf-8') as f:
-                return jsonify(json.load(f))
+                data = json.load(f)
+                data['files'] = file_names
+                data['latest'] = file_names[0] if file_names else None
+                return jsonify(data)
         except:
             pass
     
     # 如果没有JSON文件，则生成分析
-    return jsonify(analyze_weekly_stocks())
+    result = analyze_weekly_stocks()
+    result['files'] = file_names
+    return jsonify(result)
 
 
 @app.route('/api/report/structured')

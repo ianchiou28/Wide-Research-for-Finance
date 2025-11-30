@@ -12,6 +12,8 @@ const translations = {
   nav_crypto: { zh: '加密货币', en: 'Crypto' },
   nav_history: { zh: '历史报告', en: 'History' },
   nav_overview: { zh: '项目总览', en: 'Overview' },
+  nav_daily_summary: { zh: '每日摘要', en: 'Daily Summary' },
+  nav_weekly_summary: { zh: '周度分析', en: 'Weekly Analysis' },
   
   // System Status
   system_status: { zh: '系统状态', en: 'System Status' },
@@ -44,7 +46,7 @@ const translations = {
   confidence: { zh: '置信度', en: 'Confidence' },
   mentions: { zh: '提及', en: 'Mentions' },
   times: { zh: '次', en: 'times' },
-  brand_title: { zh: '金融终端', en: 'FINANCE TERMINAL' },
+  brand_title: { zh: '每小时报告', en: 'HOURLY REPORT' },
   brand_subtitle: { zh: 'DeepSeek 智能引擎', en: 'DeepSeek AI ENGINE' },
   market_global: { zh: '全球市场', en: 'Global Market' },
   market_cn: { zh: '中国市场', en: 'China Market' },
@@ -155,7 +157,53 @@ const translations = {
   
   // Quick Start
   start_dashboard: { zh: '启动仪表盘', en: 'Start Dashboard' },
-  auto_schedule: { zh: '自动调度', en: 'Auto Schedule' }
+  auto_schedule: { zh: '自动调度', en: 'Auto Schedule' },
+  
+  // Daily Summary Page
+  daily_summary_title: { zh: '每日摘要', en: 'DAILY SUMMARY' },
+  report_count: { zh: '报告数量', en: 'Reports' },
+  major_events: { zh: '重大事件', en: 'Major Events' },
+  positive_events: { zh: '积极事件', en: 'Positive' },
+  negative_events: { zh: '消极事件', en: 'Negative' },
+  sentiment_distribution: { zh: '情绪分布', en: 'SENTIMENT DISTRIBUTION' },
+  market_divergence: { zh: '市场分化', en: 'MARKET DIVERGENCE' },
+  china_market: { zh: '中国市场', en: 'China Market' },
+  us_market: { zh: '美国市场', en: 'US Market' },
+  key_events_list: { zh: '重点事件列表', en: 'KEY EVENTS' },
+  no_events: { zh: '暂无事件数据', en: 'No events found' },
+  operation_suggestions: { zh: '操作建议', en: 'SUGGESTIONS' },
+  raw_report: { zh: '原始报告', en: 'RAW REPORT' },
+  no_summary_data: { zh: '暂无摘要数据', en: 'No summary data available' },
+  refresh: { zh: '刷新', en: 'Refresh' },
+  retry: { zh: '重试', en: 'Retry' },
+  
+  // Weekly Summary Page
+  weekly_summary_title: { zh: '周度分析', en: 'WEEKLY ANALYSIS' },
+  bullish_count: { zh: '看涨', en: 'Bullish' },
+  bearish_count: { zh: '看跌', en: 'Bearish' },
+  sideways_count: { zh: '震荡', en: 'Sideways' },
+  total_stocks: { zh: '总计', en: 'Total' },
+  prediction_distribution: { zh: '预测分布', en: 'PREDICTION DISTRIBUTION' },
+  confidence_distribution: { zh: '置信度分布', en: 'CONFIDENCE DISTRIBUTION' },
+  high_confidence: { zh: '高置信度', en: 'High' },
+  medium_confidence: { zh: '中置信度', en: 'Medium' },
+  low_confidence: { zh: '低置信度', en: 'Low' },
+  stock_predictions: { zh: '股票预测', en: 'STOCK PREDICTIONS' },
+  symbol: { zh: '代码', en: 'Symbol' },
+  prediction: { zh: '预测', en: 'Prediction' },
+  reason: { zh: '理由', en: 'Reason' },
+  bullish: { zh: '看涨', en: 'Bullish' },
+  bearish: { zh: '看跌', en: 'Bearish' },
+  sideways: { zh: '震荡', en: 'Sideways' },
+  stocks: { zh: '股票', en: 'Stocks' },
+  top_bullish: { zh: '重点看涨', en: 'TOP BULLISH' },
+  top_bearish: { zh: '重点看跌', en: 'TOP BEARISH' },
+  no_bullish_stocks: { zh: '暂无看涨股票', en: 'No bullish stocks' },
+  no_bearish_stocks: { zh: '暂无看跌股票', en: 'No bearish stocks' },
+  market_summary: { zh: '市场总结', en: 'MARKET SUMMARY' },
+  generated_at: { zh: '生成时间', en: 'Generated at' },
+  no_stock_data: { zh: '暂无股票数据', en: 'No stock data available' },
+  no_analysis_data: { zh: '暂无分析数据', en: 'No analysis data available' }
 }
 
 export function useLocale() {
