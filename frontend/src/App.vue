@@ -94,6 +94,9 @@
             <router-link to="/history" class="nav-link" active-class="active" @click="closeDrawer">{{ t('nav_history') }}</router-link>
           </li>
           <li class="nav-item">
+            <router-link to="/backtest" class="nav-link" active-class="active" @click="closeDrawer">{{ t('nav_backtest') }}</router-link>
+          </li>
+          <li class="nav-item">
             <router-link to="/overview" class="nav-link" active-class="active" @click="closeDrawer">{{ t('nav_overview') }}</router-link>
           </li>
         </ul>

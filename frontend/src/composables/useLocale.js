@@ -11,6 +11,7 @@ const translations = {
   nav_hot_topics: { zh: '全网热搜', en: 'Hot Topics' },
   nav_crypto: { zh: '加密货币', en: 'Crypto' },
   nav_history: { zh: '历史报告', en: 'History' },
+  nav_backtest: { zh: '预测回测', en: 'Backtest' },
   nav_overview: { zh: '项目总览', en: 'Overview' },
   nav_daily_summary: { zh: '每日摘要', en: 'Daily Summary' },
   nav_weekly_summary: { zh: '周度分析', en: 'Weekly Analysis' },

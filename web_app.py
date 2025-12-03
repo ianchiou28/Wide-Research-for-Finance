@@ -1347,6 +1347,106 @@ def api_monthly_update_event():
         return jsonify({'error': str(e)}), 500
 
 
+# ============ 回测 API ============
+
+@app.route('/api/backtest/summary')
+def get_backtest_summary():
+    """获取回测汇总"""
+    try:
+        summary_file = 'data/backtest_summary.json'
+        if os.path.exists(summary_file):
+            with open(summary_file, 'r', encoding='utf-8') as f:
+                return jsonify(json.load(f))
+        return jsonify({'error': '暂无回测数据', 'message': '请先运行回测: python run_backtest.py'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/backtest/weekly')
+def get_weekly_backtest():
+    """获取周报回测详情"""
+    try:
+        results_file = 'data/weekly_backtest_results.json'
+        if os.path.exists(results_file):
+            with open(results_file, 'r', encoding='utf-8') as f:
+                return jsonify(json.load(f))
+        return jsonify({'error': '暂无周报回测数据'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/backtest/monthly')
+def get_monthly_backtest():
+    """获取月报回测详情"""
+    try:
+        results_file = 'data/monthly_backtest_results.json'
+        if os.path.exists(results_file):
+            with open(results_file, 'r', encoding='utf-8') as f:
+                return jsonify(json.load(f))
+        return jsonify({'error': '暂无月报回测数据'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/backtest/run', methods=['POST'])
+def run_backtest():
+    """运行回测（异步）"""
+    try:
+        from backtester import run_daily_verification
+        result = run_daily_verification(auto_optimize=True)
+        return jsonify({'success': True, 'result': result})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/backtest/optimization')
+def get_optimization_status():
+    """获取优化状态"""
+    try:
+        # 加载优化配置
+        config_file = 'data/prediction_config.json'
+        history_file = 'data/optimization_history.json'
+        report_file = 'data/optimization_report.json'
+        
+        result = {
+            'config': None,
+            'history': None,
+            'latest_report': None
+        }
+        
+        if os.path.exists(config_file):
+            with open(config_file, 'r', encoding='utf-8') as f:
+                result['config'] = json.load(f)
+        
+        if os.path.exists(history_file):
+            with open(history_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                # 只返回最近10次优化
+                result['history'] = {
+                    'optimizations': data.get('optimizations', [])[-10:],
+                    'total_count': len(data.get('optimizations', []))
+                }
+        
+        if os.path.exists(report_file):
+            with open(report_file, 'r', encoding='utf-8') as f:
+                result['latest_report'] = json.load(f)
+        
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/backtest/optimize', methods=['POST'])
+def run_optimization():
+    """手动运行优化"""
+    try:
+        from prediction_optimizer import run_optimization
+        result = run_optimization()
+        return jsonify({'success': True, 'result': result})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 if __name__ == '__main__':
     # 初始化数据库
     init_database()

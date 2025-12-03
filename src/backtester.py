@@ -1127,8 +1127,8 @@ class MonthlyAnalysisBacktester:
         return self.results.get('stats', {})
 
 
-def run_daily_verification():
-    """每日验证任务 - 验证过去的预测"""
+def run_daily_verification(auto_optimize: bool = True):
+    """每日验证任务 - 验证过去的预测并自动优化"""
     print(f"\n{'='*60}")
     print(f"每日预测验证 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"{'='*60}")
@@ -1155,6 +1155,53 @@ def run_daily_verification():
     
     print(f"\n回测报告已保存到 data/backtest_summary.json")
     
+    # 自动优化
+    if auto_optimize:
+        print(f"\n{'='*60}")
+        print("🔧 自动优化预测策略...")
+        print(f"{'='*60}")
+        
+        try:
+            from prediction_optimizer import PredictionOptimizer
+            
+            optimizer = PredictionOptimizer()
+            
+            # 加载完整的回测结果
+            weekly_full = weekly_bt.results
+            monthly_full = monthly_bt.results
+            
+            # 分析并优化
+            analysis = optimizer.analyze_backtest_results(weekly_full, monthly_full)
+            
+            # 输出优化建议
+            recommendations = analysis.get('recommendations', [])
+            if recommendations:
+                print("\n【优化建议】")
+                for rec in recommendations:
+                    print(f"  {rec}")
+            
+            # 自动应用优化
+            opt_result = optimizer.apply_optimizations(analysis, auto_apply=True)
+            
+            if opt_result['applied']:
+                print(f"\n✓ 已自动应用 {len(opt_result['applied'])} 项优化")
+                report['optimization'] = {
+                    'applied': len(opt_result['applied']),
+                    'version': opt_result['new_version'],
+                    'changes': [c['key'] for c in opt_result['applied']]
+                }
+            else:
+                print("\n当前配置已是最优，无需调整")
+                report['optimization'] = {'applied': 0, 'message': '无需调整'}
+            
+            # 更新汇总报告
+            with open('data/backtest_summary.json', 'w', encoding='utf-8') as f:
+                json.dump(report, f, ensure_ascii=False, indent=2)
+                
+        except Exception as e:
+            print(f"⚠️ 优化过程出错: {e}")
+            report['optimization'] = {'error': str(e)}
+    
     return report
 
 
@@ -1162,7 +1209,7 @@ def run_daily_verification():
 if __name__ == '__main__':
     print("=== 回测系统测试 ===\n")
     
-    # 运行每日验证
-    run_daily_verification()
+    # 运行每日验证（包含自动优化）
+    run_daily_verification(auto_optimize=True)
     
     print("\n=== 测试完成 ===")
