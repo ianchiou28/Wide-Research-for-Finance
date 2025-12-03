@@ -33,7 +33,13 @@
     </div>
 
     <div v-else-if="!summary || summary.error" class="empty-state">
-      <div class="empty-icon">📊</div>
+      <div class="empty-icon">
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+          <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+          <line x1="8" y1="21" x2="16" y2="21"></line>
+          <line x1="12" y1="17" x2="12" y2="21"></line>
+        </svg>
+      </div>
       <p>{{ summary?.message || '暂无回测数据' }}</p>
       <button @click="runBacktest" :disabled="running">{{ running ? '运行中...' : '立即运行回测' }}</button>
     </div>
@@ -65,8 +71,17 @@
       <!-- 周报详情 -->
       <div class="panel">
         <div class="panel-header" @click="toggleWeekly">
-          <span class="panel-title">📈 周报预测回测</span>
-          <span class="toggle-icon">{{ showWeekly ? '▼' : '▶' }}</span>
+          <div class="panel-title-wrap">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+            </svg>
+            <span class="panel-title">周报预测回测</span>
+          </div>
+          <span class="toggle-icon" :class="{ open: showWeekly }">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </span>
         </div>
         <div v-show="showWeekly" class="panel-body">
           <!-- 按方向统计 -->
@@ -96,7 +111,10 @@
               <span :class="pred.predicted_direction">{{ pred.predicted_direction }}</span>
               <span :class="pred.actual_direction">{{ pred.actual_direction }}</span>
               <span :class="pred.actual_change_pct > 0 ? '上涨' : '下跌'">{{ pred.actual_change_pct?.toFixed(2) }}%</span>
-              <span class="result-icon">{{ pred.is_correct ? '✓' : '✗' }}</span>
+              <span class="result-icon">
+                <svg v-if="pred.is_correct" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </span>
             </div>
             <button v-if="weeklyDetails.verified.length > 10" class="show-more" @click="showAllWeekly = !showAllWeekly">
               {{ showAllWeekly ? '收起' : `查看全部 ${weeklyDetails.verified.length} 条` }}
@@ -109,8 +127,20 @@
       <!-- 月报详情 -->
       <div class="panel">
         <div class="panel-header" @click="toggleMonthly">
-          <span class="panel-title">📅 月报预测回测</span>
-          <span class="toggle-icon">{{ showMonthly ? '▼' : '▶' }}</span>
+          <div class="panel-title-wrap">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+            <span class="panel-title">月报预测回测</span>
+          </div>
+          <span class="toggle-icon" :class="{ open: showMonthly }">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </span>
         </div>
         <div v-show="showMonthly" class="panel-body">
           <!-- 股票预测 -->
@@ -130,7 +160,10 @@
               <span :class="pred.predicted_direction">{{ pred.predicted_direction }}</span>
               <span :class="pred.actual_direction">{{ pred.actual_direction }}</span>
               <span :class="pred.actual_change_pct > 0 ? '上涨' : '下跌'">{{ pred.actual_change_pct?.toFixed(2) }}%</span>
-              <span class="result-icon">{{ pred.is_correct ? '✓' : '✗' }}</span>
+              <span class="result-icon">
+                <svg v-if="pred.is_correct" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </span>
             </div>
           </div>
           <div v-else class="empty">暂无股票预测数据</div>
@@ -150,7 +183,10 @@
               <span>{{ pred.event_date }}</span>
               <span :class="pred.predicted_direction">{{ pred.predicted_direction }}</span>
               <span :class="pred.actual_impact">{{ pred.actual_impact }}</span>
-              <span class="result-icon">{{ pred.is_correct ? '✓' : '✗' }}</span>
+              <span class="result-icon">
+                <svg v-if="pred.is_correct" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </span>
             </div>
           </div>
           <div v-else class="empty">暂无事件预测数据</div>
@@ -160,8 +196,17 @@
       <!-- 优化状态 -->
       <div class="panel optimization-panel">
         <div class="panel-header" @click="toggleOptimization">
-          <span class="panel-title">🔧 自动优化状态</span>
-          <span class="toggle-icon">{{ showOptimization ? '▼' : '▶' }}</span>
+          <div class="panel-title-wrap">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+            </svg>
+            <span class="panel-title">自动优化状态</span>
+          </div>
+          <span class="toggle-icon" :class="{ open: showOptimization }">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </span>
         </div>
         <div v-show="showOptimization" class="panel-body">
           <div v-if="optimization?.config" class="opt-content">
@@ -223,7 +268,14 @@
 
       <!-- 说明 -->
       <div class="info-panel">
-        <h4>📌 回测说明</h4>
+        <div class="info-header">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+          </svg>
+          <h4>回测说明</h4>
+        </div>
         <ul>
           <li><strong>周报回测</strong>：验证周度分析中的股票预测，观察期 5 天</li>
           <li><strong>月报回测</strong>：验证月度分析中的股票和事件预测，观察期 10 天</li>
@@ -338,7 +390,9 @@ onMounted(loadData)
 .panel { background: var(--c-paper); border: 2px solid var(--c-border); margin-bottom: 1.5rem; box-shadow: 4px 4px 0 var(--c-shadow); }
 .panel-header { background: var(--c-hover); border-bottom: 1px solid var(--c-border); padding: 0.75rem 1rem; display: flex; justify-content: space-between; align-items: center; font-weight: 700; cursor: pointer; }
 .panel-header:hover { background: var(--c-grid); }
-.toggle-icon { font-size: 0.8rem; }
+.panel-title-wrap { display: flex; align-items: center; gap: 0.75rem; }
+.toggle-icon { display: flex; align-items: center; transition: transform 0.3s; }
+.toggle-icon.open { transform: rotate(90deg); }
 .panel-body { padding: 1rem; }
 
 .direction-stats { display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.5rem; }
@@ -367,7 +421,7 @@ onMounted(loadData)
 .上涨, .利多 { color: #4CAF50; }
 .下跌, .利空 { color: #F44336; }
 .震荡, .中性 { color: #666; }
-.result-icon { font-size: 1.1rem; text-align: center; }
+.result-icon { display: flex; justify-content: center; align-items: center; }
 .table-row.correct .result-icon { color: #4CAF50; }
 .table-row.wrong .result-icon { color: #F44336; }
 
@@ -404,7 +458,8 @@ onMounted(loadData)
 .history-changes { color: var(--c-muted); }
 
 .info-panel { background: var(--c-hover); border: 1px solid var(--c-border); padding: 1rem 1.25rem; margin-top: 1rem; }
-.info-panel h4 { margin: 0 0 0.75rem; }
+.info-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; }
+.info-panel h4 { margin: 0; }
 .info-panel ul { margin: 0; padding-left: 1.25rem; }
 .info-panel li { margin-bottom: 0.35rem; font-size: 0.9rem; }
 
