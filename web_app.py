@@ -75,6 +75,13 @@ def get_report_generator_v2():
     except ImportError:
         return None
 
+def get_monthly_analyzer():
+    try:
+        from monthly_analysis import MonthlyAnalysis
+        return MonthlyAnalysis()
+    except ImportError:
+        return None
+
 def init_database():
     try:
         from database import init_database as db_init
@@ -1146,6 +1153,199 @@ def api_backtest_strategy():
         return jsonify(result)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+# ============== 月度分析 API ==============
+
+# 全局月度分析器实例（用于维持对话状态）
+_monthly_analyzer_instance = None
+
+def get_monthly_analyzer_instance():
+    global _monthly_analyzer_instance
+    if _monthly_analyzer_instance is None:
+        _monthly_analyzer_instance = get_monthly_analyzer()
+    return _monthly_analyzer_instance
+
+
+@app.route('/api/monthly/events')
+def api_monthly_events():
+    """获取月度重大事件日历"""
+    year = request.args.get('year', datetime.now().year, type=int)
+    month = request.args.get('month', datetime.now().month, type=int)
+    
+    analyzer = get_monthly_analyzer()
+    if not analyzer:
+        return jsonify({'error': '月度分析模块未加载'}), 500
+    
+    try:
+        events = analyzer.get_monthly_events(year, month)
+        return jsonify({
+            'year': year,
+            'month': month,
+            'events': events
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/monthly/analysis')
+def api_monthly_analysis():
+    """获取或生成月度分析"""
+    year = request.args.get('year', datetime.now().year, type=int)
+    month = request.args.get('month', datetime.now().month, type=int)
+    regenerate = request.args.get('regenerate', 'false').lower() == 'true'
+    
+    analyzer = get_monthly_analyzer_instance()
+    if not analyzer:
+        return jsonify({'error': '月度分析模块未加载'}), 500
+    
+    # 获取所有月度分析文件
+    monthly_files = glob.glob('data/monthly/analysis_*.json')
+    monthly_files.sort(key=os.path.getctime, reverse=True)
+    file_names = [os.path.basename(f) for f in monthly_files]
+    
+    # 如果请求特定文件
+    requested_file = request.args.get('file')
+    if requested_file:
+        file_path = f'data/monthly/{requested_file}'
+        if os.path.exists(file_path):
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    data['files'] = file_names
+                    data['file'] = requested_file
+                    analyzer.current_analysis = data  # 设置当前分析用于对话
+                    return jsonify(data)
+            except Exception as e:
+                return jsonify({'error': str(e)}), 500
+        return jsonify({'error': '文件不存在'}), 404
+    
+    try:
+        # 检查是否有当月的分析
+        current_month_prefix = f"analysis_{year}{month:02d}"
+        existing_analysis = None
+        
+        if not regenerate:
+            for f in monthly_files:
+                if current_month_prefix in f:
+                    try:
+                        with open(f, 'r', encoding='utf-8') as file:
+                            existing_analysis = json.load(file)
+                            analyzer.current_analysis = existing_analysis
+                        break
+                    except:
+                        pass
+        
+        if existing_analysis and not regenerate:
+            existing_analysis['files'] = file_names
+            existing_analysis['cached'] = True
+            return jsonify(existing_analysis)
+        
+        # 生成新分析
+        analysis = analyzer.generate_monthly_analysis(year, month)
+        
+        if analysis.get('error'):
+            return jsonify(analysis), 500
+        
+        # 保存
+        filename = analyzer.save_analysis(analysis)
+        analysis['files'] = [os.path.basename(filename)] + file_names
+        analysis['cached'] = False
+        
+        return jsonify(analysis)
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/monthly/chat', methods=['POST'])
+def api_monthly_chat():
+    """月度分析对话式追问"""
+    data = request.get_json()
+    if not data or not data.get('message'):
+        return jsonify({'error': '请提供消息内容'}), 400
+    
+    analyzer = get_monthly_analyzer_instance()
+    if not analyzer:
+        return jsonify({'error': '月度分析模块未加载'}), 500
+    
+    try:
+        # 如果没有当前分析，尝试加载最新的
+        if not analyzer.current_analysis:
+            latest = analyzer.get_latest_analysis()
+            if latest:
+                analyzer.current_analysis = latest
+            else:
+                return jsonify({'error': '请先生成月度分析报告'}), 400
+        
+        reply = analyzer.chat(data['message'])
+        return jsonify({
+            'reply': reply,
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/monthly/history')
+def api_monthly_history():
+    """获取月度分析历史列表"""
+    monthly_files = glob.glob('data/monthly/analysis_*.json')
+    monthly_files.sort(key=os.path.getctime, reverse=True)
+    
+    history = []
+    for f in monthly_files:
+        try:
+            mtime = datetime.fromtimestamp(os.path.getctime(f))
+            filename = os.path.basename(f)
+            
+            # 尝试读取摘要
+            summary = ""
+            try:
+                with open(f, 'r', encoding='utf-8') as file:
+                    data = json.load(file)
+                    summary = data.get('summary', '')[:100]
+                    month_name = data.get('month', '')
+            except:
+                month_name = ""
+            
+            history.append({
+                'file': filename,
+                'month': month_name,
+                'timestamp': mtime.isoformat(),
+                'summary': summary
+            })
+        except:
+            pass
+    
+    return jsonify({'data': history})
+
+
+@app.route('/api/monthly/update-event', methods=['POST'])
+def api_monthly_update_event():
+    """更新事件结果（用于回测）"""
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': '请提供数据'}), 400
+    
+    event_id = data.get('event_id')
+    actual_result = data.get('actual_result')
+    market_reaction = data.get('market_reaction')
+    
+    if not all([event_id, actual_result, market_reaction]):
+        return jsonify({'error': '请提供完整的事件更新信息'}), 400
+    
+    analyzer = get_monthly_analyzer_instance()
+    if not analyzer:
+        return jsonify({'error': '月度分析模块未加载'}), 500
+    
+    try:
+        result = analyzer.update_event_result(event_id, actual_result, market_reaction)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 
 if __name__ == '__main__':
     # 初始化数据库

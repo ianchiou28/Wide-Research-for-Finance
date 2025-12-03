@@ -14,6 +14,7 @@ const translations = {
   nav_overview: { zh: '项目总览', en: 'Overview' },
   nav_daily_summary: { zh: '每日摘要', en: 'Daily Summary' },
   nav_weekly_summary: { zh: '周度分析', en: 'Weekly Analysis' },
+  nav_monthly_summary: { zh: '月度分析', en: 'Monthly Analysis' },
   
   // System Status
   system_status: { zh: '系统状态', en: 'System Status' },
@@ -203,7 +204,23 @@ const translations = {
   market_summary: { zh: '市场总结', en: 'MARKET SUMMARY' },
   generated_at: { zh: '生成时间', en: 'Generated at' },
   no_stock_data: { zh: '暂无股票数据', en: 'No stock data available' },
-  no_analysis_data: { zh: '暂无分析数据', en: 'No analysis data available' }
+  no_analysis_data: { zh: '暂无分析数据', en: 'No analysis data available' },
+
+  // Monthly Summary Page
+  monthly_title: { zh: '月度分析', en: 'MONTHLY ANALYSIS' },
+  generating_analysis: { zh: '正在生成分析，请稍候...', en: 'Generating analysis, please wait...' },
+  summary: { zh: '总结', en: 'Summary' },
+  key_dates: { zh: '关键时间节点', en: 'KEY DATES' },
+  buy_recommendations: { zh: '建议加仓', en: 'BUY RECOMMENDATIONS' },
+  sell_recommendations: { zh: '建议减仓', en: 'SELL RECOMMENDATIONS' },
+  sector_rotation: { zh: '行业轮动', en: 'SECTOR ROTATION' },
+  overweight: { zh: '超配', en: 'Overweight' },
+  underweight: { zh: '低配', en: 'Underweight' },
+  risk_warnings: { zh: '风险提示', en: 'RISK WARNINGS' },
+  ask_analyst: { zh: '追问分析师', en: 'ASK ANALYST' },
+  ask_placeholder: { zh: '输入您的问题...', en: 'Ask a question...' },
+  no_analysis: { zh: '暂无月度分析', en: 'No monthly analysis available' },
+  generate_now: { zh: '立即生成', en: 'Generate Now' }
 }
 
 export function useLocale() {

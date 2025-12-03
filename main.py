@@ -106,6 +106,15 @@ def run_weekly_report_script():
     except Exception as e:
         print(f"周报分析运行失败: {e}")
 
+def run_monthly_report_script():
+    """运行月度分析脚本（每日更新，保持实时性）"""
+    print(f"\n启动月度分析 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    try:
+        # --refresh 强制刷新事件日历，确保获取最新信息
+        subprocess.run([sys.executable, "run_monthly_analysis.py", "--refresh"], check=False)
+    except Exception as e:
+        print(f"月度分析运行失败: {e}")
+
 def main():
     print("Wide Research for Finance - MVP v1.0")
     print("="*60)
@@ -116,12 +125,13 @@ def main():
         print("请创建 .env 文件并配置API密钥")
         return
     
-    # Docker环境自动选择模式2
+    # 服务器环境自动选择模式2
     if os.getenv('DOCKER_ENV') == 'True':
         print("Docker环境检测到，自动启用计划任务：")
         print("- 每小时整点生成小时报 (run_daily_report)")
         print("- 每天 08:00 和 20:00 生成12小时摘要")
         print("- 每天 08:00 和 20:00 运行周报分析")
+        print("- 每天 09:00 更新月度分析（事件日历+预测修正）")
 
         # 1. 小时报
         schedule.every().hour.at(":00").do(run_daily_report)
@@ -137,6 +147,12 @@ def main():
         # 3. 周报
         schedule.every().day.at("08:00").do(run_weekly_report_script)
         schedule.every().day.at("20:00").do(run_weekly_report_script)
+        
+        # 4. 月报（每天早上9点更新，保持实时性）
+        # - 自动抓取最新事件
+        # - 根据已发生事件修正预测
+        # - 更新加减仓建议
+        schedule.every().day.at("09:00").do(run_monthly_report_script)
 
         print("后台运行中，按 Ctrl+C 停止\n")
         while True:
@@ -150,8 +166,9 @@ def main():
         print("2. 每个整点执行（0:00, 1:00, 2:00...）")
         print("3. 每天早上8点执行")
         print("4. 每天8点和20点生成12小时摘要")
+        print("5. 立即生成月度分析")
         
-        choice = input("\n请选择 (1/2/3/4): ").strip()
+        choice = input("\n请选择 (1/2/3/4/5): ").strip()
     
     if choice == '1':
         run_daily_report()
@@ -178,6 +195,8 @@ def main():
     elif choice == '4':
         print("\n请运行: python daily_summary_main.py")
         print("或双击: run_daily_summary.bat")
+    elif choice == '5':
+        run_monthly_report_script()
     else:
         print("无效选择")
 

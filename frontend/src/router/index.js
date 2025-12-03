@@ -7,6 +7,7 @@ import Crypto from '../views/Crypto.vue'
 import History from '../views/History.vue'
 import DailySummary from '../views/DailySummary.vue'
 import WeeklySummary from '../views/WeeklySummary.vue'
+import MonthlySummary from '../views/MonthlySummary.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -50,6 +51,11 @@ const router = createRouter({
       path: '/weekly-summary',
       name: 'weekly-summary',
       component: WeeklySummary
+    },
+    {
+      path: '/monthly-summary',
+      name: 'monthly-summary',
+      component: MonthlySummary
     }
   ]
 })

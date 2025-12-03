@@ -79,6 +79,9 @@
             <router-link to="/weekly-summary" class="nav-link" active-class="active" @click="closeDrawer">{{ t('nav_weekly_summary') }}</router-link>
           </li>
           <li class="nav-item">
+            <router-link to="/monthly-summary" class="nav-link" active-class="active" @click="closeDrawer">{{ t('nav_monthly_summary') }}</router-link>
+          </li>
+          <li class="nav-item">
             <router-link to="/watchlist" class="nav-link" active-class="active" @click="closeDrawer">{{ t('nav_watchlist') }}</router-link>
           </li>
           <li class="nav-item">
