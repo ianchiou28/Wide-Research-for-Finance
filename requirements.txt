@@ -11,3 +11,7 @@ flask==3.0.0
 flask-socketio==5.3.6    # WebSocket支持
 flask-cors==4.0.0        # 跨域支持
 eventlet==0.35.1         # 异步支持
+
+# 回测和价格数据
+akshare>=1.12.0          # A股数据
+yfinance>=0.2.0          # 美股数据

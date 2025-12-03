@@ -115,6 +115,28 @@ def run_monthly_report_script():
     except Exception as e:
         print(f"月度分析运行失败: {e}")
 
+def run_backtest_verification():
+    """运行回测验证（验证历史预测的准确性）"""
+    print(f"\n启动回测验证 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    try:
+        from src.backtester import run_daily_verification
+        result = run_daily_verification()
+        
+        # 打印汇总
+        weekly_acc = result.get('weekly', {}).get('accuracy', 0)
+        monthly_stock_acc = result.get('monthly', {}).get('stock_predictions', {}).get('accuracy', 0)
+        monthly_event_acc = result.get('monthly', {}).get('event_predictions', {}).get('accuracy', 0)
+        
+        print(f"\n📊 回测汇总:")
+        print(f"   周报预测准确率: {weekly_acc:.1f}%")
+        print(f"   月报股票预测准确率: {monthly_stock_acc:.1f}%")
+        print(f"   月报事件预测准确率: {monthly_event_acc:.1f}%")
+        
+    except Exception as e:
+        print(f"回测验证运行失败: {e}")
+        import traceback
+        traceback.print_exc()
+
 def main():
     print("Wide Research for Finance - MVP v1.0")
     print("="*60)
@@ -132,6 +154,7 @@ def main():
         print("- 每天 08:00 和 20:00 生成12小时摘要")
         print("- 每天 08:00 和 20:00 运行周报分析")
         print("- 每天 09:00 更新月度分析（事件日历+预测修正）")
+        print("- 每天 21:00 运行回测验证（验证预测准确率）")
 
         # 1. 小时报
         schedule.every().hour.at(":00").do(run_daily_report)
@@ -153,6 +176,9 @@ def main():
         # - 根据已发生事件修正预测
         # - 更新加减仓建议
         schedule.every().day.at("09:00").do(run_monthly_report_script)
+        
+        # 5. 回测验证（每天晚上9点，验证历史预测的准确性）
+        schedule.every().day.at("21:00").do(run_backtest_verification)
 
         print("后台运行中，按 Ctrl+C 停止\n")
         while True:
@@ -167,8 +193,9 @@ def main():
         print("3. 每天早上8点执行")
         print("4. 每天8点和20点生成12小时摘要")
         print("5. 立即生成月度分析")
+        print("6. 运行回测验证")
         
-        choice = input("\n请选择 (1/2/3/4/5): ").strip()
+        choice = input("\n请选择 (1/2/3/4/5/6): ").strip()
     
     if choice == '1':
         run_daily_report()
@@ -197,6 +224,8 @@ def main():
         print("或双击: run_daily_summary.bat")
     elif choice == '5':
         run_monthly_report_script()
+    elif choice == '6':
+        run_backtest_verification()
     else:
         print("无效选择")
 

@@ -1,6 +1,7 @@
 """
 回测系统
 验证基于新闻的预测准确性，评估策略表现
+支持：周度分析回测、月度分析回测、自动验证
 """
 
 import os
@@ -9,6 +10,21 @@ import glob
 from datetime import datetime, timedelta
 from typing import List, Dict, Optional, Tuple
 from collections import defaultdict
+
+# 尝试导入价格数据源
+try:
+    import akshare as ak
+    HAS_AKSHARE = True
+except ImportError:
+    HAS_AKSHARE = False
+    print("提示: 安装 akshare 可获取A股数据 (pip install akshare)")
+
+try:
+    import yfinance as yf
+    HAS_YFINANCE = True
+except ImportError:
+    HAS_YFINANCE = False
+    print("提示: 安装 yfinance 可获取美股数据 (pip install yfinance)")
 
 # 尝试导入数据库模块
 try:
@@ -19,6 +35,151 @@ try:
     HAS_DATABASE = True
 except ImportError:
     HAS_DATABASE = False
+
+
+class PriceDataFetcher:
+    """价格数据获取器"""
+    
+    def __init__(self):
+        self.cache = {}  # 缓存价格数据
+        self.cache_file = 'data/price_cache.json'
+        self._load_cache()
+    
+    def _load_cache(self):
+        """加载价格缓存"""
+        try:
+            if os.path.exists(self.cache_file):
+                with open(self.cache_file, 'r', encoding='utf-8') as f:
+                    self.cache = json.load(f)
+        except:
+            self.cache = {}
+    
+    def _save_cache(self):
+        """保存价格缓存"""
+        try:
+            os.makedirs(os.path.dirname(self.cache_file), exist_ok=True)
+            with open(self.cache_file, 'w', encoding='utf-8') as f:
+                json.dump(self.cache, f, ensure_ascii=False)
+        except:
+            pass
+    
+    def get_cn_stock_price(self, symbol: str, start_date: str, end_date: str) -> List[Dict]:
+        """获取A股价格数据"""
+        if not HAS_AKSHARE:
+            return []
+        
+        cache_key = f"cn_{symbol}_{start_date}_{end_date}"
+        if cache_key in self.cache:
+            return self.cache[cache_key]
+        
+        try:
+            # 转换股票代码格式
+            if symbol.startswith('6'):
+                ak_symbol = f"sh{symbol}"
+            elif symbol.startswith('0') or symbol.startswith('3'):
+                ak_symbol = f"sz{symbol}"
+            elif symbol in ['SH000001', '000001.SH']:
+                ak_symbol = "sh000001"  # 上证指数
+            elif symbol in ['SZ399001', '399001.SZ']:
+                ak_symbol = "sz399001"  # 深证成指
+            else:
+                ak_symbol = symbol
+            
+            # 获取日线数据
+            df = ak.stock_zh_a_hist(symbol=ak_symbol.replace('sh', '').replace('sz', ''), 
+                                     period="daily",
+                                     start_date=start_date.replace('-', ''),
+                                     end_date=end_date.replace('-', ''),
+                                     adjust="qfq")
+            
+            prices = []
+            for _, row in df.iterrows():
+                prices.append({
+                    'date': str(row['日期']),
+                    'open': float(row['开盘']),
+                    'high': float(row['最高']),
+                    'low': float(row['最低']),
+                    'close': float(row['收盘']),
+                    'volume': float(row['成交量']),
+                    'change_pct': float(row['涨跌幅'])
+                })
+            
+            self.cache[cache_key] = prices
+            self._save_cache()
+            return prices
+            
+        except Exception as e:
+            print(f"获取A股数据失败 {symbol}: {e}")
+            return []
+    
+    def get_us_stock_price(self, symbol: str, start_date: str, end_date: str) -> List[Dict]:
+        """获取美股价格数据"""
+        if not HAS_YFINANCE:
+            return []
+        
+        cache_key = f"us_{symbol}_{start_date}_{end_date}"
+        if cache_key in self.cache:
+            return self.cache[cache_key]
+        
+        try:
+            # 转换指数代码
+            yf_symbol = symbol
+            if symbol == 'DJI':
+                yf_symbol = '^DJI'
+            elif symbol == 'SPX' or symbol == 'SP500':
+                yf_symbol = '^GSPC'
+            elif symbol == 'IXIC' or symbol == 'NASDAQ':
+                yf_symbol = '^IXIC'
+            
+            ticker = yf.Ticker(yf_symbol)
+            df = ticker.history(start=start_date, end=end_date)
+            
+            prices = []
+            prev_close = None
+            for date, row in df.iterrows():
+                close = float(row['Close'])
+                change_pct = ((close - prev_close) / prev_close * 100) if prev_close else 0
+                prices.append({
+                    'date': date.strftime('%Y-%m-%d'),
+                    'open': float(row['Open']),
+                    'high': float(row['High']),
+                    'low': float(row['Low']),
+                    'close': close,
+                    'volume': float(row['Volume']),
+                    'change_pct': change_pct
+                })
+                prev_close = close
+            
+            self.cache[cache_key] = prices
+            self._save_cache()
+            return prices
+            
+        except Exception as e:
+            print(f"获取美股数据失败 {symbol}: {e}")
+            return []
+    
+    def get_price(self, symbol: str, start_date: str, end_date: str) -> List[Dict]:
+        """自动识别市场并获取价格"""
+        # 判断市场
+        if symbol.isdigit() or symbol.startswith('SH') or symbol.startswith('SZ'):
+            return self.get_cn_stock_price(symbol, start_date, end_date)
+        else:
+            return self.get_us_stock_price(symbol, start_date, end_date)
+    
+    def get_price_change(self, symbol: str, date: str, days_after: int = 1) -> Optional[float]:
+        """获取指定日期后的价格变化百分比"""
+        start = datetime.strptime(date, '%Y-%m-%d')
+        end = start + timedelta(days=days_after + 5)  # 多取几天防止节假日
+        
+        prices = self.get_price(symbol, date, end.strftime('%Y-%m-%d'))
+        
+        if len(prices) < 2:
+            return None
+        
+        # 返回days_after天后的涨跌幅
+        if len(prices) > days_after:
+            return sum(p['change_pct'] for p in prices[1:days_after+1])
+        return prices[-1]['change_pct'] if prices else None
 
 class NewsBacktester:
     """基于新闻的策略回测器"""
@@ -476,25 +637,532 @@ class StrategyEvaluator:
         return total_return / max_drawdown
 
 
+class WeeklyAnalysisBacktester:
+    """周度分析回测器"""
+    
+    def __init__(self):
+        self.weekly_dir = 'data/weekly'
+        self.results_file = 'data/weekly_backtest_results.json'
+        self.price_fetcher = PriceDataFetcher()
+        self.results = self._load_results()
+    
+    def _load_results(self) -> Dict:
+        """加载历史回测结果"""
+        try:
+            if os.path.exists(self.results_file):
+                with open(self.results_file, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+        except:
+            pass
+        return {'verified': [], 'stats': {}}
+    
+    def _save_results(self):
+        """保存回测结果"""
+        try:
+            os.makedirs(os.path.dirname(self.results_file), exist_ok=True)
+            with open(self.results_file, 'w', encoding='utf-8') as f:
+                json.dump(self.results, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            print(f"保存结果失败: {e}")
+    
+    def load_weekly_analyses(self, days: int = 60) -> List[Dict]:
+        """加载周报分析"""
+        analyses = []
+        cutoff = datetime.now() - timedelta(days=days)
+        
+        files = glob.glob(os.path.join(self.weekly_dir, 'analysis_*.json'))
+        
+        for filepath in files:
+            try:
+                mtime = datetime.fromtimestamp(os.path.getctime(filepath))
+                if mtime < cutoff:
+                    continue
+                
+                with open(filepath, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                
+                data['file_path'] = filepath
+                data['analysis_date'] = mtime.strftime('%Y-%m-%d')
+                analyses.append(data)
+            except Exception as e:
+                continue
+        
+        analyses.sort(key=lambda x: x.get('analysis_date', ''))
+        return analyses
+    
+    def extract_predictions(self, analysis: Dict) -> List[Dict]:
+        """从周报中提取预测"""
+        predictions = []
+        analysis_date = analysis.get('analysis_date', '')
+        
+        # 提取股票预测
+        for stock in analysis.get('stocks', []):
+            symbol = stock.get('symbol', '')
+            prediction = stock.get('prediction', '')
+            
+            # 标准化预测方向
+            if '看涨' in prediction or '上涨' in prediction or '买入' in prediction:
+                direction = '上涨'
+            elif '看跌' in prediction or '下跌' in prediction or '卖出' in prediction:
+                direction = '下跌'
+            else:
+                direction = '震荡'
+            
+            predictions.append({
+                'analysis_date': analysis_date,
+                'symbol': symbol,
+                'name': stock.get('name', ''),
+                'predicted_direction': direction,
+                'original_prediction': prediction,
+                'reason': stock.get('reason', ''),
+                'source': 'weekly_analysis'
+            })
+        
+        return predictions
+    
+    def verify_prediction(self, prediction: Dict, days_after: int = 5) -> Dict:
+        """验证单个预测"""
+        symbol = prediction['symbol']
+        pred_date = prediction['analysis_date']
+        predicted_dir = prediction['predicted_direction']
+        
+        # 获取价格变化
+        actual_change = self.price_fetcher.get_price_change(symbol, pred_date, days_after)
+        
+        if actual_change is None:
+            return {**prediction, 'verified': False, 'reason': '无法获取价格数据'}
+        
+        # 判断实际方向
+        if actual_change > 1.0:
+            actual_dir = '上涨'
+        elif actual_change < -1.0:
+            actual_dir = '下跌'
+        else:
+            actual_dir = '震荡'
+        
+        # 判断是否正确
+        is_correct = (predicted_dir == actual_dir) or \
+                    (predicted_dir == '震荡' and abs(actual_change) < 2)
+        
+        return {
+            **prediction,
+            'verified': True,
+            'actual_change_pct': round(actual_change, 2),
+            'actual_direction': actual_dir,
+            'is_correct': is_correct,
+            'verify_date': datetime.now().strftime('%Y-%m-%d'),
+            'days_after': days_after
+        }
+    
+    def run_backtest(self, days: int = 60, verify_days: int = 5) -> Dict:
+        """运行周报回测"""
+        print(f"\n{'='*60}")
+        print("周度分析回测")
+        print(f"{'='*60}")
+        
+        # 加载周报
+        analyses = self.load_weekly_analyses(days)
+        print(f"加载了 {len(analyses)} 份周报")
+        
+        if not analyses:
+            return {'error': '无周报数据'}
+        
+        # 提取并验证预测
+        all_predictions = []
+        verified_predictions = []
+        
+        for analysis in analyses:
+            predictions = self.extract_predictions(analysis)
+            all_predictions.extend(predictions)
+            
+            # 只验证7天前的预测（确保有足够时间验证）
+            analysis_date = datetime.strptime(analysis.get('analysis_date', '2000-01-01'), '%Y-%m-%d')
+            if datetime.now() - analysis_date > timedelta(days=verify_days + 2):
+                for pred in predictions:
+                    verified = self.verify_prediction(pred, verify_days)
+                    if verified.get('verified'):
+                        verified_predictions.append(verified)
+        
+        print(f"提取了 {len(all_predictions)} 条预测")
+        print(f"验证了 {len(verified_predictions)} 条预测")
+        
+        # 计算准确率
+        if verified_predictions:
+            correct = sum(1 for v in verified_predictions if v.get('is_correct'))
+            accuracy = correct / len(verified_predictions) * 100
+            
+            # 按方向统计
+            by_direction = defaultdict(lambda: {'total': 0, 'correct': 0})
+            for v in verified_predictions:
+                d = v['predicted_direction']
+                by_direction[d]['total'] += 1
+                if v.get('is_correct'):
+                    by_direction[d]['correct'] += 1
+            
+            for d in by_direction:
+                t = by_direction[d]['total']
+                c = by_direction[d]['correct']
+                by_direction[d]['accuracy'] = round(c / t * 100, 1) if t > 0 else 0
+            
+            stats = {
+                'total_predictions': len(verified_predictions),
+                'correct_predictions': correct,
+                'accuracy': round(accuracy, 1),
+                'by_direction': dict(by_direction),
+                'backtest_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                'period_days': days,
+                'verify_days': verify_days
+            }
+        else:
+            stats = {'total_predictions': 0, 'accuracy': 0}
+        
+        # 保存结果
+        self.results['verified'] = verified_predictions[-100:]  # 保留最近100条
+        self.results['stats'] = stats
+        self._save_results()
+        
+        # 打印结果
+        print(f"\n【回测结果】")
+        print(f"  总预测数: {stats.get('total_predictions', 0)}")
+        print(f"  准确率: {stats.get('accuracy', 0):.1f}%")
+        if stats.get('by_direction'):
+            print(f"  按方向:")
+            for d, s in stats['by_direction'].items():
+                print(f"    {d}: {s['correct']}/{s['total']} ({s['accuracy']:.1f}%)")
+        
+        return {
+            'stats': stats,
+            'verified_predictions': verified_predictions,
+            'all_predictions': len(all_predictions)
+        }
+    
+    def get_accuracy_report(self) -> Dict:
+        """获取准确率报告"""
+        return self.results.get('stats', {})
+
+
+class MonthlyAnalysisBacktester:
+    """月度分析回测器"""
+    
+    def __init__(self):
+        self.monthly_dir = 'data/monthly'
+        self.results_file = 'data/monthly_backtest_results.json'
+        self.price_fetcher = PriceDataFetcher()
+        self.results = self._load_results()
+    
+    def _load_results(self) -> Dict:
+        """加载历史回测结果"""
+        try:
+            if os.path.exists(self.results_file):
+                with open(self.results_file, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+        except:
+            pass
+        return {'verified_events': [], 'verified_stocks': [], 'stats': {}}
+    
+    def _save_results(self):
+        """保存回测结果"""
+        try:
+            os.makedirs(os.path.dirname(self.results_file), exist_ok=True)
+            with open(self.results_file, 'w', encoding='utf-8') as f:
+                json.dump(self.results, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            print(f"保存结果失败: {e}")
+    
+    def load_monthly_analyses(self, days: int = 90) -> List[Dict]:
+        """加载月度分析"""
+        analyses = []
+        cutoff = datetime.now() - timedelta(days=days)
+        
+        files = glob.glob(os.path.join(self.monthly_dir, 'analysis_*.json'))
+        
+        for filepath in files:
+            try:
+                mtime = datetime.fromtimestamp(os.path.getctime(filepath))
+                if mtime < cutoff:
+                    continue
+                
+                with open(filepath, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                
+                data['file_path'] = filepath
+                data['file_date'] = mtime.strftime('%Y-%m-%d')
+                analyses.append(data)
+            except:
+                continue
+        
+        analyses.sort(key=lambda x: x.get('generated_at', ''))
+        return analyses
+    
+    def extract_stock_predictions(self, analysis: Dict) -> List[Dict]:
+        """从月度分析中提取股票预测"""
+        predictions = []
+        gen_date = analysis.get('generated_at', '')[:10]
+        
+        recs = analysis.get('stock_recommendations', {})
+        
+        # 买入建议 -> 预测上涨
+        for stock in recs.get('buy', []):
+            predictions.append({
+                'analysis_date': gen_date,
+                'symbol': stock.get('symbol', ''),
+                'name': stock.get('name', ''),
+                'predicted_direction': '上涨',
+                'target_price': stock.get('target_price', ''),
+                'stop_loss': stock.get('stop_loss', ''),
+                'reason': stock.get('reason', ''),
+                'source': 'monthly_buy'
+            })
+        
+        # 卖出建议 -> 预测下跌
+        for stock in recs.get('sell', []):
+            predictions.append({
+                'analysis_date': gen_date,
+                'symbol': stock.get('symbol', ''),
+                'name': stock.get('name', ''),
+                'predicted_direction': '下跌',
+                'reason': stock.get('reason', ''),
+                'source': 'monthly_sell'
+            })
+        
+        return predictions
+    
+    def extract_event_predictions(self, analysis: Dict) -> List[Dict]:
+        """从月度分析中提取事件预测"""
+        predictions = []
+        gen_date = analysis.get('generated_at', '')[:10]
+        
+        for event in analysis.get('event_analysis', []):
+            # 提取预期方向
+            impact = event.get('impact', {})
+            stocks_impact = impact.get('stocks', '')
+            
+            if '利多' in stocks_impact or '上涨' in stocks_impact or '积极' in stocks_impact:
+                direction = '利多'
+            elif '利空' in stocks_impact or '下跌' in stocks_impact or '消极' in stocks_impact:
+                direction = '利空'
+            else:
+                direction = '中性'
+            
+            predictions.append({
+                'analysis_date': gen_date,
+                'event_name': event.get('event', ''),
+                'event_date': event.get('date', ''),
+                'predicted_direction': direction,
+                'market_expectation': event.get('market_expectation', ''),
+                'scenarios': event.get('scenarios', {}),
+                'source': 'monthly_event'
+            })
+        
+        return predictions
+    
+    def verify_stock_prediction(self, prediction: Dict, days_after: int = 10) -> Dict:
+        """验证股票预测"""
+        symbol = prediction['symbol']
+        pred_date = prediction['analysis_date']
+        predicted_dir = prediction['predicted_direction']
+        
+        actual_change = self.price_fetcher.get_price_change(symbol, pred_date, days_after)
+        
+        if actual_change is None:
+            return {**prediction, 'verified': False, 'reason': '无法获取价格数据'}
+        
+        # 判断实际方向
+        if actual_change > 2.0:
+            actual_dir = '上涨'
+        elif actual_change < -2.0:
+            actual_dir = '下跌'
+        else:
+            actual_dir = '震荡'
+        
+        is_correct = (predicted_dir == actual_dir)
+        
+        return {
+            **prediction,
+            'verified': True,
+            'actual_change_pct': round(actual_change, 2),
+            'actual_direction': actual_dir,
+            'is_correct': is_correct,
+            'verify_date': datetime.now().strftime('%Y-%m-%d'),
+            'days_after': days_after
+        }
+    
+    def verify_event_prediction(self, prediction: Dict) -> Dict:
+        """验证事件预测（事件发生后）"""
+        event_date = prediction.get('event_date', '')
+        
+        # 检查事件是否已发生
+        if not event_date:
+            return {**prediction, 'verified': False, 'reason': '无事件日期'}
+        
+        try:
+            event_dt = datetime.strptime(event_date, '%Y-%m-%d')
+            if event_dt > datetime.now():
+                return {**prediction, 'verified': False, 'reason': '事件尚未发生'}
+        except:
+            return {**prediction, 'verified': False, 'reason': '日期格式错误'}
+        
+        # 获取事件后的市场反应（使用上证指数作为A股代表）
+        actual_change = self.price_fetcher.get_price_change('SH000001', event_date, 3)
+        
+        if actual_change is None:
+            # 尝试美股
+            actual_change = self.price_fetcher.get_price_change('SPX', event_date, 3)
+        
+        if actual_change is None:
+            return {**prediction, 'verified': False, 'reason': '无法获取市场数据'}
+        
+        # 判断实际影响
+        if actual_change > 1.0:
+            actual_impact = '利多'
+        elif actual_change < -1.0:
+            actual_impact = '利空'
+        else:
+            actual_impact = '中性'
+        
+        is_correct = (prediction['predicted_direction'] == actual_impact) or \
+                    (prediction['predicted_direction'] == '中性' and abs(actual_change) < 2)
+        
+        return {
+            **prediction,
+            'verified': True,
+            'actual_market_change': round(actual_change, 2),
+            'actual_impact': actual_impact,
+            'is_correct': is_correct,
+            'verify_date': datetime.now().strftime('%Y-%m-%d')
+        }
+    
+    def run_backtest(self, days: int = 90) -> Dict:
+        """运行月度分析回测"""
+        print(f"\n{'='*60}")
+        print("月度分析回测")
+        print(f"{'='*60}")
+        
+        # 加载月度分析
+        analyses = self.load_monthly_analyses(days)
+        print(f"加载了 {len(analyses)} 份月度分析")
+        
+        if not analyses:
+            return {'error': '无月度分析数据'}
+        
+        all_stock_preds = []
+        all_event_preds = []
+        verified_stocks = []
+        verified_events = []
+        
+        for analysis in analyses:
+            # 提取预测
+            stock_preds = self.extract_stock_predictions(analysis)
+            event_preds = self.extract_event_predictions(analysis)
+            
+            all_stock_preds.extend(stock_preds)
+            all_event_preds.extend(event_preds)
+            
+            # 验证（只验证10天前的预测）
+            analysis_date = analysis.get('generated_at', '2000-01-01')[:10]
+            try:
+                analysis_dt = datetime.strptime(analysis_date, '%Y-%m-%d')
+                if datetime.now() - analysis_dt > timedelta(days=12):
+                    for pred in stock_preds:
+                        verified = self.verify_stock_prediction(pred)
+                        if verified.get('verified'):
+                            verified_stocks.append(verified)
+            except:
+                pass
+            
+            # 验证事件预测
+            for pred in event_preds:
+                verified = self.verify_event_prediction(pred)
+                if verified.get('verified'):
+                    verified_events.append(verified)
+        
+        print(f"股票预测: {len(all_stock_preds)} 条, 已验证: {len(verified_stocks)} 条")
+        print(f"事件预测: {len(all_event_preds)} 条, 已验证: {len(verified_events)} 条")
+        
+        # 计算统计
+        stats = {
+            'stock_predictions': {
+                'total': len(verified_stocks),
+                'correct': sum(1 for v in verified_stocks if v.get('is_correct')),
+                'accuracy': 0
+            },
+            'event_predictions': {
+                'total': len(verified_events),
+                'correct': sum(1 for v in verified_events if v.get('is_correct')),
+                'accuracy': 0
+            },
+            'backtest_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'period_days': days
+        }
+        
+        if stats['stock_predictions']['total'] > 0:
+            stats['stock_predictions']['accuracy'] = round(
+                stats['stock_predictions']['correct'] / stats['stock_predictions']['total'] * 100, 1
+            )
+        
+        if stats['event_predictions']['total'] > 0:
+            stats['event_predictions']['accuracy'] = round(
+                stats['event_predictions']['correct'] / stats['event_predictions']['total'] * 100, 1
+            )
+        
+        # 保存结果
+        self.results['verified_stocks'] = verified_stocks[-50:]
+        self.results['verified_events'] = verified_events[-50:]
+        self.results['stats'] = stats
+        self._save_results()
+        
+        # 打印结果
+        print(f"\n【回测结果】")
+        print(f"  股票预测准确率: {stats['stock_predictions']['accuracy']:.1f}% ({stats['stock_predictions']['correct']}/{stats['stock_predictions']['total']})")
+        print(f"  事件预测准确率: {stats['event_predictions']['accuracy']:.1f}% ({stats['event_predictions']['correct']}/{stats['event_predictions']['total']})")
+        
+        return {
+            'stats': stats,
+            'verified_stocks': verified_stocks,
+            'verified_events': verified_events
+        }
+    
+    def get_accuracy_report(self) -> Dict:
+        """获取准确率报告"""
+        return self.results.get('stats', {})
+
+
+def run_daily_verification():
+    """每日验证任务 - 验证过去的预测"""
+    print(f"\n{'='*60}")
+    print(f"每日预测验证 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"{'='*60}")
+    
+    # 周报回测
+    weekly_bt = WeeklyAnalysisBacktester()
+    weekly_result = weekly_bt.run_backtest(days=30, verify_days=5)
+    
+    # 月报回测
+    monthly_bt = MonthlyAnalysisBacktester()
+    monthly_result = monthly_bt.run_backtest(days=60)
+    
+    # 汇总报告
+    report = {
+        'date': datetime.now().strftime('%Y-%m-%d'),
+        'weekly': weekly_result.get('stats', {}),
+        'monthly': monthly_result.get('stats', {})
+    }
+    
+    # 保存汇总
+    os.makedirs('data', exist_ok=True)
+    with open('data/backtest_summary.json', 'w', encoding='utf-8') as f:
+        json.dump(report, f, ensure_ascii=False, indent=2)
+    
+    print(f"\n回测报告已保存到 data/backtest_summary.json")
+    
+    return report
+
+
 # 测试
 if __name__ == '__main__':
     print("=== 回测系统测试 ===\n")
     
-    backtester = NewsBacktester()
-    
-    # 生成回测报告
-    print("1. 生成回测报告...")
-    report = backtester.generate_report()
-    print(f"   分析了 {report['total_reports_analyzed']} 份报告")
-    print(f"   提取了 {report['total_predictions']} 条预测")
-    print(f"   预测分布: {report['prediction_distribution']['by_direction']}")
-    
-    # 回测情绪策略
-    print("\n2. 回测情绪策略...")
-    strategy_result = backtester.backtest_sentiment_strategy([])
-    print(f"   策略: {strategy_result['strategy_name']}")
-    print(f"   买入信号: {strategy_result['buy_signals']}")
-    print(f"   卖出信号: {strategy_result['sell_signals']}")
-    print(f"   持有信号: {strategy_result['hold_signals']}")
+    # 运行每日验证
+    run_daily_verification()
     
     print("\n=== 测试完成 ===")

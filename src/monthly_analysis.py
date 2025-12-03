@@ -152,7 +152,11 @@ class MonthlyAnalysis:
         self.api_key = os.getenv('DEEPSEEK_API_KEY')
         self.client = None
         if self.api_key:
-            self.client = OpenAI(api_key=self.api_key, base_url="https://api.deepseek.com")
+            self.client = OpenAI(
+                api_key=self.api_key, 
+                base_url="https://api.deepseek.com",
+                timeout=120.0  # 增加超时时间到120秒
+            )
         
         # 对话历史（用于追问）
         self.conversation_history: List[Dict] = []

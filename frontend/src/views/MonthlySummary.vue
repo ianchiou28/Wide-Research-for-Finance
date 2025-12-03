@@ -166,7 +166,17 @@
         </div>
         <div class="chat-messages" ref="chatBox">
           <div v-for="(msg, i) in chatHistory" :key="i" class="chat-msg" :class="msg.role">
-            <div class="msg-content">{{ msg.content }}</div>
+            <div v-if="msg.role === 'assistant'" class="msg-content markdown-body" v-html="renderMarkdown(msg.content)"></div>
+            <div v-else class="msg-content">{{ msg.content }}</div>
+          </div>
+          <!-- 加载提示 -->
+          <div v-if="chatLoading" class="chat-msg assistant loading-msg">
+            <div class="msg-content">
+              <span class="typing-indicator">
+                <span></span><span></span><span></span>
+              </span>
+              正在生成回复...
+            </div>
           </div>
         </div>
         <div class="chat-input-wrap">
@@ -194,6 +204,31 @@ import { useLocale } from '../composables/useLocale'
 
 const { t } = useLocale()
 
+// 简易 Markdown 渲染
+const renderMarkdown = (text) => {
+  if (!text) return ''
+  return text
+    // 代码块
+    .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+    // 行内代码
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    // 粗体
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    // 斜体
+    .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+    // 标题
+    .replace(/^### (.+)$/gm, '<h4>$1</h4>')
+    .replace(/^## (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^# (.+)$/gm, '<h2>$1</h2>')
+    // 列表
+    .replace(/^[\-\*] (.+)$/gm, '<li>$1</li>')
+    .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>')
+    // 数字列表
+    .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
+    // 换行
+    .replace(/\n/g, '<br>')
+}
+
 const loading = ref(false)
 const error = ref(null)
 const analysis = ref(null)
@@ -218,8 +253,40 @@ const monthOptions = computed(() => {
 
 const formatDate = (dateStr) => {
   if (!dateStr) return ''
+  
+  // 处理特殊格式如 "2025-12-16至17日"
+  if (dateStr.includes('至') || dateStr.includes('日')) {
+    // 提取月和日: 2025-12-16至17日 -> 12/16-17
+    const match = dateStr.match(/(\d{4})-(\d{1,2})-(\d{1,2})(.*)/)
+    if (match) {
+      const month = match[2]
+      const day = match[3]
+      const rest = match[4] // 如 "至17日"
+      if (rest) {
+        const extraDay = rest.match(/(\d{1,2})/)
+        if (extraDay) {
+          return `${month}/${day}-${extraDay[1]}`
+        }
+      }
+      return `${month}/${day}`
+    }
+    return dateStr
+  }
+  
+  // 标准 ISO 格式日期 2025-12-05
+  const match = dateStr.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/)
+  if (match) {
+    return `${match[2]}/${match[3]}`
+  }
+  
+  // 尝试 Date 解析
   const d = new Date(dateStr)
-  return `${d.getMonth() + 1}/${d.getDate()}`
+  if (!isNaN(d.getTime())) {
+    return `${d.getMonth() + 1}/${d.getDate()}`
+  }
+  
+  // 无法解析，返回原字符串
+  return dateStr
 }
 
 const loadAnalysis = async (regen = false) => {
@@ -338,14 +405,37 @@ onMounted(() => {
 
 .chat-section { background: var(--c-paper); border: 2px solid var(--c-border); margin-top: 1.5rem; }
 .chat-header { background: var(--c-ink); color: var(--c-bg); padding: 0.75rem 1rem; display: flex; align-items: center; gap: 0.5rem; font-weight: 700; }
-.chat-messages { height: 200px; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.75rem; }
-.chat-msg { max-width: 80%; padding: 0.5rem 0.75rem; border-radius: 4px; }
+.chat-messages { min-height: 300px; max-height: 500px; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.75rem; }
+.chat-msg { max-width: 85%; padding: 0.75rem 1rem; border-radius: 8px; }
 .chat-msg.user { align-self: flex-end; background: var(--c-amber); color: #fff; }
 .chat-msg.assistant { align-self: flex-start; background: var(--c-hover); }
 .chat-input-wrap { display: flex; border-top: 1px solid var(--c-border); }
 .chat-input-wrap input { flex: 1; padding: 0.75rem; border: none; background: transparent; font-size: 1rem; }
 .chat-input-wrap button { padding: 0.75rem 1rem; background: var(--c-ink); color: var(--c-bg); border: none; cursor: pointer; }
 .chat-input-wrap button:disabled { opacity: 0.5; }
+
+/* Markdown 样式 */
+.markdown-body { line-height: 1.6; }
+.markdown-body h2, .markdown-body h3, .markdown-body h4 { margin: 0.5em 0 0.25em; font-weight: 700; }
+.markdown-body h2 { font-size: 1.2em; }
+.markdown-body h3 { font-size: 1.1em; }
+.markdown-body h4 { font-size: 1em; }
+.markdown-body strong { font-weight: 700; color: var(--c-ink); }
+.markdown-body em { font-style: italic; }
+.markdown-body code { background: rgba(0,0,0,0.1); padding: 0.1em 0.3em; border-radius: 3px; font-family: var(--font-mono); font-size: 0.9em; }
+.markdown-body pre { background: rgba(0,0,0,0.08); padding: 0.75rem; border-radius: 4px; overflow-x: auto; margin: 0.5em 0; }
+.markdown-body pre code { background: none; padding: 0; }
+.markdown-body ul, .markdown-body ol { margin: 0.5em 0; padding-left: 1.5em; }
+.markdown-body li { margin: 0.25em 0; }
+.markdown-body br { display: block; margin: 0.25em 0; content: ''; }
+
+/* 加载动画 */
+.loading-msg { opacity: 0.8; }
+.typing-indicator { display: inline-flex; gap: 4px; margin-right: 8px; }
+.typing-indicator span { width: 6px; height: 6px; background: var(--c-amber); border-radius: 50%; animation: typing 1.4s infinite ease-in-out both; }
+.typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+.typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+@keyframes typing { 0%, 80%, 100% { transform: scale(0.6); opacity: 0.6; } 40% { transform: scale(1); opacity: 1; } }
 
 .empty { text-align: center; color: var(--c-muted); padding: 1rem; }
 
