@@ -1,5 +1,6 @@
 import feedparser
 import yaml
+import requests
 from datetime import datetime, timedelta
 from typing import List, Dict, Optional
 from web_scraper import WebScraper # 引入WebScraper
@@ -14,14 +15,31 @@ class DataCollector:
         except FileNotFoundError:
             self.user_config = {}
     
+    def _fetch_feed_with_timeout(self, url: str, timeout: int = 15) -> dict:
+        """使用 requests 获取 RSS，带超时控制"""
+        try:
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
+            response = requests.get(url, timeout=timeout, headers=headers)
+            response.raise_for_status()
+            return feedparser.parse(response.content)
+        except requests.Timeout:
+            print(f"    超时: {url[:50]}...")
+            return feedparser.FeedParserDict()
+        except requests.RequestException as e:
+            print(f"    请求失败: {str(e)[:50]}")
+            return feedparser.FeedParserDict()
+    
     def fetch_latest(self, hours=24, max_per_source=15) -> List[Dict]:
         """获取最近N小时的新闻"""
         articles = []
         cutoff_time = datetime.now() - timedelta(hours=hours)
+        success_count = 0
         
         for source in self.config.get('rss_sources', []):
             try:
-                feed = feedparser.parse(source['url'])
+                feed = self._fetch_feed_with_timeout(source['url'], timeout=15)
                 count = 0
                 
                 for entry in feed.entries[:max_per_source*2]:  # 多取一些以防过滤
@@ -80,11 +98,14 @@ class DataCollector:
                         'published_at': pub_date.isoformat()
                     })
                     count += 1
+                
+                if count > 0:
+                    success_count += 1
                     
             except Exception as e:
                 print(f"  ⚠ {source['name']}: {str(e)[:50]}")
         
-        print(f"  ✓ 成功采集 {len(articles)} 条新闻")
+        print(f"  ✓ 成功采集 {len(articles)} 条新闻 (来自 {success_count} 个源)")
         return articles
 
     def fetch_stock_specific_news(self) -> List[Dict]:
