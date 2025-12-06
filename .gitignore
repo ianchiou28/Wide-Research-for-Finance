@@ -3,6 +3,7 @@ __pycache__/
 *.pyc
 data/raw/*
 data/reports/*
+data/reports_json/*
 data/summaries/*
 data/weekly/*
 *.log

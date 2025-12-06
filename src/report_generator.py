@@ -8,6 +8,10 @@ class ReportGenerator:
         if not processed_news:
             return "无新闻数据"
         
+        # 为每条新闻分配引用ID
+        for i, news in enumerate(processed_news, 1):
+            news['ref_id'] = i
+
         # 统计分析
         total = len(processed_news)
         avg_sentiment = sum(n['sentiment'] for n in processed_news) / total
@@ -20,8 +24,14 @@ class ReportGenerator:
         
         # 热门实体
         all_entities = []
+        entity_refs = {}
         for news in processed_news:
-            all_entities.extend(news.get('entities', []))
+            entities = news.get('entities', [])
+            all_entities.extend(entities)
+            for entity in set(entities):
+                if entity not in entity_refs:
+                    entity_refs[entity] = []
+                entity_refs[entity].append(news['ref_id'])
         top_entities = Counter(all_entities).most_common(10)
         
         # 生成报告
@@ -43,7 +53,11 @@ class ReportGenerator:
 本小时最受关注的主体：
 """
         for entity, count in top_entities[:10]:
-            report += f"  • {entity} (提及{count}次)\n"
+            refs = sorted(entity_refs.get(entity, []))
+            refs_str = ",".join(map(str, refs[:5]))
+            if len(refs) > 5:
+                refs_str += "..."
+            report += f"  • {entity} (提及{count}次) [相关新闻:{refs_str}]\n"
         
         # 高影响事件
         high_impact = [n for n in processed_news if n.get('impact_level') == '高']
@@ -71,7 +85,7 @@ class ReportGenerator:
                         stock_text = f"\n  股票影响: {' | '.join(stocks)}"
                 
                 report += f"""
-  [{news['source']}] {news['event_type']}
+  [ID:{news['ref_id']}] [{news['source']}] {news['event_type']}
   标题: {news['title']}
   摘要: {news['summary']}
   情绪: {sentiment_text} | 中国: {sentiment_cn_text} | 美国: {sentiment_us_text}{stock_text}
@@ -84,7 +98,7 @@ class ReportGenerator:
         if hot_search:
             for news in hot_search:
                 report += f"""
-  [{news['source']}] {news['title']}
+  [ID:{news['ref_id']}] [{news['source']}] {news['title']}
   摘要: {news['summary']}
   链接: {news['url']}
 """
@@ -95,7 +109,7 @@ class ReportGenerator:
         if stock_specific:
             for news in stock_specific:
                 report += f"""
-  {news['title']}
+  [ID:{news['ref_id']}] {news['title']}
   摘要: {news['summary']}
   链接: {news['url']}
 """
@@ -105,8 +119,8 @@ class ReportGenerator:
         # 其他新闻
         other_news = [n for n in processed_news if n.get('impact_level') != '高' and n.get('category') not in ['hot_search', 'stock_specific']]
         report += f"\n【其他新闻 ({len(other_news)}条)】\n"
-        for i, news in enumerate(other_news, 1):
-            report += f"  {i}. [{news['source']}] {news['title']}\n"
+        for news in other_news:
+            report += f"  {news['ref_id']}. [{news['source']}] {news['title']}\n"
         
         report += f"\n\n【情绪分布】\n"
         positive = sum(1 for n in processed_news if n['sentiment'] > 0.3)

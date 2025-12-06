@@ -1,0 +1,251 @@
+import { ref, computed } from 'vue'
+
+// Global reactive state
+const locale = ref(localStorage.getItem('locale') || 'zh')
+
+// Translation dictionary
+const translations = {
+  // Navigation
+  nav_dashboard: { zh: '概览仪表盘', en: 'Dashboard' },
+  nav_watchlist: { zh: '自选监控', en: 'Watchlist' },
+  nav_hot_topics: { zh: '全网热搜', en: 'Hot Topics' },
+  nav_crypto: { zh: '加密货币', en: 'Crypto' },
+  nav_history: { zh: '历史报告', en: 'History' },
+  nav_backtest: { zh: '预测回测', en: 'Backtest' },
+  nav_overview: { zh: '项目总览', en: 'Overview' },
+  nav_daily_summary: { zh: '每日摘要', en: 'Daily Summary' },
+  nav_weekly_summary: { zh: '周度分析', en: 'Weekly Analysis' },
+  nav_monthly_summary: { zh: '月度分析', en: 'Monthly Analysis' },
+  
+  // System Status
+  system_status: { zh: '系统状态', en: 'System Status' },
+  connection_status: { zh: '连接状态', en: 'Connection' },
+  last_sync: { zh: '上次同步', en: 'Last Sync' },
+  version: { zh: '版本', en: 'Version' },
+  
+  // Home Page - KPIs
+  market_sentiment: { zh: '市场情绪', en: 'MARKET SENTIMENT' },
+  key_events: { zh: '关键事件', en: 'KEY EVENTS' },
+  stock_prediction: { zh: '个股预测', en: 'STOCK PREDICTION' },
+  hot_topics: { zh: '热门话题', en: 'HOT TOPICS' },
+  market_outlook: { zh: '市场展望', en: 'MARKET OUTLOOK' },
+  statistics: { zh: '统计数据', en: 'STATISTICS' },
+  total_news: { zh: '已分析新闻', en: 'Total News' },
+  market_sentiment_kpi: { zh: '市场情绪', en: 'Sentiment' },
+  hot_topics_kpi: { zh: '热门话题', en: 'Hot Topics' },
+  updated_at: { zh: '更新时间', en: 'Updated' },
+  system_online: { zh: '系统在线', en: 'System Online' },
+  loading: { zh: '正在加载数据...', en: 'Loading data...' },
+  empty_events: { zh: '暂无重大事件', en: 'No key events found' },
+  empty_topics: { zh: '暂无热门话题', en: 'No hot topics found' },
+  beijing_time: { zh: '北京时间', en: 'Beijing Time' },
+  newyork_time: { zh: '纽约时间', en: 'New York Time' },
+  event_count: { zh: '重大事件', en: 'Key Events' },
+  stock_signal_count: { zh: '股票信号', en: 'Stock Signals' },
+  positive: { zh: '积极', en: 'Positive' },
+  neutral: { zh: '中性', en: 'Neutral' },
+  negative: { zh: '消极', en: 'Negative' },
+  confidence: { zh: '置信度', en: 'Confidence' },
+  mentions: { zh: '提及', en: 'Mentions' },
+  times: { zh: '次', en: 'times' },
+  brand_title: { zh: '每小时报告', en: 'HOURLY REPORT' },
+  brand_subtitle: { zh: 'DeepSeek 智能引擎', en: 'DeepSeek AI ENGINE' },
+  market_global: { zh: '全球市场', en: 'Global Market' },
+  market_cn: { zh: '中国市场', en: 'China Market' },
+  market_us: { zh: '美国市场', en: 'US Market' },
+  market_a_share: { zh: 'A股', en: 'A-Share' },
+  market_us_stock: { zh: '美股', en: 'US Stock' },
+  market_global_short: { zh: '全球', en: 'Global' },
+  trend_bullish: { zh: '看涨', en: 'Bullish' },
+  trend_bearish: { zh: '看跌', en: 'Bearish' },
+  trend_sideways: { zh: '震荡', en: 'Sideways' },
+  unit_items: { zh: '条', en: '' },
+  unit_count: { zh: '个', en: '' },
+  
+  // Watchlist
+  watchlist_title: { zh: '我的关注列表', en: 'MY WATCHLIST' },
+  add_stock: { zh: '添加', en: 'Add' },
+  stock_code: { zh: '代码', en: 'Code' },
+  stock_name: { zh: '名称', en: 'Name' },
+  current_price: { zh: '最新价', en: 'Price' },
+  change_pct: { zh: '涨跌幅', en: 'Change' },
+  high: { zh: '最高', en: 'High' },
+  low: { zh: '最低', en: 'Low' },
+  open: { zh: '今开', en: 'Open' },
+  prev_close: { zh: '昨收', en: 'Prev Close' },
+  volume: { zh: '成交量', en: 'Volume' },
+  amount: { zh: '成交额', en: 'Amount' },
+  action: { zh: '操作', en: 'Action' },
+  delete: { zh: '删除', en: 'Del' },
+  view: { zh: '查看', en: 'View' },
+  kline_chart: { zh: 'K线走势', en: 'K-Line Chart' },
+  related_news: { zh: '相关资讯', en: 'Related News' },
+  period_daily: { zh: '日K', en: 'D' },
+  period_weekly: { zh: '周K', en: 'W' },
+  period_monthly: { zh: '月K', en: 'M' },
+  no_data: { zh: '暂无数据', en: 'No Data' },
+  loading_chart: { zh: '加载中...', en: 'Loading...' },
+  
+  // Hot Topics
+  hot_topics_title: { zh: '全网热搜', en: 'HOT TOPICS' },
+  sources: { zh: '来源', en: 'SOURCES' },
+  update: { zh: '更新', en: 'UPDATE' },
+  no_data_or_failed: { zh: '暂无数据或采集失败', en: 'No data or fetch failed' },
+  
+  // Crypto
+  crypto_title: { zh: '加密货币', en: 'CRYPTOCURRENCY' },
+  market_cap: { zh: '市值', en: 'MARKET CAP' },
+  volume_24h: { zh: '24h成交量', en: '24h Volume' },
+  price_change_24h: { zh: '24h涨跌', en: '24h Change' },
+  
+  // History
+  history_title: { zh: '历史报告', en: 'HISTORICAL REPORTS' },
+  report_list: { zh: '时间轴', en: 'Timeline' },
+  report_content: { zh: '报告内容', en: 'Report' },
+  select_report: { zh: '请选择一份报告查看', en: 'Select a report to view' },
+  
+  // Overview
+  overview_title: { zh: '项目总览', en: 'PROJECT OVERVIEW' },
+  features: { zh: '功能模块', en: 'Features' },
+  data_coverage: { zh: '数据覆盖', en: 'Data Coverage' },
+  quick_start: { zh: '快速开始', en: 'Quick Start' },
+  
+  // Overview Page Details
+  system_overview: { zh: 'SYSTEM OVERVIEW', en: 'SYSTEM OVERVIEW' },
+  system_architecture: { zh: '系统', en: 'System' },
+  architecture: { zh: '架构', en: 'Architecture' },
+  github_repo: { zh: 'GITHUB REPO', en: 'GITHUB REPO' },
+  tech_stack: { zh: '技术栈 // TECH STACK', en: 'TECH STACK' },
+  pipeline: { zh: '处理链路 // PIPELINE', en: 'PIPELINE' },
+  coverage: { zh: '数据覆盖 // COVERAGE', en: 'DATA COVERAGE' },
+  metrics: { zh: '核心指标 // METRICS', en: 'CORE METRICS' },
+  modules: { zh: '功能模块 // MODULES', en: 'MODULES' },
+  start: { zh: '快速开始 // START', en: 'QUICK START' },
+  
+  // Pipeline Steps
+  step1_title: { zh: '多源采集', en: 'Multi-Source Collection' },
+  step1_desc: { zh: 'RSS/API 轮询 17+ 国际财经源', en: 'RSS/API polling 17+ international finance sources' },
+  step2_title: { zh: '智能清洗', en: 'Smart Processing' },
+  step2_desc: { zh: 'DeepSeek 初筛，去重与价值评估', en: 'DeepSeek filtering, dedup & value assessment' },
+  step3_title: { zh: '深度分析', en: 'Deep Analysis' },
+  step3_desc: { zh: '全文提取，实体识别，情感打分', en: 'Full-text extraction, NER, sentiment scoring' },
+  step4_title: { zh: '终端呈现', en: 'Terminal Display' },
+  step4_desc: { zh: 'Web 仪表盘，实时推送，历史归档', en: 'Web dashboard, real-time push, history archive' },
+  
+  // Data Coverage
+  intl_finance: { zh: '国际财经', en: 'International Finance' },
+  inst_analysis: { zh: '机构分析', en: 'Institutional Analysis' },
+  tech_crypto: { zh: '科技/加密', en: 'Tech/Crypto' },
+  official_inst: { zh: '官方机构', en: 'Official Institutions' },
+  official_inst_sources: { zh: '美联储, SEC, 央行, 证监会', en: 'Fed, SEC, Central Banks, CSRC' },
+  
+  // Metrics
+  response_speed: { zh: '响应速度', en: 'Response' },
+  source_count: { zh: '覆盖源', en: 'Sources' },
+  ai_model: { zh: 'AI 模型', en: 'AI Model' },
+  running_cost: { zh: '运行成本', en: 'Cost' },
+  
+  // Modules
+  mod_dashboard_name: { zh: '概览仪表盘', en: 'Dashboard' },
+  mod_dashboard_desc: { zh: '实时市场情绪与关键事件', en: 'Real-time sentiment & key events' },
+  mod_watchlist_name: { zh: '自选监控', en: 'Watchlist' },
+  mod_watchlist_desc: { zh: '个股 K 线与实时报价', en: 'Stock K-line & real-time quotes' },
+  mod_hot_name: { zh: '全网热搜', en: 'Hot Topics' },
+  mod_hot_desc: { zh: '微博/抖音/百度热点聚合', en: 'Weibo/Douyin/Baidu trends' },
+  mod_crypto_name: { zh: '加密货币', en: 'Cryptocurrency' },
+  mod_crypto_desc: { zh: '主流币种行情与市值', en: 'Major coins price & market cap' },
+  mod_history_name: { zh: '历史报告', en: 'History' },
+  mod_history_desc: { zh: '每日/每周深度分析归档', en: 'Daily/weekly analysis archive' },
+  
+  // Quick Start
+  start_dashboard: { zh: '启动仪表盘', en: 'Start Dashboard' },
+  auto_schedule: { zh: '自动调度', en: 'Auto Schedule' },
+  
+  // Daily Summary Page
+  daily_summary_title: { zh: '每日摘要', en: 'DAILY SUMMARY' },
+  report_count: { zh: '报告数量', en: 'Reports' },
+  major_events: { zh: '重大事件', en: 'Major Events' },
+  positive_events: { zh: '积极事件', en: 'Positive' },
+  negative_events: { zh: '消极事件', en: 'Negative' },
+  sentiment_distribution: { zh: '情绪分布', en: 'SENTIMENT DISTRIBUTION' },
+  market_divergence: { zh: '市场分化', en: 'MARKET DIVERGENCE' },
+  china_market: { zh: '中国市场', en: 'China Market' },
+  us_market: { zh: '美国市场', en: 'US Market' },
+  key_events_list: { zh: '重点事件列表', en: 'KEY EVENTS' },
+  no_events: { zh: '暂无事件数据', en: 'No events found' },
+  operation_suggestions: { zh: '操作建议', en: 'SUGGESTIONS' },
+  raw_report: { zh: '原始报告', en: 'RAW REPORT' },
+  no_summary_data: { zh: '暂无摘要数据', en: 'No summary data available' },
+  refresh: { zh: '刷新', en: 'Refresh' },
+  retry: { zh: '重试', en: 'Retry' },
+  
+  // Weekly Summary Page
+  weekly_summary_title: { zh: '周度分析', en: 'WEEKLY ANALYSIS' },
+  bullish_count: { zh: '看涨', en: 'Bullish' },
+  bearish_count: { zh: '看跌', en: 'Bearish' },
+  sideways_count: { zh: '震荡', en: 'Sideways' },
+  total_stocks: { zh: '总计', en: 'Total' },
+  prediction_distribution: { zh: '预测分布', en: 'PREDICTION DISTRIBUTION' },
+  confidence_distribution: { zh: '置信度分布', en: 'CONFIDENCE DISTRIBUTION' },
+  high_confidence: { zh: '高置信度', en: 'High' },
+  medium_confidence: { zh: '中置信度', en: 'Medium' },
+  low_confidence: { zh: '低置信度', en: 'Low' },
+  stock_predictions: { zh: '股票预测', en: 'STOCK PREDICTIONS' },
+  symbol: { zh: '代码', en: 'Symbol' },
+  prediction: { zh: '预测', en: 'Prediction' },
+  reason: { zh: '理由', en: 'Reason' },
+  bullish: { zh: '看涨', en: 'Bullish' },
+  bearish: { zh: '看跌', en: 'Bearish' },
+  sideways: { zh: '震荡', en: 'Sideways' },
+  stocks: { zh: '股票', en: 'Stocks' },
+  top_bullish: { zh: '重点看涨', en: 'TOP BULLISH' },
+  top_bearish: { zh: '重点看跌', en: 'TOP BEARISH' },
+  no_bullish_stocks: { zh: '暂无看涨股票', en: 'No bullish stocks' },
+  no_bearish_stocks: { zh: '暂无看跌股票', en: 'No bearish stocks' },
+  market_summary: { zh: '市场总结', en: 'MARKET SUMMARY' },
+  generated_at: { zh: '生成时间', en: 'Generated at' },
+  no_stock_data: { zh: '暂无股票数据', en: 'No stock data available' },
+  no_analysis_data: { zh: '暂无分析数据', en: 'No analysis data available' },
+
+  // Monthly Summary Page
+  monthly_title: { zh: '月度分析', en: 'MONTHLY ANALYSIS' },
+  generating_analysis: { zh: '正在生成分析，请稍候...', en: 'Generating analysis, please wait...' },
+  summary: { zh: '总结', en: 'Summary' },
+  key_dates: { zh: '关键时间节点', en: 'KEY DATES' },
+  buy_recommendations: { zh: '建议加仓', en: 'BUY RECOMMENDATIONS' },
+  sell_recommendations: { zh: '建议减仓', en: 'SELL RECOMMENDATIONS' },
+  sector_rotation: { zh: '行业轮动', en: 'SECTOR ROTATION' },
+  overweight: { zh: '超配', en: 'Overweight' },
+  underweight: { zh: '低配', en: 'Underweight' },
+  risk_warnings: { zh: '风险提示', en: 'RISK WARNINGS' },
+  ask_analyst: { zh: '追问分析师', en: 'ASK ANALYST' },
+  ask_placeholder: { zh: '输入您的问题...', en: 'Ask a question...' },
+  no_analysis: { zh: '暂无月度分析', en: 'No monthly analysis available' },
+  generate_now: { zh: '立即生成', en: 'Generate Now' }
+}
+
+export function useLocale() {
+  const isZh = computed(() => locale.value === 'zh')
+  
+  const t = (key) => {
+    return translations[key]?.[locale.value] || key
+  }
+  
+  const toggleLocale = () => {
+    locale.value = locale.value === 'zh' ? 'en' : 'zh'
+    localStorage.setItem('locale', locale.value)
+  }
+  
+  const setLocale = (lang) => {
+    locale.value = lang
+    localStorage.setItem('locale', lang)
+  }
+  
+  return {
+    locale,
+    isZh,
+    t,
+    toggleLocale,
+    setLocale
+  }
+}

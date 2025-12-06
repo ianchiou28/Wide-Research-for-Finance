@@ -11,7 +11,9 @@ from collector import DataCollector
 from web_scraper import WebScraper
 from processor import NLPProcessor
 from report_generator import ReportGenerator
+from report_generator_v2 import ReportGeneratorV2
 from email_sender import EmailSender
+from email_template import EmailTemplateGenerator
 
 load_dotenv()
 
@@ -49,14 +51,25 @@ def run_daily_report():
     
     # 3. 生成报告
     print("4. 生成报告...")
-    report_gen = ReportGenerator()
-    report = report_gen.generate(processed)
-    _save_local(report)
     
-    # 4. 发送邮件
+    # 生成纯文本报告（用于本地保存）
+    report_gen = ReportGenerator()
+    report_text = report_gen.generate(processed)
+    _save_local(report_text)
+    
+    # 生成结构化报告（用于可视化邮件和前端）
+    report_gen_v2 = ReportGeneratorV2()
+    report_data = report_gen_v2.generate(processed)
+    _save_json(report_data)
+    
+    # 4. 发送邮件（使用HTML模板）
     print("5. 发送报告...")
     sender = EmailSender()
-    sender.send(report)
+    
+    # 生成HTML邮件并发送
+    template_gen = EmailTemplateGenerator()
+    html_content = template_gen.generate_email_html(report_data)
+    sender.send(report_text, html_content=html_content)
     
     print(f"\n{'='*60}")
     print("报告生成完成")
@@ -73,6 +86,18 @@ def _save_local(report: str):
     except:
         print(f"Report saved: {filename}")
 
+def _save_json(report_data: dict):
+    """保存结构化报告为JSON（供前端读取）"""
+    import json
+    os.makedirs('data/reports_json', exist_ok=True)
+    filename = f"data/reports_json/report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+    with open(filename, 'w', encoding='utf-8') as f:
+        json.dump(report_data, f, ensure_ascii=False, indent=2)
+    try:
+        print(f"JSON报告已保存: {filename}")
+    except:
+        print(f"JSON report saved: {filename}")
+
 def run_weekly_report_script():
     """运行周报分析脚本"""
     print(f"\n启动周报分析 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -80,6 +105,37 @@ def run_weekly_report_script():
         subprocess.run([sys.executable, "run_weekly_analysis.py"], check=False)
     except Exception as e:
         print(f"周报分析运行失败: {e}")
+
+def run_monthly_report_script():
+    """运行月度分析脚本（每日更新，保持实时性）"""
+    print(f"\n启动月度分析 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    try:
+        # --refresh 强制刷新事件日历，确保获取最新信息
+        subprocess.run([sys.executable, "run_monthly_analysis.py", "--refresh"], check=False)
+    except Exception as e:
+        print(f"月度分析运行失败: {e}")
+
+def run_backtest_verification():
+    """运行回测验证（验证历史预测的准确性）"""
+    print(f"\n启动回测验证 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    try:
+        from src.backtester import run_daily_verification
+        result = run_daily_verification()
+        
+        # 打印汇总
+        weekly_acc = result.get('weekly', {}).get('accuracy', 0)
+        monthly_stock_acc = result.get('monthly', {}).get('stock_predictions', {}).get('accuracy', 0)
+        monthly_event_acc = result.get('monthly', {}).get('event_predictions', {}).get('accuracy', 0)
+        
+        print(f"\n📊 回测汇总:")
+        print(f"   周报预测准确率: {weekly_acc:.1f}%")
+        print(f"   月报股票预测准确率: {monthly_stock_acc:.1f}%")
+        print(f"   月报事件预测准确率: {monthly_event_acc:.1f}%")
+        
+    except Exception as e:
+        print(f"回测验证运行失败: {e}")
+        import traceback
+        traceback.print_exc()
 
 def main():
     print("Wide Research for Finance - MVP v1.0")
@@ -91,12 +147,14 @@ def main():
         print("请创建 .env 文件并配置API密钥")
         return
     
-    # Docker环境自动选择模式2
+    # 服务器环境自动选择模式2
     if os.getenv('DOCKER_ENV') == 'True':
         print("Docker环境检测到，自动启用计划任务：")
         print("- 每小时整点生成小时报 (run_daily_report)")
         print("- 每天 08:00 和 20:00 生成12小时摘要")
         print("- 每天 08:00 和 20:00 运行周报分析")
+        print("- 每天 09:00 更新月度分析（事件日历+预测修正）")
+        print("- 每天 21:00 运行回测验证（验证预测准确率）")
 
         # 1. 小时报
         schedule.every().hour.at(":00").do(run_daily_report)
@@ -112,6 +170,15 @@ def main():
         # 3. 周报
         schedule.every().day.at("08:00").do(run_weekly_report_script)
         schedule.every().day.at("20:00").do(run_weekly_report_script)
+        
+        # 4. 月报（每天早上9点更新，保持实时性）
+        # - 自动抓取最新事件
+        # - 根据已发生事件修正预测
+        # - 更新加减仓建议
+        schedule.every().day.at("09:00").do(run_monthly_report_script)
+        
+        # 5. 回测验证（每天晚上9点，验证历史预测的准确性）
+        schedule.every().day.at("21:00").do(run_backtest_verification)
 
         print("后台运行中，按 Ctrl+C 停止\n")
         while True:
@@ -125,8 +192,10 @@ def main():
         print("2. 每个整点执行（0:00, 1:00, 2:00...）")
         print("3. 每天早上8点执行")
         print("4. 每天8点和20点生成12小时摘要")
+        print("5. 立即生成月度分析")
+        print("6. 运行回测验证")
         
-        choice = input("\n请选择 (1/2/3/4): ").strip()
+        choice = input("\n请选择 (1/2/3/4/5/6): ").strip()
     
     if choice == '1':
         run_daily_report()
@@ -153,6 +222,10 @@ def main():
     elif choice == '4':
         print("\n请运行: python daily_summary_main.py")
         print("或双击: run_daily_summary.bat")
+    elif choice == '5':
+        run_monthly_report_script()
+    elif choice == '6':
+        run_backtest_verification()
     else:
         print("无效选择")
 
