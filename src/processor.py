@@ -6,8 +6,11 @@ from typing import List, Dict
 
 class NLPProcessor:
     def __init__(self):
+        api_key = os.getenv('DEEPSEEK_API_KEY')
+        if not api_key:
+            print("  ⚠️ WARNING: DEEPSEEK_API_KEY not found in environment!")
         self.client = OpenAI(
-            api_key=os.getenv('DEEPSEEK_API_KEY'),
+            api_key=api_key,
             base_url="https://api.deepseek.com",
             timeout=120.0,  # 设置120秒超时
             max_retries=2   # 自动重试2次
@@ -129,16 +132,19 @@ class NLPProcessor:
         max_retries = 3
         for attempt in range(max_retries):
             try:
+                print(f"    [DEBUG] 调用 DeepSeek API (尝试 {attempt+1}/{max_retries})...")
                 response = self.client.chat.completions.create(
                     model="deepseek-chat",
                     messages=[{"role": "user", "content": prompt}],
                     temperature=0.3,
-                    max_tokens=2000,
+                    max_tokens=4000,  # 增加token限制以避免截断
                     timeout=90.0  # 单次请求90秒超时
                 )
                 
                 content = response.choices[0].message.content
+                print(f"    [DEBUG] API 响应长度: {len(content) if content else 0}")
                 if content is None:
+                    print(f"    [DEBUG] API 返回空内容")
                     if attempt < max_retries - 1:
                         time.sleep(3)
                         continue
@@ -146,10 +152,13 @@ class NLPProcessor:
                 
                 result = self._extract_json(content)
                 if not result:
+                    print(f"    [DEBUG] JSON 解析失败，原始内容: {content[:200]}...")
                     if attempt < max_retries - 1:
                         time.sleep(3)
                         continue
                     return []
+                
+                print(f"    [DEBUG] 成功解析 {len(result)} 条结果")
                 
                 processed = []
                 for item in result:
@@ -179,17 +188,43 @@ class NLPProcessor:
         return []
     
     def _extract_json(self, text: str):
-        """从文本中提取JSON数组"""
+        """从文本中提取JSON数组，支持处理被截断的JSON"""
+        import re
         text = text.strip()
         start = text.find('[')
         end = text.rfind(']')
-        if start == -1 or end == -1 or start >= end:
+        
+        if start == -1:
             return None
         
-        try:
-            return json.loads(text[start:end+1])
-        except json.JSONDecodeError:
-            return None
+        # 尝试正常解析
+        if end != -1 and start < end:
+            try:
+                return json.loads(text[start:end+1])
+            except json.JSONDecodeError:
+                pass
+        
+        # JSON 可能被截断，尝试修复
+        json_text = text[start:]
+        
+        # 尝试逐个提取完整的对象
+        results = []
+        pattern = r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}'
+        matches = re.findall(pattern, json_text)
+        
+        for match in matches:
+            try:
+                obj = json.loads(match)
+                if isinstance(obj, dict) and 'index' in obj:
+                    results.append(obj)
+            except json.JSONDecodeError:
+                continue
+        
+        if results:
+            print(f"    [DEBUG] 通过正则提取了 {len(results)} 个对象")
+            return results
+        
+        return None
 
     def _parse_indices(self, raw_content: str, total: int) -> List[int]:
         """从模型输出里提取最多20个有效的索引"""
