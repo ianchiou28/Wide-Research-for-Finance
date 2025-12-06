@@ -1,5 +1,6 @@
 import os
 import json
+import time
 from openai import OpenAI
 from typing import List, Dict
 
@@ -7,7 +8,9 @@ class NLPProcessor:
     def __init__(self):
         self.client = OpenAI(
             api_key=os.getenv('DEEPSEEK_API_KEY'),
-            base_url="https://api.deepseek.com"
+            base_url="https://api.deepseek.com",
+            timeout=120.0,  # 设置120秒超时
+            max_retries=2   # 自动重试2次
         )
     
     def process_batch(self, articles: List[Dict], batch_size=20) -> List[Dict]:
@@ -82,33 +85,41 @@ class NLPProcessor:
 
 如果都不感兴趣，返回：[]"""
         
-        try:
-            response = self.client.chat.completions.create(
-                model="deepseek-chat",
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.1,
-                max_tokens=500
-            )
-            
-            content = response.choices[0].message.content
-            if content is None:
-                return articles[:20]
-            indices = self._parse_indices(content, len(articles))
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                response = self.client.chat.completions.create(
+                    model="deepseek-chat",
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.1,
+                    max_tokens=500,
+                    timeout=60.0  # 单次请求60秒超时
+                )
+                
+                content = response.choices[0].message.content
+                if content is None:
+                    return articles[:20]
+                indices = self._parse_indices(content, len(articles))
 
-            selected = []
-            seen = set()
-            for idx in indices:
-                if idx in seen:
+                selected = []
+                seen = set()
+                for idx in indices:
+                    if idx in seen:
+                        continue
+                    seen.add(idx)
+                    selected.append(articles[idx-1])
+                    if len(selected) >= 20:
+                        break
+                return selected
+            
+            except Exception as e:
+                print(f"筛选失败 (尝试 {attempt+1}/{max_retries}): {e}")
+                if attempt < max_retries - 1:
+                    time.sleep(3)  # 等待3秒后重试
                     continue
-                seen.add(idx)
-                selected.append(articles[idx-1])
-                if len(selected) >= 20:
-                    break
-            return selected
         
-        except Exception as e:
-            print(f"筛选失败: {e}，保留所有文章")
-            return articles[:20]
+        print(f"筛选最终失败，保留前20篇文章")
+        return articles[:20]
     
     def _process_single_batch(self, articles: List[Dict]) -> List[Dict]:
         """处理单个批次"""
@@ -143,43 +154,57 @@ class NLPProcessor:
 
 必须返回所有{len(articles)}篇文章的分析结果。"""
 
-        try:
-            response = self.client.chat.completions.create(
-                model="deepseek-chat",
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.3,
-                max_tokens=2000
-            )
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                response = self.client.chat.completions.create(
+                    model="deepseek-chat",
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.3,
+                    max_tokens=2000,
+                    timeout=90.0  # 单次请求90秒超时
+                )
+                
+                content = response.choices[0].message.content
+                if content is None:
+                    if attempt < max_retries - 1:
+                        time.sleep(3)
+                        continue
+                    return []
+                
+                result = self._extract_json(content)
+                if not result:
+                    if attempt < max_retries - 1:
+                        time.sleep(3)
+                        continue
+                    return []
+                
+                processed = []
+                for item in result:
+                    idx = item.get('index', 0) - 1
+                    if 0 <= idx < len(articles):
+                        processed.append({
+                            **articles[idx],
+                            'summary': item.get('summary', ''),
+                            'sentiment': float(item.get('sentiment', 0)),
+                            'sentiment_cn': float(item.get('sentiment_cn', item.get('sentiment', 0))),
+                            'sentiment_us': float(item.get('sentiment_us', item.get('sentiment', 0))),
+                            'entities': item.get('key_entities', []),
+                            'event_type': item.get('event_type', '其他'),
+                            'impact_level': item.get('impact_level', '中'),
+                            'stock_impact': item.get('stock_impact', [])
+                        })
+                
+                return processed
             
-            content = response.choices[0].message.content
-            if content is None:
-                return []
-            
-            result = self._extract_json(content)
-            if not result:
-                return []
-            
-            processed = []
-            for item in result:
-                idx = item.get('index', 0) - 1
-                if 0 <= idx < len(articles):
-                    processed.append({
-                        **articles[idx],
-                        'summary': item.get('summary', ''),
-                        'sentiment': float(item.get('sentiment', 0)),
-                        'sentiment_cn': float(item.get('sentiment_cn', item.get('sentiment', 0))),
-                        'sentiment_us': float(item.get('sentiment_us', item.get('sentiment', 0))),
-                        'entities': item.get('key_entities', []),
-                        'event_type': item.get('event_type', '其他'),
-                        'impact_level': item.get('impact_level', '中'),
-                        'stock_impact': item.get('stock_impact', [])
-                    })
-            
-            return processed
+            except Exception as e:
+                print(f"批次处理失败 (尝试 {attempt+1}/{max_retries}): {e}")
+                if attempt < max_retries - 1:
+                    time.sleep(5)  # 等待5秒后重试
+                    continue
         
-        except Exception as e:
-            print(f"Processing error: {e}")
-            return []
+        print(f"批次处理最终失败，跳过此批次")
+        return []
     
     def _extract_json(self, text: str):
         """从文本中提取JSON数组"""

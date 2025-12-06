@@ -178,7 +178,9 @@ class Translator:
             if api_key:
                 self.client = OpenAI(
                     api_key=api_key,
-                    base_url="https://api.deepseek.com"
+                    base_url="https://api.deepseek.com",
+                    timeout=60.0,   # 设置60秒超时
+                    max_retries=2   # 自动重试2次
                 )
             else:
                 self.use_api = False

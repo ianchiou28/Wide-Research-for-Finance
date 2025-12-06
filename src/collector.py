@@ -15,6 +15,22 @@ class DataCollector:
         except FileNotFoundError:
             self.user_config = {}
     
+    def _fetch_feed_with_timeout(self, url: str, timeout: int = 15) -> dict:
+        """使用 requests 获取 RSS，带超时控制"""
+        try:
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
+            response = requests.get(url, timeout=timeout, headers=headers)
+            response.raise_for_status()
+            return feedparser.parse(response.content)
+        except requests.Timeout:
+            print(f"    超时: {url[:50]}...")
+            return feedparser.FeedParserDict()
+        except requests.RequestException as e:
+            print(f"    请求失败: {str(e)[:50]}")
+            return feedparser.FeedParserDict()
+    
     def fetch_latest(self, hours=24, max_per_source=15) -> List[Dict]:
         """获取最近N小时的新闻"""
         articles = []

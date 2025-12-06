@@ -9,7 +9,12 @@ class WeeklySummary:
         self.api_key = os.getenv('DEEPSEEK_API_KEY')
         self.client = None
         if self.api_key:
-            self.client = OpenAI(api_key=self.api_key, base_url="https://api.deepseek.com")
+            self.client = OpenAI(
+                api_key=self.api_key, 
+                base_url="https://api.deepseek.com",
+                timeout=120.0,  # 设置120秒超时
+                max_retries=2   # 自动重试2次
+            )
     
     def generate(self, weekly_reports: List[Dict]) -> Dict:
         """生成一周总结和个股预测"""
