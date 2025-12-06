@@ -174,6 +174,7 @@ class WebScraper:
     def scrape_all(self) -> List[Dict]:
         """爬取所有官方网站"""
         all_articles = []
+        success_count = 0
         scrapers = [
             ('美联储', self.scrape_fed),
             ('SEC', self.scrape_sec),
@@ -189,7 +190,11 @@ class WebScraper:
                 all_articles.extend(articles)
                 if articles:
                     print(f"  ✓ {name}: {len(articles)}条")
+                    success_count += 1
+                else:
+                    print(f"  - {name}: 0条")
             except Exception as e:
                 print(f"  ⚠ {name}: {str(e)[:30]}")
         
+        print(f"  📊 爬虫统计: {success_count}/{len(scrapers)} 成功, 共 {len(all_articles)} 条")
         return all_articles

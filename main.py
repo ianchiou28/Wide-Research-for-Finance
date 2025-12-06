@@ -27,20 +27,31 @@ def run_daily_report():
     print("1. 采集RSS新闻...")
     collector = DataCollector()
     articles = collector.fetch_latest(hours=24, max_per_source=15)
+    rss_count = len(articles)
     
     print("\n2. 爬取官方网站...")
     scraper = WebScraper()
     web_articles = scraper.scrape_all()
+    web_count = len(web_articles)
     articles.extend(web_articles)
 
     # 2a. 采集自选股新闻
-    web_articles = collector.fetch_stock_specific_news()
-    articles.extend(web_articles)
+    stock_articles = collector.fetch_stock_specific_news()
+    stock_count = len(stock_articles)
+    articles.extend(stock_articles)
     
-    print(f"\n   总计采集 {len(articles)} 条新闻")
+    print(f"\n   📊 采集统计:")
+    print(f"      - RSS源: {rss_count} 条")
+    print(f"      - 网页爬取: {web_count} 条")
+    print(f"      - 自选股: {stock_count} 条")
+    print(f"      - 总计: {len(articles)} 条")
     
     if not articles:
-        print("   无新数据，跳过处理")
+        print("\n   ⚠️ 无新数据！可能原因:")
+        print("      1. 网络问题导致RSS/爬虫超时")
+        print("      2. 所有新闻都因时间过滤被排除")
+        print("      3. 网站结构变化导致爬取失败")
+        print("   跳过本次报告生成")
         return
     
     # 2. 信息处理
@@ -49,8 +60,16 @@ def run_daily_report():
     processed = processor.process_batch(articles)
     print(f"   成功处理 {len(processed)} 条新闻")
     
+    if not processed:
+        print("\n   ⚠️ AI处理后无有效新闻！可能原因:")
+        print("      1. DeepSeek API调用失败（检查API密钥和余额）")
+        print("      2. AI认为所有新闻都不值得分析")
+        print("      3. JSON解析失败")
+        print("   将跳过本次报告生成")
+        return
+    
     # 3. 生成报告
-    print("4. 生成报告...")
+    print("\n4. 生成报告...")
     
     # 生成纯文本报告（用于本地保存）
     report_gen = ReportGenerator()

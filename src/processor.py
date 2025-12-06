@@ -13,22 +13,50 @@ class NLPProcessor:
     def process_batch(self, articles: List[Dict], batch_size=20) -> List[Dict]:
         """两阶段处理：先筛选标题，再深度分析"""
         if not articles:
+            print("  ⚠️ 无文章输入")
             return []
         
         print(f"\n[阶段1] 标题筛选 ({len(articles)}条)...")
-        interesting = self._filter_by_title(articles)
-        print(f"  筛选出 {len(interesting)} 条感兴趣的新闻")
+        try:
+            interesting = self._filter_by_title(articles)
+            print(f"  筛选出 {len(interesting)} 条感兴趣的新闻")
+        except Exception as e:
+            print(f"  ⚠️ 标题筛选失败: {e}")
+            print(f"  将使用前20条新闻继续处理...")
+            interesting = articles[:20]
         
         if not interesting:
-            return []
+            print("  ⚠️ AI筛选后无感兴趣的新闻，使用前10条强制处理...")
+            interesting = articles[:10]
+            if not interesting:
+                return []
         
         print(f"\n[阶段2] 深度分析...")
         all_processed = []
         for batch_start in range(0, len(interesting), batch_size):
             batch = interesting[batch_start:batch_start + batch_size]
-            processed = self._process_single_batch(batch)
-            all_processed.extend(processed)
-            print(f"  已处理 {len(all_processed)}/{len(interesting)} 条")
+            try:
+                processed = self._process_single_batch(batch)
+                all_processed.extend(processed)
+                print(f"  已处理 {len(all_processed)}/{len(interesting)} 条")
+            except Exception as e:
+                print(f"  ⚠️ 批次处理失败: {e}")
+        
+        if not all_processed and interesting:
+            print("  ⚠️ 深度分析全部失败，生成简化报告...")
+            # 返回简化版本，至少有数据
+            for article in interesting[:10]:
+                all_processed.append({
+                    **article,
+                    'summary': article['title'][:50],
+                    'sentiment': 0,
+                    'sentiment_cn': 0,
+                    'sentiment_us': 0,
+                    'entities': [],
+                    'event_type': '其他',
+                    'impact_level': '中',
+                    'stock_impact': []
+                })
         
         return all_processed
     
