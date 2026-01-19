@@ -1,7 +1,14 @@
 FROM python:3.9-slim
 
-# 使用国内 Debian 镜像以加速 apt-get（避免官方源超时）
-RUN sed -i 's@deb.debian.org@mirrors.aliyun.com@g; s@security.debian.org@mirrors.aliyun.com/debian-security@g' /etc/apt/sources.list
+# 使用国内 Debian 镜像以加速 apt-get（兼容无 sources.list 的 slim 基础镜像）
+RUN set -eux; \
+        if [ -f /etc/apt/sources.list ]; then \
+            sed -i 's@deb.debian.org@mirrors.aliyun.com@g; s@security.debian.org@mirrors.aliyun.com/debian-security@g' /etc/apt/sources.list; \
+        else \
+            echo 'deb https://mirrors.aliyun.com/debian bookworm main contrib non-free non-free-firmware' > /etc/apt/sources.list; \
+            echo 'deb https://mirrors.aliyun.com/debian bookworm-updates main contrib non-free non-free-firmware' >> /etc/apt/sources.list; \
+            echo 'deb https://mirrors.aliyun.com/debian-security bookworm-security main contrib non-free non-free-firmware' >> /etc/apt/sources.list; \
+        fi
 
 WORKDIR /app
 
