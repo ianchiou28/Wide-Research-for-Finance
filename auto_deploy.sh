@@ -135,11 +135,12 @@ install_docker() {
     mkdir -p /etc/docker
     cat > /etc/docker/daemon.json <<EOF
 {
-  "registry-mirrors": [
-    "https://docker.mirrors.ustc.edu.cn",
-    "https://hub-mirror.c.163.com",
-    "https://mirror.ccs.tencentyun.com"
-  ]
+    "registry-mirrors": [
+        "https://docker.m.daocloud.io",
+        "https://mirror.ccs.tencentyun.com",
+        "https://hub-mirror.c.163.com",
+        "https://dockerproxy.com"
+    ]
 }
 EOF
     
