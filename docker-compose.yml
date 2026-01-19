@@ -4,7 +4,7 @@ services:
   finance-app:
     build: .
     ports:
-      - "80:5000"
+      - "8080:5000"  # 避免占用宿主机80端口
     environment:
       - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
     volumes:
