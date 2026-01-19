@@ -152,6 +152,27 @@ EOF
 }
 
 ###############################################################################
+# 步骤 2.1: 配置Docker镜像加速（无论是否已安装）
+###############################################################################
+configure_docker_mirrors() {
+        log_info "配置Docker镜像加速..."
+        mkdir -p /etc/docker
+        cat > /etc/docker/daemon.json <<EOF
+{
+    "registry-mirrors": [
+        "https://docker.m.daocloud.io",
+        "https://mirror.ccs.tencentyun.com",
+        "https://hub-mirror.c.163.com",
+        "https://dockerproxy.com"
+    ]
+}
+EOF
+
+        systemctl restart docker || systemctl start docker
+        log_success "镜像加速配置完成"
+}
+
+###############################################################################
 # 步骤 3: 安装Docker Compose
 ###############################################################################
 install_docker_compose() {
@@ -393,6 +414,7 @@ main() {
     # 执行各个步骤
     check_system
     install_docker
+    configure_docker_mirrors
     install_docker_compose
     setup_user
     
