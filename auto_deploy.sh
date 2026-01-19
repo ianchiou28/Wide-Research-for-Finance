@@ -212,7 +212,6 @@ clone_project() {
     fi
     
     log_success "项目克隆完成: $(pwd)"
-    echo $(pwd)
 }
 
 ###############################################################################
@@ -400,8 +399,14 @@ main() {
     mkdir -p $DEPLOY_DIR
     cd $DEPLOY_DIR
     
-    PROJECT_DIR=$(clone_project $DEPLOY_DIR)
-    
+    clone_project $DEPLOY_DIR
+    PROJECT_DIR="$DEPLOY_DIR/Wide-Research-for-Finance"
+
+    if [ ! -d "$PROJECT_DIR" ]; then
+        log_error "项目目录不存在: $PROJECT_DIR"
+        exit 1
+    fi
+
     if ! setup_env $PROJECT_DIR; then
         log_error "环境配置不完整，请先编辑.env文件"
         exit 1
