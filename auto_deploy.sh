@@ -151,7 +151,7 @@ clone_project() {
         cd Wide-Research-for-Finance
         git pull
     else
-        git clone https://github.com/ianchiou28/Wide-Research-for-Finance.git
+        git clone -b server-base https://github.com/ianchiou28/Wide-Research-for-Finance.git
         cd Wide-Research-for-Finance
     fi
     
