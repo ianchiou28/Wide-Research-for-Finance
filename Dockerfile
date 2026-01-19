@@ -1,13 +1,13 @@
 FROM python:3.9-slim
 
 # 使用国内 Debian 镜像以加速 apt-get（覆盖 debian.sources 与 sources.list）
-RUN set -eux; \
+RUN set -eux && \
     cat > /etc/apt/sources.list <<'EOF'
 deb https://mirrors.aliyun.com/debian bookworm main contrib non-free non-free-firmware
 deb https://mirrors.aliyun.com/debian bookworm-updates main contrib non-free non-free-firmware
 deb https://mirrors.aliyun.com/debian-security bookworm-security main contrib non-free non-free-firmware
 EOF
-    rm -f /etc/apt/sources.list.d/debian.sources
+    && rm -f /etc/apt/sources.list.d/debian.sources
 
 WORKDIR /app
 
