@@ -149,7 +149,7 @@ clone_project() {
     if [ -d "Wide-Research-for-Finance" ]; then
         log_warn "项目已存在，更新代码..."
         cd Wide-Research-for-Finance
-        git pull
+        git pull origin server-base
     else
         git clone -b server-base https://github.com/ianchiou28/Wide-Research-for-Finance.git
         cd Wide-Research-for-Finance
