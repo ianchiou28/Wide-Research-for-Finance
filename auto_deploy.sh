@@ -72,24 +72,64 @@ install_docker() {
         return
     fi
     
+    # 在 auto_deploy.sh 的 install_docker() 函数中，替换第75-110行为：
+
     log_info "开始安装Docker..."
     
     # 更新包管理器
     apt update -y
     apt install -y curl gnupg lsb-release ca-certificates
     
+    # 确保keyrings目录存在
+    mkdir -p /etc/apt/keyrings
+    chmod 755 /etc/apt/keyrings
+    
+    # 删除旧的密钥文件（避免交互提示）
+    rm -f /etc/apt/keyrings/docker.gpg
+    
     # 使用阿里云镜像安装Docker（更稳定）
     log_info "使用阿里云镜像源..."
-    curl -fsSL https://mirrors.aliyun.com/docker-ce/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
     
-    # 添加Docker仓库（阿里云镜像）
+    # 多源重试下载GPG密钥
+    GPG_SUCCESS=0
+    for mirror in \
+        "https://mirrors.aliyun.com/docker-ce/linux/ubuntu/gpg" \
+        "https://mirrors.tuna.tsinghua.edu.cn/docker-ce/linux/ubuntu/gpg" \
+        "https://download.docker.com/linux/ubuntu/gpg"
+    do
+        log_info "尝试从 ${mirror} 下载GPG密钥..."
+        if curl -fsSL --retry 3 --retry-delay 2 --connect-timeout 10 "${mirror}" | gpg --batch --yes --dearmor -o /etc/apt/keyrings/docker.gpg 2>/dev/null; then
+            log_success "GPG密钥下载成功"
+            GPG_SUCCESS=1
+            break
+        else
+            log_warn "从 ${mirror} 下载失败，尝试下一个源..."
+        fi
+    done
+    
+    if [ $GPG_SUCCESS -eq 0 ]; then
+        log_error "所有镜像源均无法下载Docker GPG密钥，可能是网络问题"
+        log_info "建议检查网络连接或稍后重试"
+        exit 1
+    fi
+    
+    # 添加Docker仓库（优先使用阿里云镜像）
     echo \
         "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://mirrors.aliyun.com/docker-ce/linux/ubuntu \
         $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
     
     # 安装Docker
+    log_info "更新软件包索引..."
     apt update -y
-    apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+    
+    log_info "安装Docker组件..."
+    if ! apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin; then
+        log_warn "apt安装失败，尝试使用官方一键安装脚本..."
+        curl -fsSL https://get.docker.com | sh || {
+            log_error "Docker安装失败，请检查网络或手动安装"
+            exit 1
+        }
+    fi
     
     # 配置Docker国内镜像加速
     mkdir -p /etc/docker
@@ -104,8 +144,8 @@ install_docker() {
 EOF
     
     # 启动Docker
-    systemctl enable docker
-    systemctl start docker
+    systemctl enable docker 2>/dev/null || true
+    systemctl restart docker || systemctl start docker
     
     log_success "Docker安装完成"
 }
