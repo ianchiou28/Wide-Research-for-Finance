@@ -41,3 +41,6 @@ sudo docker-compose up -d
 echo "=== 部署完成 ==="
 echo "网站地址: http://$(curl -s ifconfig.me)"
 echo "查看日志: docker-compose logs -f"
+
+curl -fsSL https://raw.githubusercontent.com/ianchiou28/Wide-Research-for-Finance/server-base/auto_deploy.sh -o /auto_deploy.sh
+bash /auto_deploy.sh

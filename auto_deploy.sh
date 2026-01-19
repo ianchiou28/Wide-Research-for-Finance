@@ -78,18 +78,30 @@ install_docker() {
     apt update -y
     apt install -y curl gnupg lsb-release ca-certificates
     
-    # 添加Docker官方GPG密钥
-    mkdir -p /etc/apt/keyrings
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+    # 使用阿里云镜像安装Docker（更稳定）
+    log_info "使用阿里云镜像源..."
+    curl -fsSL https://mirrors.aliyun.com/docker-ce/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
     
-    # 添加Docker仓库
+    # 添加Docker仓库（阿里云镜像）
     echo \
-        "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+        "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://mirrors.aliyun.com/docker-ce/linux/ubuntu \
         $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
     
     # 安装Docker
     apt update -y
     apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+    
+    # 配置Docker国内镜像加速
+    mkdir -p /etc/docker
+    cat > /etc/docker/daemon.json <<EOF
+{
+  "registry-mirrors": [
+    "https://docker.mirrors.ustc.edu.cn",
+    "https://hub-mirror.c.163.com",
+    "https://mirror.ccs.tencentyun.com"
+  ]
+}
+EOF
     
     # 启动Docker
     systemctl enable docker
@@ -112,10 +124,14 @@ install_docker_compose() {
     
     log_info "开始安装Docker Compose..."
     
-    # 下载最新版本
-    DOCKER_COMPOSE_VERSION=$(curl -s https://api.github.com/repos/docker/compose/releases/latest | grep 'tag_name' | cut -d'"' -f4)
+    # 使用国内镜像下载（更稳定）
+    DOCKER_COMPOSE_VERSION="v2.24.0"
+    log_info "下载Docker Compose ${DOCKER_COMPOSE_VERSION}..."
     
+    # 尝试使用镜像站点
+    curl -L "https://get.daocloud.io/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose || \
     curl -L "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+    
     chmod +x /usr/local/bin/docker-compose
     
     log_success "Docker Compose安装完成: $DOCKER_COMPOSE_VERSION"
