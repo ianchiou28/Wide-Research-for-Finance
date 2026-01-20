@@ -17,7 +17,7 @@ services:
     command: python main.py
     environment:
       - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
-      - DOCKER_ENV=true
+      - DOCKER_ENV=True
     volumes:
       - ./data:/app/data
       - ./.env:/app/.env
