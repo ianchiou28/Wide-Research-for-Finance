@@ -1460,7 +1460,7 @@ if __name__ == '__main__':
     app.run(
         # debug=args.debug,
         debug=True,
-        host='127.0.0.1',  # 只监听本地，通过Nginx代理
+        host='0.0.0.0',  # 监听所有接口，允许容器间访问
         port=5000,
         threaded=True
     )
