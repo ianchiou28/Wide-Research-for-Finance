@@ -40,20 +40,23 @@ class CryptoCollector:
         }
     
     def get_market_data(self, symbols: List[str] = None, vs_currency: str = 'usd') -> List[Dict]:
-        """获取加密货币市场数据 - 使用CoinGecko API"""
+        """获取加密货币市场数据，优先国外源，失败时切国内可用源"""
         if symbols is None:
             symbols = list(self.symbol_to_id.keys())[:10]
-        
-        # 转换symbol到coingecko id
+
         ids = [self.symbol_to_id.get(s.upper(), s.lower()) for s in symbols]
         ids_str = ','.join(ids)
-        
+
         try:
-            url = f"https://api.coingecko.com/api/v3/coins/markets?vs_currency={vs_currency}&ids={ids_str}&order=market_cap_desc&sparkline=false&price_change_percentage=24h,7d"
-            
+            url = (
+                "https://api.coingecko.com/api/v3/coins/markets"
+                f"?vs_currency={vs_currency}&ids={ids_str}&order=market_cap_desc&sparkline=false"
+                "&price_change_percentage=24h,7d"
+            )
+
             if self.coingecko_api_key:
                 url += f"&x_cg_demo_api_key={self.coingecko_api_key}"
-            
+
             response = self.session.get(url, timeout=15)
             if response.status_code == 200:
                 data = response.json()
@@ -78,14 +81,23 @@ class CryptoCollector:
                         'ath_change_percentage': coin.get('ath_change_percentage', 0),
                         'timestamp': datetime.now().isoformat()
                     })
-                return results
+                if results:
+                    return results
             elif response.status_code == 429:
                 print("CoinGecko API限流，使用备用方案...")
-                return self._get_market_data_backup(symbols)
         except Exception as e:
             print(f"CoinGecko API请求失败: {e}")
-        
-        return self._get_market_data_backup(symbols)
+
+        # 国外源不可用时，先尝试币安，再尝试国内可访问的公共源
+        binance_results = self._get_market_data_backup(symbols)
+        if binance_results:
+            return binance_results
+
+        domestic_results = self._get_market_data_domestic(symbols)
+        if domestic_results:
+            return domestic_results
+
+        return []
     
     def _get_market_data_backup(self, symbols: List[str]) -> List[Dict]:
         """备用数据源 - 币安API"""
@@ -117,6 +129,47 @@ class CryptoCollector:
         except Exception as e:
             print(f"币安API请求失败: {e}")
         
+        return results
+
+    def _get_market_data_domestic(self, symbols: List[str]) -> List[Dict]:
+        """国内可访问的数据源 - CoinCap等公共API"""
+        results = []
+        try:
+            ids = ','.join([self.symbol_to_id.get(s.upper(), s.lower()) for s in symbols])
+            url = f"https://api.coincap.io/v2/assets?ids={ids}"
+            response = requests.get(url, timeout=10)
+
+            if response.status_code == 200:
+                data = response.json().get('data', [])
+                for coin in data:
+                    price = float(coin.get('priceUsd', 0) or 0)
+                    change_24h = float(coin.get('changePercent24Hr', 0) or 0)
+                    market_cap = float(coin.get('marketCapUsd', 0) or 0)
+                    volume_24h = float(coin.get('volumeUsd24Hr', 0) or 0)
+                    supply = float(coin.get('supply', 0) or 0)
+
+                    results.append({
+                        'id': coin.get('id', ''),
+                        'symbol': coin.get('symbol', '').upper(),
+                        'name': coin.get('name', ''),
+                        'image': '',
+                        'price_usd': price,
+                        'market_cap': market_cap,
+                        'market_cap_rank': int(coin.get('rank', 0) or 0),
+                        'volume_24h': volume_24h,
+                        'change_24h': change_24h,
+                        'change_7d': None,
+                        'high_24h': None,
+                        'low_24h': None,
+                        'circulating_supply': supply,
+                        'total_supply': supply,
+                        'ath': None,
+                        'ath_change_percentage': None,
+                        'timestamp': datetime.now().isoformat()
+                    })
+        except Exception as e:
+            print(f"国内市场数据源失败: {e}")
+
         return results
     
     def get_coin_details(self, coin_id: str) -> Optional[Dict]:
@@ -208,7 +261,30 @@ class CryptoCollector:
                 }
         except Exception as e:
             print(f"获取全局数据失败: {e}")
-        
+
+        return self._get_global_data_domestic()
+
+    def _get_global_data_domestic(self) -> Dict:
+        """国内可访问的全局数据源 - CoinCap"""
+        try:
+            url = "https://api.coincap.io/v2/global"
+            response = requests.get(url, timeout=10)
+
+            if response.status_code == 200:
+                data = response.json().get('data', {})
+                return {
+                    'total_market_cap': float(data.get('totalMarketCapUsd', 0) or 0),
+                    'total_volume': float(data.get('totalVolumeUsd24Hr', 0) or 0),
+                    'market_cap_change_24h': float(data.get('marketCapChangePercent24Hr', 0) or 0),
+                    'btc_dominance': float(data.get('bitcoinDominance', 0) or 0),
+                    'eth_dominance': None,
+                    'active_cryptocurrencies': int(data.get('cryptocurrenciesNumber', 0) or 0),
+                    'markets': int(data.get('marketsNumber', 0) or 0),
+                    'timestamp': datetime.now().isoformat()
+                }
+        except Exception as e:
+            print(f"国内全局数据源失败: {e}")
+
         return {}
     
     def get_price_history(self, coin_id: str, days: int = 30, vs_currency: str = 'usd') -> List[Dict]:
