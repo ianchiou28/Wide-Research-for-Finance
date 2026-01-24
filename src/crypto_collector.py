@@ -40,10 +40,21 @@ class CryptoCollector:
         }
     
     def get_market_data(self, symbols: List[str] = None, vs_currency: str = 'usd') -> List[Dict]:
-        """获取加密货币市场数据，优先国外源，失败时切国内可用源"""
+        """获取加密货币市场数据，国内源优先，减少等待"""
         if symbols is None:
             symbols = list(self.symbol_to_id.keys())[:10]
 
+        # 先走国内可访问源，避免长时间等待
+        domestic_results = self._get_market_data_domestic(symbols)
+        if domestic_results:
+            return domestic_results
+
+        # 再尝试币安（若可直连）
+        binance_results = self._get_market_data_backup(symbols)
+        if binance_results:
+            return binance_results
+
+        # 最后尝试 CoinGecko（多数国内会超时）
         ids = [self.symbol_to_id.get(s.upper(), s.lower()) for s in symbols]
         ids_str = ','.join(ids)
 
@@ -57,7 +68,7 @@ class CryptoCollector:
             if self.coingecko_api_key:
                 url += f"&x_cg_demo_api_key={self.coingecko_api_key}"
 
-            response = self.session.get(url, timeout=15)
+            response = self.session.get(url, timeout=10)
             if response.status_code == 200:
                 data = response.json()
                 results = []
@@ -87,15 +98,6 @@ class CryptoCollector:
                 print("CoinGecko API限流，使用备用方案...")
         except Exception as e:
             print(f"CoinGecko API请求失败: {e}")
-
-        # 国外源不可用时，先尝试币安，再尝试国内可访问的公共源
-        binance_results = self._get_market_data_backup(symbols)
-        if binance_results:
-            return binance_results
-
-        domestic_results = self._get_market_data_domestic(symbols)
-        if domestic_results:
-            return domestic_results
 
         return []
     
@@ -132,45 +134,188 @@ class CryptoCollector:
         return results
 
     def _get_market_data_domestic(self, symbols: List[str]) -> List[Dict]:
-        """国内可访问的数据源 - CoinCap等公共API"""
-        results = []
+        """国内可访问的数据源，按“更易直连、短超时”顺序依次尝试"""
+        wanted = set(s.upper() for s in symbols)
+
+        # 1) 币安国际的国内域名（可能可直连）
         try:
-            ids = ','.join([self.symbol_to_id.get(s.upper(), s.lower()) for s in symbols])
-            url = f"https://api.coincap.io/v2/assets?ids={ids}"
-            response = requests.get(url, timeout=10)
-
-            if response.status_code == 200:
-                data = response.json().get('data', [])
-                for coin in data:
-                    price = float(coin.get('priceUsd', 0) or 0)
-                    change_24h = float(coin.get('changePercent24Hr', 0) or 0)
-                    market_cap = float(coin.get('marketCapUsd', 0) or 0)
-                    volume_24h = float(coin.get('volumeUsd24Hr', 0) or 0)
-                    supply = float(coin.get('supply', 0) or 0)
-
-                    results.append({
-                        'id': coin.get('id', ''),
-                        'symbol': coin.get('symbol', '').upper(),
-                        'name': coin.get('name', ''),
-                        'image': '',
-                        'price_usd': price,
-                        'market_cap': market_cap,
-                        'market_cap_rank': int(coin.get('rank', 0) or 0),
-                        'volume_24h': volume_24h,
-                        'change_24h': change_24h,
-                        'change_7d': None,
-                        'high_24h': None,
-                        'low_24h': None,
-                        'circulating_supply': supply,
-                        'total_supply': supply,
-                        'ath': None,
-                        'ath_change_percentage': None,
-                        'timestamp': datetime.now().isoformat()
-                    })
+            url = "https://api.binance.me/api/v3/ticker/24hr"
+            resp = requests.get(url, timeout=3)
+            if resp.status_code == 200:
+                data = resp.json()
+                results = []
+                for item in data:
+                    if item.get('symbol', '').endswith('USDT'):
+                        base = item['symbol'][:-4].upper()
+                        if base in wanted:
+                            results.append({
+                                'id': base.lower(),
+                                'symbol': base,
+                                'name': base,
+                                'image': '',
+                                'price_usd': float(item.get('lastPrice', 0) or 0),
+                                'market_cap': None,
+                                'market_cap_rank': None,
+                                'volume_24h': float(item.get('quoteVolume', 0) or 0),
+                                'change_24h': float(item.get('priceChangePercent', 0) or 0),
+                                'change_7d': None,
+                                'high_24h': float(item.get('highPrice', 0) or 0),
+                                'low_24h': float(item.get('lowPrice', 0) or 0),
+                                'circulating_supply': None,
+                                'total_supply': None,
+                                'ath': None,
+                                'ath_change_percentage': None,
+                                'timestamp': datetime.now().isoformat()
+                            })
+                if results:
+                    return results
         except Exception as e:
-            print(f"国内市场数据源失败: {e}")
+            print(f"国内市场数据源失败(Binance.me): {e}")
 
-        return results
+        # 2) Gate.io（通常国内可直连）
+        try:
+            url = "https://api.gateio.ws/api/v4/spot/tickers"
+            resp = requests.get(url, timeout=3)
+            if resp.status_code == 200:
+                data = resp.json()
+                results = []
+                for item in data:
+                    pair = item.get('currency_pair', '').upper()
+                    if pair.endswith('_USDT'):
+                        base = pair[:-5]
+                        if base in wanted:
+                            results.append({
+                                'id': base.lower(),
+                                'symbol': base,
+                                'name': base,
+                                'image': '',
+                                'price_usd': float(item.get('last', 0) or 0),
+                                'market_cap': None,
+                                'market_cap_rank': None,
+                                'volume_24h': float(item.get('quote_volume', 0) or 0),
+                                'change_24h': float(item.get('change_percentage', 0) or 0),
+                                'change_7d': None,
+                                'high_24h': float(item.get('high_24h', 0) or 0),
+                                'low_24h': float(item.get('low_24h', 0) or 0),
+                                'circulating_supply': None,
+                                'total_supply': None,
+                                'ath': None,
+                                'ath_change_percentage': None,
+                                'timestamp': datetime.now().isoformat()
+                            })
+                if results:
+                    return results
+        except Exception as e:
+            print(f"国内市场数据源失败(Gate): {e}")
+
+        # 3) OKX 行情
+        try:
+            url = "https://www.okx.com/api/v5/market/tickers?instType=SPOT"
+            resp = requests.get(url, timeout=3)
+            if resp.status_code == 200:
+                data = resp.json().get('data', [])
+                results = []
+                for item in data:
+                    inst = item.get('instId', '').upper()  # e.g., BTC-USDT
+                    if inst.endswith('-USDT'):
+                        base = inst.split('-')[0]
+                        if base in wanted:
+                            results.append({
+                                'id': base.lower(),
+                                'symbol': base,
+                                'name': base,
+                                'image': '',
+                                'price_usd': float(item.get('last', 0) or 0),
+                                'market_cap': None,
+                                'market_cap_rank': None,
+                                'volume_24h': float(item.get('volCcy24h', 0) or 0),
+                                # OKX未直接提供百分比，使用昨收开盘价近似计算
+                                'change_24h': float(item.get('last', 0) or 0) - float(item.get('sodUtc0', 0) or 0),
+                                'change_7d': None,
+                                'high_24h': float(item.get('high24h', 0) or 0),
+                                'low_24h': float(item.get('low24h', 0) or 0),
+                                'circulating_supply': None,
+                                'total_supply': None,
+                                'ath': None,
+                                'ath_change_percentage': None,
+                                'timestamp': datetime.now().isoformat()
+                            })
+                if results:
+                    return results
+        except Exception as e:
+            print(f"国内市场数据源失败(OKX): {e}")
+
+        # 4) 非小号公共API（可能偶尔慢）
+        try:
+            url = "https://fxhapi.feixiaohao.com/public/v1/ticker?limit=200"
+            resp = requests.get(url, timeout=5)
+            if resp.status_code == 200:
+                data = resp.json()
+                results = []
+                for item in data:
+                    sym = item.get('symbol', '').upper()
+                    if sym in wanted:
+                        results.append({
+                            'id': item.get('id', ''),
+                            'symbol': sym,
+                            'name': item.get('name', ''),
+                            'image': '',
+                            'price_usd': float(item.get('price_usd', 0) or 0),
+                            'market_cap': float(item.get('market_cap_usd', 0) or 0),
+                            'market_cap_rank': int(item.get('rank', 0) or 0),
+                            'volume_24h': float(item.get('24h_volume_usd', 0) or 0),
+                            'change_24h': float(item.get('percent_change_24h', 0) or 0),
+                            'change_7d': float(item.get('percent_change_7d', 0) or 0),
+                            'high_24h': None,
+                            'low_24h': None,
+                            'circulating_supply': float(item.get('available_supply', 0) or 0),
+                            'total_supply': float(item.get('total_supply', 0) or 0),
+                            'ath': None,
+                            'ath_change_percentage': None,
+                            'timestamp': datetime.now().isoformat()
+                        })
+                if results:
+                    return results
+        except Exception as e:
+            print(f"国内市场数据源失败(非小号): {e}")
+
+        # 5) 火币（超时降到 5s）
+        try:
+            url = "https://api.huobi.pro/market/tickers"
+            resp = requests.get(url, timeout=5)
+            if resp.status_code == 200:
+                data = resp.json().get('data', [])
+                results = []
+                for item in data:
+                    sym = item.get('symbol', '').upper()
+                    if sym.endswith('USDT'):
+                        base = sym[:-4]
+                        if base in wanted:
+                            results.append({
+                                'id': base.lower(),
+                                'symbol': base,
+                                'name': base,
+                                'image': '',
+                                'price_usd': float(item.get('close', 0) or 0),
+                                'market_cap': None,
+                                'market_cap_rank': None,
+                                'volume_24h': float(item.get('vol', 0) or 0),
+                                'change_24h': float(item.get('pricePercent', 0) or 0),
+                                'change_7d': None,
+                                'high_24h': float(item.get('high', 0) or 0),
+                                'low_24h': float(item.get('low', 0) or 0),
+                                'circulating_supply': None,
+                                'total_supply': None,
+                                'ath': None,
+                                'ath_change_percentage': None,
+                                'timestamp': datetime.now().isoformat()
+                            })
+                if results:
+                    return results
+        except Exception as e:
+            print(f"国内市场数据源失败(火币): {e}")
+
+        return []
     
     def get_coin_details(self, coin_id: str) -> Optional[Dict]:
         """获取单个币种详细信息"""
@@ -242,7 +387,11 @@ class CryptoCollector:
         return []
     
     def get_global_data(self) -> Dict:
-        """获取加密货币市场全局数据"""
+        """获取全局数据，国内源优先"""
+        domestic = self._get_global_data_domestic()
+        if domestic:
+            return domestic
+
         try:
             url = "https://api.coingecko.com/api/v3/global"
             response = self.session.get(url, timeout=10)
@@ -262,28 +411,48 @@ class CryptoCollector:
         except Exception as e:
             print(f"获取全局数据失败: {e}")
 
-        return self._get_global_data_domestic()
+        return {}
 
     def _get_global_data_domestic(self) -> Dict:
-        """国内可访问的全局数据源 - CoinCap"""
+        """国内可访问的全局数据源"""
+        # 1) Coinlore（轻量，先试，超时短）
         try:
-            url = "https://api.coincap.io/v2/global"
-            response = requests.get(url, timeout=10)
-
-            if response.status_code == 200:
-                data = response.json().get('data', {})
+            url = "https://api.coinlore.net/api/global/"
+            resp = requests.get(url, timeout=3)
+            if resp.status_code == 200:
+                arr = resp.json()
+                data = arr[0] if isinstance(arr, list) and arr else {}
                 return {
-                    'total_market_cap': float(data.get('totalMarketCapUsd', 0) or 0),
-                    'total_volume': float(data.get('totalVolumeUsd24Hr', 0) or 0),
-                    'market_cap_change_24h': float(data.get('marketCapChangePercent24Hr', 0) or 0),
-                    'btc_dominance': float(data.get('bitcoinDominance', 0) or 0),
-                    'eth_dominance': None,
-                    'active_cryptocurrencies': int(data.get('cryptocurrenciesNumber', 0) or 0),
-                    'markets': int(data.get('marketsNumber', 0) or 0),
+                    'total_market_cap': float(data.get('total_mcap', 0) or 0),
+                    'total_volume': float(data.get('total_volume', 0) or 0),
+                    'market_cap_change_24h': float(data.get('mcap_change', 0) or 0),
+                    'btc_dominance': float(data.get('btc_d', 0) or 0),
+                    'eth_dominance': float(data.get('eth_d', 0) or 0),
+                    'active_cryptocurrencies': None,
+                    'markets': None,
                     'timestamp': datetime.now().isoformat()
                 }
         except Exception as e:
-            print(f"国内全局数据源失败: {e}")
+            print(f"国内全局数据源失败(Coinlore): {e}")
+
+        # 2) 非小号全局（次优，超时缩短）
+        try:
+            url = "https://fxhapi.feixiaohao.com/public/v1/global"
+            resp = requests.get(url, timeout=5)
+            if resp.status_code == 200:
+                data = resp.json()
+                return {
+                    'total_market_cap': float(data.get('total_market_cap_usd', 0) or 0),
+                    'total_volume': float(data.get('total_24h_volume_usd', 0) or 0),
+                    'market_cap_change_24h': float(data.get('market_cap_change_percentage_24h_usd', 0) or 0),
+                    'btc_dominance': float(data.get('bitcoin_percentage_of_market_cap', 0) or 0),
+                    'eth_dominance': None,
+                    'active_cryptocurrencies': int(data.get('active_cryptocurrencies', 0) or 0),
+                    'markets': int(data.get('markets', 0) or 0),
+                    'timestamp': datetime.now().isoformat()
+                }
+        except Exception as e:
+            print(f"国内全局数据源失败(非小号): {e}")
 
         return {}
     
