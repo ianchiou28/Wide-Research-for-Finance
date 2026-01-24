@@ -137,36 +137,38 @@ class CryptoCollector:
         """国内可访问的数据源，按“更易直连、短超时”顺序依次尝试"""
         wanted = set(s.upper() for s in symbols)
 
-        # 1) 币安国际的国内域名（可能可直连）
+        # 1) 币安国际的国内域名（可能可直连，精确 symbols 以减小返回体积）
         try:
-            url = "https://api.binance.me/api/v3/ticker/24hr"
+            pairs = [f"{s.upper()}USDT" for s in wanted]
+            url = "https://api.binance.me/api/v3/ticker/24hr?symbols=" + json.dumps(pairs)
             resp = requests.get(url, timeout=3)
             if resp.status_code == 200:
                 data = resp.json()
                 results = []
-                for item in data:
-                    if item.get('symbol', '').endswith('USDT'):
-                        base = item['symbol'][:-4].upper()
-                        if base in wanted:
-                            results.append({
-                                'id': base.lower(),
-                                'symbol': base,
-                                'name': base,
-                                'image': '',
-                                'price_usd': float(item.get('lastPrice', 0) or 0),
-                                'market_cap': None,
-                                'market_cap_rank': None,
-                                'volume_24h': float(item.get('quoteVolume', 0) or 0),
-                                'change_24h': float(item.get('priceChangePercent', 0) or 0),
-                                'change_7d': None,
-                                'high_24h': float(item.get('highPrice', 0) or 0),
-                                'low_24h': float(item.get('lowPrice', 0) or 0),
-                                'circulating_supply': None,
-                                'total_supply': None,
-                                'ath': None,
-                                'ath_change_percentage': None,
-                                'timestamp': datetime.now().isoformat()
-                            })
+                # Binance在symbols参数下返回对象或数组，统一处理为列表
+                items = data if isinstance(data, list) else [data]
+                for item in items:
+                    base = item.get('symbol', '')[:-4].upper()
+                    if base and base in wanted:
+                        results.append({
+                            'id': base.lower(),
+                            'symbol': base,
+                            'name': base,
+                            'image': '',
+                            'price_usd': float(item.get('lastPrice', 0) or 0),
+                            'market_cap': None,
+                            'market_cap_rank': None,
+                            'volume_24h': float(item.get('quoteVolume', 0) or 0),
+                            'change_24h': float(item.get('priceChangePercent', 0) or 0),
+                            'change_7d': None,
+                            'high_24h': float(item.get('highPrice', 0) or 0),
+                            'low_24h': float(item.get('lowPrice', 0) or 0),
+                            'circulating_supply': None,
+                            'total_supply': None,
+                            'ath': None,
+                            'ath_change_percentage': None,
+                            'timestamp': datetime.now().isoformat()
+                        })
                 if results:
                     return results
         except Exception as e:
@@ -245,7 +247,41 @@ class CryptoCollector:
         except Exception as e:
             print(f"国内市场数据源失败(OKX): {e}")
 
-        # 4) 非小号公共API（可能偶尔慢）
+        # 4) Coinlore tickers（轻量，通常可直连）
+        try:
+            url = "https://api.coinlore.net/api/tickers/?start=0&limit=200"
+            resp = requests.get(url, timeout=4)
+            if resp.status_code == 200:
+                data = resp.json().get('data', [])
+                results = []
+                for item in data:
+                    sym = item.get('symbol', '').upper()
+                    if sym in wanted:
+                        results.append({
+                            'id': item.get('id', ''),
+                            'symbol': sym,
+                            'name': item.get('name', ''),
+                            'image': '',
+                            'price_usd': float(item.get('price_usd', 0) or 0),
+                            'market_cap': float(item.get('market_cap_usd', 0) or 0),
+                            'market_cap_rank': int(item.get('rank', 0) or 0),
+                            'volume_24h': float(item.get('volume24', 0) or 0),
+                            'change_24h': float(item.get('percent_change_24h', 0) or 0),
+                            'change_7d': float(item.get('percent_change_7d', 0) or 0),
+                            'high_24h': None,
+                            'low_24h': None,
+                            'circulating_supply': float(item.get('csupply', 0) or 0),
+                            'total_supply': float(item.get('tsupply', 0) or 0),
+                            'ath': None,
+                            'ath_change_percentage': None,
+                            'timestamp': datetime.now().isoformat()
+                        })
+                if results:
+                    return results
+        except Exception as e:
+            print(f"国内市场数据源失败(Coinlore tickers): {e}")
+
+        # 5) 非小号公共API（可能偶尔慢）
         try:
             url = "https://fxhapi.feixiaohao.com/public/v1/ticker?limit=200"
             resp = requests.get(url, timeout=5)
@@ -279,7 +315,7 @@ class CryptoCollector:
         except Exception as e:
             print(f"国内市场数据源失败(非小号): {e}")
 
-        # 5) 火币（超时降到 5s）
+        # 6) 火币（超时降到 5s）
         try:
             url = "https://api.huobi.pro/market/tickers"
             resp = requests.get(url, timeout=5)
