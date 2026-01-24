@@ -6,7 +6,12 @@ services:
     ports:
       - "8080:5000"  # 避免占用宿主机80端口
     environment:
+      - TZ=Asia/Shanghai
       - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+      # 代理（可选）：在服务器已配置代理时取消注释
+      # - HTTP_PROXY=${HTTP_PROXY}
+      # - HTTPS_PROXY=${HTTPS_PROXY}
+      # - NO_PROXY=localhost,127.0.0.1,nginx,finance-app,finance-collector,*.local,*.svc,172.16.0.0/12,10.0.0.0/8
     volumes:
       - ./data:/app/data
       - ./.env:/app/.env
@@ -16,8 +21,13 @@ services:
     build: .
     command: python main.py
     environment:
+      - TZ=Asia/Shanghai
       - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
       - DOCKER_ENV=True
+      # 代理（可选）：在服务器已配置代理时取消注释
+      # - HTTP_PROXY=${HTTP_PROXY}
+      # - HTTPS_PROXY=${HTTPS_PROXY}
+      # - NO_PROXY=localhost,127.0.0.1,nginx,finance-app,finance-collector,*.local,*.svc,172.16.0.0/12,10.0.0.0/8
     volumes:
       - ./data:/app/data
       - ./.env:/app/.env
