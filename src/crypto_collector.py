@@ -44,17 +44,23 @@ class CryptoCollector:
         if symbols is None:
             symbols = list(self.symbol_to_id.keys())[:10]
 
+        print(f"[CryptoCollector] 开始获取市场数据: {symbols}")
+        
         # 先走国内可访问源，避免长时间等待
         domestic_results = self._get_market_data_domestic(symbols)
         if domestic_results:
+            print(f"[CryptoCollector] ✓ 国内源成功返回 {len(domestic_results)} 条数据")
             return domestic_results
 
         # 再尝试币安（若可直连）
+        print("[CryptoCollector] 国内源无数据，尝试币安...")
         binance_results = self._get_market_data_backup(symbols)
         if binance_results:
+            print(f"[CryptoCollector] ✓ 币安成功返回 {len(binance_results)} 条数据")
             return binance_results
 
         # 最后尝试 CoinGecko（多数国内会超时）
+        print("[CryptoCollector] 币安无数据，尝试 CoinGecko...")
         ids = [self.symbol_to_id.get(s.upper(), s.lower()) for s in symbols]
         ids_str = ','.join(ids)
 
@@ -99,6 +105,7 @@ class CryptoCollector:
         except Exception as e:
             print(f"CoinGecko API请求失败: {e}")
 
+        print("[CryptoCollector] ✗ 所有数据源均未返回数据")
         return []
     
     def _get_market_data_backup(self, symbols: List[str]) -> List[Dict]:
@@ -139,6 +146,7 @@ class CryptoCollector:
 
         # 1) 币安国际的国内域名（可能可直连，精确 symbols 以减小返回体积）
         try:
+            print("[CryptoCollector] 尝试 Binance.me...")
             pairs = [f"{s.upper()}USDT" for s in wanted]
             url = "https://api.binance.me/api/v3/ticker/24hr?symbols=" + json.dumps(pairs)
             resp = requests.get(url, timeout=3)
@@ -170,12 +178,14 @@ class CryptoCollector:
                             'timestamp': datetime.now().isoformat()
                         })
                 if results:
+                    print(f"[CryptoCollector] ✓ Binance.me 返回 {len(results)} 条")
                     return results
         except Exception as e:
-            print(f"国内市场数据源失败(Binance.me): {e}")
+            print(f"[CryptoCollector] ✗ Binance.me: {e}")
 
         # 2) Gate.io（通常国内可直连）
         try:
+            print("[CryptoCollector] 尝试 Gate.io...")
             url = "https://api.gateio.ws/api/v4/spot/tickers"
             resp = requests.get(url, timeout=3)
             if resp.status_code == 200:
@@ -206,9 +216,10 @@ class CryptoCollector:
                                 'timestamp': datetime.now().isoformat()
                             })
                 if results:
+                    print(f"[CryptoCollector] ✓ Gate.io 返回 {len(results)} 条")
                     return results
         except Exception as e:
-            print(f"国内市场数据源失败(Gate): {e}")
+            print(f"[CryptoCollector] ✗ Gate.io: {e}")
 
         # 3) OKX 行情
         try:

@@ -1048,11 +1048,25 @@ def api_crypto_market():
         return jsonify({'error': '加密货币模块未加载'}), 500
     
     try:
+        print(f"[Crypto API] 请求市场数据: {symbols_list}")
         data = collector.get_market_data(symbols_list)
-        # 直接返回列表格式，便于前端处理
-        return jsonify(data)
+        print(f"[Crypto API] 返回 {len(data)} 条数据")
+        
+        if not data:
+            print("[Crypto API] 警告：所有数据源均未返回数据，请检查网络或配置代理")
+            return jsonify({
+                'error': '暂无数据',
+                'message': '所有加密货币数据源均不可达，请检查网络连接或配置代理',
+                'data': []
+            }), 200
+        
+        # 添加数据源标识到响应头
+        response = jsonify(data)
+        response.headers['X-Data-Source'] = 'domestic-apis'
+        return response
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        print(f"[Crypto API] 错误: {e}")
+        return jsonify({'error': str(e), 'data': []}), 500
 
 
 @app.route('/api/crypto/global')
@@ -1063,10 +1077,24 @@ def api_crypto_global():
         return jsonify({'error': '加密货币模块未加载'}), 500
     
     try:
+        print("[Crypto API] 请求全局市场数据")
         data = collector.get_global_data()
-        return jsonify(data)
+        print(f"[Crypto API] 全局数据返回: {bool(data)}")
+        
+        if not data or not data.get('total_market_cap'):
+            print("[Crypto API] 警告：全局数据为空，所有数据源均不可达")
+            return jsonify({
+                'error': '暂无数据',
+                'message': '无法获取全球市场数据，请检查网络连接或配置代理',
+                'data': {}
+            }), 200
+        
+        response = jsonify(data)
+        response.headers['X-Data-Source'] = 'domestic-apis'
+        return response
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        print(f"[Crypto API] 错误: {e}")
+        return jsonify({'error': str(e), 'data': {}}), 500
 
 
 @app.route('/api/crypto/trending')
