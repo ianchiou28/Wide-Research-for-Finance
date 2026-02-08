@@ -1,20 +1,38 @@
 import os
+import sys
 import json
 from datetime import datetime
 from typing import List, Dict
 from openai import OpenAI
+from logger import setup_logger
+
+# 导入统一配置
+try:
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config'))
+    from settings import Config
+except ImportError:
+    Config = None
+
+logger = setup_logger('weekly_summary')
 
 class WeeklySummary:
     def __init__(self):
         self.api_key = os.getenv('DEEPSEEK_API_KEY')
         self.client = None
         if self.api_key:
-            self.client = OpenAI(
-                api_key=self.api_key, 
-                base_url="https://api.deepseek.com",
-                timeout=120.0,  # 设置120秒超时
-                max_retries=2   # 自动重试2次
-            )
+            if Config:
+                client_kwargs = Config.get_llm_client_kwargs()
+                client_kwargs['api_key'] = self.api_key
+                self.client = OpenAI(**client_kwargs)
+                self._model = Config.LLM_MODEL
+            else:
+                self.client = OpenAI(
+                    api_key=self.api_key,
+                    base_url="https://api.deepseek.com",
+                    timeout=120.0,
+                    max_retries=2
+                )
+                self._model = "deepseek-chat"
     
     def generate(self, weekly_reports: List[Dict]) -> Dict:
         """生成一周总结和个股预测"""
@@ -79,7 +97,7 @@ class WeeklySummary:
 
         try:
             response = self.client.chat.completions.create(
-                model="deepseek-chat",
+                model=self._model,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.3,
                 max_tokens=2000
@@ -91,7 +109,7 @@ class WeeklySummary:
                 if start != -1 and end != -1 and end > start:
                     return json.loads(content[start:end+1])
         except Exception as e:
-            print(f"Weekly analysis error: {e}")
+            logger.error(f"Weekly analysis error: {e}")
             return {'stocks': [], 'summary': '生成周度分析失败'}
 
         return {'stocks': [], 'summary': 'AI 返回内容为空，暂无数据'}

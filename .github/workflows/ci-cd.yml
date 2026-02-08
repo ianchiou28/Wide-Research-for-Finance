@@ -1,0 +1,72 @@
+name: CI / CD
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+env:
+  DOCKER_IMAGE: finance-app
+
+jobs:
+  # ============ 1. 代码质量检查 + 单元测试 ============
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run tests
+        env:
+          DEEPSEEK_API_KEY: test-key-for-ci
+        run: |
+          pytest tests/ -v --tb=short --co -q 2>/dev/null || true
+          pytest tests/ -v --tb=short
+
+  # ============ 2. Docker 构建验证 ============
+  docker-build:
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t ${{ env.DOCKER_IMAGE }}:${{ github.sha }} .
+
+      - name: Verify image
+        run: docker run --rm ${{ env.DOCKER_IMAGE }}:${{ github.sha }} python -c "import flask; print('OK')"
+
+  # ============ 3. 部署到服务器 (仅 main 分支) ============
+  deploy:
+    runs-on: ubuntu-latest
+    needs: docker-build
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            cd ${{ secrets.DEPLOY_PATH }}
+            git pull origin main
+            docker compose down
+            docker compose build --no-cache
+            docker compose up -d
+            sleep 10
+            docker compose ps
+            echo "✅ Deployed at $(date)"

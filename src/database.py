@@ -10,6 +10,9 @@ import os
 from datetime import datetime, timedelta
 from typing import List, Dict, Optional
 from contextlib import contextmanager
+from logger import setup_logger
+
+logger = setup_logger('database')
 
 DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'finance.db')
 
@@ -22,9 +25,11 @@ def get_db_path():
 
 @contextmanager
 def get_connection():
-    """获取数据库连接的上下文管理器"""
+    """获取数据库连接的上下文管理器，启用 WAL 模式以支持并发读写"""
     conn = sqlite3.connect(get_db_path())
-    conn.row_factory = sqlite3.Row  # 使查询结果可以用字段名访问
+    conn.row_factory = sqlite3.Row
+    conn.execute('PRAGMA journal_mode=WAL')
+    conn.execute('PRAGMA busy_timeout=5000')  # 5秒等待锁
     try:
         yield conn
     finally:
@@ -161,7 +166,7 @@ def init_database():
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_predictions_symbol ON predictions(symbol)')
         
         conn.commit()
-        print("✓ 数据库初始化完成")
+        logger.info("数据库初始化完成")
 
 
 # ============== 新闻相关操作 ==============
@@ -196,9 +201,20 @@ def insert_news(news_list: List[Dict]) -> int:
                 if cursor.rowcount > 0:
                     inserted += 1
             except Exception as e:
-                print(f"插入新闻失败: {e}")
+                logger.warning(f"插入新闻失败: {e}")
         conn.commit()
     return inserted
+
+def get_recent_news_hashes(hours: int = 24) -> List[str]:
+    """获取最近N小时的新闻URL hash列表（用于采集去重）"""
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cutoff = (datetime.now() - timedelta(hours=hours)).isoformat()
+        cursor.execute('''
+            SELECT url_hash FROM news 
+            WHERE collected_at > ? AND url_hash IS NOT NULL
+        ''', (cutoff,))
+        return [row[0] for row in cursor.fetchall()]
 
 def get_unprocessed_news(limit: int = 100) -> List[Dict]:
     """获取未处理的新闻"""
@@ -342,7 +358,7 @@ def add_to_watchlist(symbol: str, name: str = None, market: str = None, category
             conn.commit()
             return True
         except Exception as e:
-            print(f"添加自选股失败: {e}")
+            logger.warning(f"添加自选股失败: {e}")
             return False
 
 def remove_from_watchlist(symbol: str) -> bool:

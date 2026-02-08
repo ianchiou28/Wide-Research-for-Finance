@@ -4,6 +4,9 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime
 from typing import Dict, Any, Optional
+from logger import setup_logger
+
+logger = setup_logger('email_sender')
 
 
 class EmailSender:
@@ -20,7 +23,7 @@ class EmailSender:
             html_content: HTML格式报告（优先使用）
         """
         if not all([self.from_email, self.password, self.to_email]):
-            print("邮件配置不完整")
+            logger.warning("邮件配置不完整，跳过发送")
             return
         
         msg = MIMEMultipart('alternative')
@@ -57,7 +60,7 @@ class EmailSender:
             smtp_server = os.getenv('SMTP_SERVER', smtp_server)
             smtp_port = int(os.getenv('SMTP_PORT', smtp_port))
             
-            print(f"   连接 {smtp_server}:{smtp_port}...")
+            logger.info(f"连接 {smtp_server}:{smtp_port}...")
             
             if smtp_port == 587:
                 server = smtplib.SMTP(smtp_server, smtp_port, timeout=30)
@@ -70,19 +73,15 @@ class EmailSender:
                     server.login(self.from_email or "", self.password or "")
                     server.send_message(msg)
             
-            print("✅ 邮件发送成功")
+            logger.info("邮件发送成功")
         except smtplib.SMTPAuthenticationError:
-            print("❌ 邮件发送失败: 认证失败，请检查邮箱密码/授权码")
-            print("提示: QQ/163邮箱需要使用授权码而非登录密码")
+            logger.error("邮件发送失败: 认证失败，请检查邮箱密码/授权码")
         except smtplib.SMTPConnectError:
-            print(f"❌ 邮件发送失败: 无法连接到 {smtp_server}:{smtp_port}")
-            print("提示: 可在 .env 中设置 SMTP_SERVER 和 SMTP_PORT")
+            logger.error(f"邮件发送失败: 无法连接到 {smtp_server}:{smtp_port}")
         except TimeoutError:
-            print(f"❌ 邮件发送失败: 连接超时 ({smtp_server}:{smtp_port})")
-            print("提示: 检查网络或防火墙是否阻止了SMTP端口")
+            logger.error(f"邮件发送失败: 连接超时 ({smtp_server}:{smtp_port})")
         except Exception as e:
-            print(f"❌ 邮件发送失败: {e}")
-            print("提示: 请检查 .env 文件中的邮箱配置")
+            logger.error(f"邮件发送失败: {e}")
     
     def send_structured_report(self, report_data: Dict[str, Any]):
         """发送结构化报告
@@ -104,7 +103,7 @@ class EmailSender:
             
             self.send(text_content, html_content)
         except ImportError as e:
-            print(f"导入模块失败: {e}")
+            logger.warning(f"导入模块失败: {e}，回退到纯文本")
             # 回退到纯文本
             if 'meta' in report_data:
                 simple_text = f"财经简报 - {report_data['meta'].get('generated_at', '')}\n"

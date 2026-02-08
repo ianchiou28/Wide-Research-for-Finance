@@ -1,40 +1,62 @@
 import os
+import sys
 import json
 import time
 from openai import OpenAI
 from typing import List, Dict
+from logger import setup_logger
+
+# 导入统一配置
+try:
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config'))
+    from settings import Config
+except ImportError:
+    Config = None
+
+logger = setup_logger('processor')
 
 class NLPProcessor:
     def __init__(self):
         api_key = os.getenv('DEEPSEEK_API_KEY')
         if not api_key:
-            print("  ⚠️ WARNING: DEEPSEEK_API_KEY not found in environment!")
-        self.client = OpenAI(
-            api_key=api_key,
-            base_url="https://api.deepseek.com",
-            timeout=120.0,  # 设置120秒超时
-            max_retries=2   # 自动重试2次
-        )
+            logger.warning("DEEPSEEK_API_KEY 环境变量未设置!")
+        
+        # 使用统一配置
+        if Config:
+            client_kwargs = Config.get_llm_client_kwargs()
+            client_kwargs['api_key'] = api_key
+            self.client = OpenAI(**client_kwargs)
+            self._model = Config.LLM_MODEL
+            self._timeout = Config.LLM_TIMEOUT
+        else:
+            self.client = OpenAI(
+                api_key=api_key,
+                base_url="https://api.deepseek.com",
+                timeout=120.0,
+                max_retries=2
+            )
+            self._model = "deepseek-chat"
+            self._timeout = 120.0
     
     def process_batch(self, articles: List[Dict], batch_size=20) -> List[Dict]:
         """两阶段处理：先筛选标题，再深度分析"""
         if not articles:
             return []
         
-        print(f"\n[阶段1] 标题筛选 ({len(articles)}条)...")
+        logger.info(f"[阶段1] 标题筛选 ({len(articles)}条)...")
         interesting = self._filter_by_title(articles)
-        print(f"  筛选出 {len(interesting)} 条感兴趣的新闻")
+        logger.info(f"筛选出 {len(interesting)} 条感兴趣的新闻")
         
         if not interesting:
             return []
         
-        print(f"\n[阶段2] 深度分析...")
+        logger.info(f"[阶段2] 深度分析...")
         all_processed = []
         for batch_start in range(0, len(interesting), batch_size):
             batch = interesting[batch_start:batch_start + batch_size]
             processed = self._process_single_batch(batch)
             all_processed.extend(processed)
-            print(f"  已处理 {len(all_processed)}/{len(interesting)} 条")
+            logger.info(f"已处理 {len(all_processed)}/{len(interesting)} 条")
         
         return all_processed
     
@@ -64,11 +86,11 @@ class NLPProcessor:
         for attempt in range(max_retries):
             try:
                 response = self.client.chat.completions.create(
-                    model="deepseek-chat",
+                    model=self._model,
                     messages=[{"role": "user", "content": prompt}],
                     temperature=0.1,
                     max_tokens=500,
-                    timeout=60.0  # 单次请求60秒超时
+                    timeout=60.0
                 )
                 
                 content = response.choices[0].message.content
@@ -88,12 +110,12 @@ class NLPProcessor:
                 return selected
             
             except Exception as e:
-                print(f"筛选失败 (尝试 {attempt+1}/{max_retries}): {e}")
+                logger.warning(f"筛选失败 (尝试 {attempt+1}/{max_retries}): {e}")
                 if attempt < max_retries - 1:
-                    time.sleep(3)  # 等待3秒后重试
+                    time.sleep(3)
                     continue
         
-        print(f"筛选最终失败，保留前20篇文章")
+        logger.warning(f"筛选最终失败，保留前20篇文章")
         return articles[:20]
     
     def _process_single_batch(self, articles: List[Dict]) -> List[Dict]:
@@ -129,22 +151,22 @@ class NLPProcessor:
 
 必须返回所有{len(articles)}篇文章的分析结果。"""
 
-        max_retries = 3
+        max_retries = Config.LLM_MAX_RETRIES if Config else 3
         for attempt in range(max_retries):
             try:
-                print(f"    [DEBUG] 调用 DeepSeek API (尝试 {attempt+1}/{max_retries})...")
+                logger.debug(f"调用 DeepSeek API (尝试 {attempt+1}/{max_retries})...")
                 response = self.client.chat.completions.create(
-                    model="deepseek-chat",
+                    model=self._model,
                     messages=[{"role": "user", "content": prompt}],
                     temperature=0.3,
-                    max_tokens=4000,  # 增加token限制以避免截断
-                    timeout=90.0  # 单次请求90秒超时
+                    max_tokens=4000,
+                    timeout=self._timeout
                 )
                 
                 content = response.choices[0].message.content
-                print(f"    [DEBUG] API 响应长度: {len(content) if content else 0}")
+                logger.debug(f"API 响应长度: {len(content) if content else 0}")
                 if content is None:
-                    print(f"    [DEBUG] API 返回空内容")
+                    logger.warning("API 返回空内容")
                     if attempt < max_retries - 1:
                         time.sleep(3)
                         continue
@@ -152,13 +174,13 @@ class NLPProcessor:
                 
                 result = self._extract_json(content)
                 if not result:
-                    print(f"    [DEBUG] JSON 解析失败，原始内容: {content[:200]}...")
+                    logger.warning(f"JSON 解析失败，原始内容: {content[:200]}...")
                     if attempt < max_retries - 1:
                         time.sleep(3)
                         continue
                     return []
                 
-                print(f"    [DEBUG] 成功解析 {len(result)} 条结果")
+                logger.debug(f"成功解析 {len(result)} 条结果")
                 
                 processed = []
                 for item in result:
@@ -179,12 +201,12 @@ class NLPProcessor:
                 return processed
             
             except Exception as e:
-                print(f"批次处理失败 (尝试 {attempt+1}/{max_retries}): {e}")
+                logger.error(f"批次处理失败 (尝试 {attempt+1}/{max_retries}): {e}")
                 if attempt < max_retries - 1:
-                    time.sleep(5)  # 等待5秒后重试
+                    time.sleep(5)
                     continue
         
-        print(f"批次处理最终失败，跳过此批次")
+        logger.error("批次处理最终失败，跳过此批次")
         return []
     
     def _extract_json(self, text: str):
@@ -221,7 +243,7 @@ class NLPProcessor:
                 continue
         
         if results:
-            print(f"    [DEBUG] 通过正则提取了 {len(results)} 个对象")
+            logger.debug(f"通过正则提取了 {len(results)} 个对象")
             return results
         
         return None

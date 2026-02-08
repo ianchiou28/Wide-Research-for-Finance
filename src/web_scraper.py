@@ -4,6 +4,9 @@ from datetime import datetime
 from typing import List, Dict, Optional
 import urllib.parse
 import os
+from logger import setup_logger
+
+logger = setup_logger('web_scraper')
 
 class WebScraper:
     def __init__(self):
@@ -32,7 +35,8 @@ class WebScraper:
                         'published_at': datetime.now().isoformat()
                     })
             return articles
-        except:
+        except Exception as e:
+            logger.warning(f"美联储采集失败: {e}")
             return []
     
     def scrape_sec(self) -> List[Dict]:
@@ -53,7 +57,8 @@ class WebScraper:
                         'published_at': datetime.now().isoformat()
                     })
             return articles
-        except:
+        except Exception as e:
+            logger.warning(f"SEC采集失败: {e}")
             return []
     
     def scrape_pbc(self) -> List[Dict]:
@@ -75,7 +80,8 @@ class WebScraper:
                         'published_at': datetime.now().isoformat()
                     })
             return articles
-        except:
+        except Exception as e:
+            logger.warning(f"央行采集失败: {e}")
             return []
     
     def scrape_csrc(self) -> List[Dict]:
@@ -97,7 +103,8 @@ class WebScraper:
                         'published_at': datetime.now().isoformat()
                     })
             return articles
-        except:
+        except Exception as e:
+            logger.warning(f"证监会采集失败: {e}")
             return []
     
     def scrape_weibo_hot_search(self) -> List[Dict]:
@@ -119,7 +126,7 @@ class WebScraper:
                 })
             return articles
         except Exception as e:
-            print(f"  ⚠ 微博热搜: 无法获取，可能需要有效的Cookie. Error: {e}")
+            logger.warning(f"微博热搜: 无法获取 (可能需要有效Cookie): {e}")
             return []
 
     def scrape_tonghuashun(self) -> List[Dict]:
@@ -144,7 +151,7 @@ class WebScraper:
                     })
             return articles
         except Exception as e:
-            print(f"  ⚠ 同花顺: {str(e)[:30]}")
+            logger.warning(f"同花顺采集失败: {str(e)[:60]}")
             return []
 
     def search_stock_news(self, stock_name: str) -> List[Dict]:
@@ -168,7 +175,7 @@ class WebScraper:
                     })
             return articles
         except Exception as e:
-            print(f"  ⚠ 搜索'{stock_name}'新闻失败: {e}")
+            logger.warning(f"搜索'{stock_name}'新闻失败: {e}")
             return []
 
     def scrape_all(self) -> List[Dict]:
@@ -188,8 +195,9 @@ class WebScraper:
                 articles = scraper()
                 all_articles.extend(articles)
                 if articles:
-                    print(f"  ✓ {name}: {len(articles)}条")
+                    logger.info(f"{name}: {len(articles)}条")
             except Exception as e:
-                print(f"  ⚠ {name}: {str(e)[:30]}")
+                logger.warning(f"{name}: {str(e)[:60]}")
         
+        logger.info(f"网页采集完成, 共 {len(all_articles)} 条")
         return all_articles

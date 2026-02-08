@@ -7,6 +7,10 @@ from datetime import datetime
 import subprocess
 
 sys.path.append('src')
+from logger import setup_logger
+
+logger = setup_logger('main')
+
 from collector import DataCollector
 from web_scraper import WebScraper
 from processor import NLPProcessor
@@ -19,16 +23,14 @@ load_dotenv()
 
 def run_daily_report():
     """执行每日报告生成流程"""
-    print(f"\n{'='*60}")
-    print(f"开始生成报告 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    print(f"{'='*60}\n")
+    logger.info(f"{'='*40} 开始生成报告 {'='*40}")
     
     # 1. 数据采集
-    print("1. 采集RSS新闻...")
+    logger.info("采集RSS新闻...")
     collector = DataCollector()
     articles = collector.fetch_latest(hours=24, max_per_source=15)
     
-    print("\n2. 爬取官方网站...")
+    logger.info("爬取官方网站...")
     scraper = WebScraper()
     web_articles = scraper.scrape_all()
     articles.extend(web_articles)
@@ -37,20 +39,20 @@ def run_daily_report():
     web_articles = collector.fetch_stock_specific_news()
     articles.extend(web_articles)
     
-    print(f"\n   总计采集 {len(articles)} 条新闻")
+    logger.info(f"总计采集 {len(articles)} 条新闻")
     
     if not articles:
-        print("   无新数据，跳过处理")
+        logger.info("无新数据，跳过处理")
         return
     
     # 2. 信息处理
-    print("\n3. 分析新闻内容...")
+    logger.info("分析新闻内容...")
     processor = NLPProcessor()
     processed = processor.process_batch(articles)
-    print(f"   成功处理 {len(processed)} 条新闻")
+    logger.info(f"成功处理 {len(processed)} 条新闻")
     
     # 3. 生成报告
-    print("4. 生成报告...")
+    logger.info("生成报告...")
     
     # 生成纯文本报告（用于本地保存）
     report_gen = ReportGenerator()
@@ -63,7 +65,7 @@ def run_daily_report():
     _save_json(report_data)
     
     # 4. 发送邮件（使用HTML模板）
-    print("5. 发送报告...")
+    logger.info("发送报告...")
     sender = EmailSender()
     
     # 生成HTML邮件并发送
@@ -71,9 +73,7 @@ def run_daily_report():
     html_content = template_gen.generate_email_html(report_data)
     sender.send(report_text, html_content=html_content)
     
-    print(f"\n{'='*60}")
-    print("报告生成完成")
-    print(f"{'='*60}\n")
+    logger.info("报告生成完成")
 
 def _save_local(report: str):
     """保存报告到本地"""
@@ -81,10 +81,7 @@ def _save_local(report: str):
     filename = f"data/reports/report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
     with open(filename, 'w', encoding='utf-8', errors='replace') as f:
         f.write(report)
-    try:
-        print(f"报告已保存: {filename}")
-    except:
-        print(f"Report saved: {filename}")
+    logger.info(f"报告已保存: {filename}")
 
 def _save_json(report_data: dict):
     """保存结构化报告为JSON（供前端读取）"""
@@ -93,68 +90,51 @@ def _save_json(report_data: dict):
     filename = f"data/reports_json/report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
     with open(filename, 'w', encoding='utf-8') as f:
         json.dump(report_data, f, ensure_ascii=False, indent=2)
-    try:
-        print(f"JSON报告已保存: {filename}")
-    except:
-        print(f"JSON report saved: {filename}")
+    logger.info(f"JSON报告已保存: {filename}")
 
 def run_weekly_report_script():
     """运行周报分析脚本"""
-    print(f"\n启动周报分析 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    logger.info("启动周报分析")
     try:
         subprocess.run([sys.executable, "run_weekly_analysis.py"], check=False)
     except Exception as e:
-        print(f"周报分析运行失败: {e}")
+        logger.error(f"周报分析运行失败: {e}")
 
 def run_monthly_report_script():
     """运行月度分析脚本（每日更新，保持实时性）"""
-    print(f"\n启动月度分析 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    logger.info("启动月度分析")
     try:
-        # --refresh 强制刷新事件日历，确保获取最新信息
         subprocess.run([sys.executable, "run_monthly_analysis.py", "--refresh"], check=False)
     except Exception as e:
-        print(f"月度分析运行失败: {e}")
+        logger.error(f"月度分析运行失败: {e}")
 
 def run_backtest_verification():
     """运行回测验证（验证历史预测的准确性）"""
-    print(f"\n启动回测验证 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    logger.info("启动回测验证")
     try:
         from src.backtester import run_daily_verification
         result = run_daily_verification()
         
-        # 打印汇总
         weekly_acc = result.get('weekly', {}).get('accuracy', 0)
         monthly_stock_acc = result.get('monthly', {}).get('stock_predictions', {}).get('accuracy', 0)
         monthly_event_acc = result.get('monthly', {}).get('event_predictions', {}).get('accuracy', 0)
         
-        print(f"\n📊 回测汇总:")
-        print(f"   周报预测准确率: {weekly_acc:.1f}%")
-        print(f"   月报股票预测准确率: {monthly_stock_acc:.1f}%")
-        print(f"   月报事件预测准确率: {monthly_event_acc:.1f}%")
+        logger.info(f"回测汇总: 周报={weekly_acc:.1f}% 月报股票={monthly_stock_acc:.1f}% 月报事件={monthly_event_acc:.1f}%")
         
     except Exception as e:
-        print(f"回测验证运行失败: {e}")
-        import traceback
-        traceback.print_exc()
+        logger.error(f"回测验证运行失败: {e}")
 
 def main():
-    print("Wide Research for Finance - MVP v1.0")
-    print("="*60)
+    logger.info("Wide Research for Finance - MVP v1.0")
     
     # 检查API密钥
     if not os.getenv('DEEPSEEK_API_KEY'):
-        print("错误: 未设置 DEEPSEEK_API_KEY")
-        print("请创建 .env 文件并配置API密钥")
+        logger.error("未设置 DEEPSEEK_API_KEY，请创建 .env 文件并配置API密钥")
         return
     
     # 服务器环境自动选择模式2
     if os.getenv('DOCKER_ENV') == 'True':
-        print("Docker环境检测到，自动启用计划任务：")
-        print("- 每小时整点生成小时报 (run_daily_report)")
-        print("- 每天 08:00 和 20:00 生成12小时摘要")
-        print("- 每天 08:00 和 20:00 运行周报分析")
-        print("- 每天 09:00 更新月度分析（事件日历+预测修正）")
-        print("- 每天 21:00 运行回测验证（验证预测准确率）")
+        logger.info("Docker环境检测到，自动启用计划任务")
 
         # 1. 小时报
         schedule.every().hour.at(":00").do(run_daily_report)
@@ -165,7 +145,7 @@ def main():
             schedule.every().day.at("08:00").do(generate_and_send_summary)
             schedule.every().day.at("20:00").do(generate_and_send_summary)
         except ImportError:
-            print("警告: 无法导入 daily_summary_main，跳过摘要生成任务")
+            logger.warning("无法导入 daily_summary_main，跳过摘要生成任务")
 
         # 3. 周报
         schedule.every().day.at("08:00").do(run_weekly_report_script)
@@ -180,7 +160,7 @@ def main():
         # 5. 回测验证（每天晚上9点，验证历史预测的准确性）
         schedule.every().day.at("21:00").do(run_backtest_verification)
 
-        print("后台运行中，按 Ctrl+C 停止\n")
+        logger.info("后台运行中，按 Ctrl+C 停止")
         while True:
             schedule.run_pending()
             time.sleep(60)

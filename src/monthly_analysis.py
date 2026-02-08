@@ -16,6 +16,17 @@ from datetime import datetime, timedelta
 from typing import List, Dict, Optional, Tuple
 from openai import OpenAI
 import glob
+from logger import setup_logger
+
+# 导入统一配置
+import sys as _sys
+_sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config'))
+try:
+    from settings import Config
+except ImportError:
+    Config = None
+
+logger = setup_logger('monthly_analysis')
 
 
 class MonthlyAnalysis:
@@ -151,12 +162,19 @@ class MonthlyAnalysis:
     def __init__(self):
         self.api_key = os.getenv('DEEPSEEK_API_KEY')
         self.client = None
+        self._model = "deepseek-chat"
         if self.api_key:
-            self.client = OpenAI(
-                api_key=self.api_key, 
-                base_url="https://api.deepseek.com",
-                timeout=120.0  # 增加超时时间到120秒
-            )
+            if Config:
+                client_kwargs = Config.get_llm_client_kwargs()
+                client_kwargs['api_key'] = self.api_key
+                self.client = OpenAI(**client_kwargs)
+                self._model = Config.LLM_MODEL
+            else:
+                self.client = OpenAI(
+                    api_key=self.api_key, 
+                    base_url="https://api.deepseek.com",
+                    timeout=120.0  # 增加超时时间到120秒
+                )
         
         # 对话历史（用于追问）
         self.conversation_history: List[Dict] = []
@@ -198,7 +216,7 @@ class MonthlyAnalysis:
         
         # 如果没有足够的新闻数据，跳过自动识别
         if len(recent_news) < 5 or not self.client:
-            print("  新闻数据不足，跳过自动识别")
+            logger.info("新闻数据不足，跳过自动识别")
             return events
         
         # 用AI分析新闻中提到的即将发生的重大事件
@@ -220,7 +238,7 @@ class MonthlyAnalysis:
 
         try:
             response = self.client.chat.completions.create(
-                model="deepseek-chat",
+                model=self._model,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.2,
                 max_tokens=1500
@@ -233,9 +251,9 @@ class MonthlyAnalysis:
                 end = content.rfind(']')
                 if start != -1 and end != -1 and end > start:
                     events = json.loads(content[start:end+1])
-                    print(f"  自动识别到 {len(events)} 个事件")
+                    logger.info(f"自动识别到 {len(events)} 个事件")
         except Exception as e:
-            print(f"  自动抓取事件失败: {e}")
+            logger.warning(f"自动抓取事件失败: {e}")
         
         return events
     
@@ -255,7 +273,7 @@ class MonthlyAnalysis:
 
         try:
             response = self.client.chat.completions.create(
-                model="deepseek-chat",
+                model=self._model,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.2,
                 max_tokens=1500
@@ -277,9 +295,9 @@ class MonthlyAnalysis:
                     
                     # 按影响分数排序
                     events.sort(key=lambda x: x.get('impact_score', 0), reverse=True)
-                    print(f"  已评估 {len(impact_analysis)} 个事件的影响")
+                    logger.info(f"已评估 {len(impact_analysis)} 个事件的影响")
         except Exception as e:
-            print(f"  影响评估失败: {e}")
+            logger.warning(f"影响评估失败: {e}")
         
         return events
     
@@ -290,7 +308,7 @@ class MonthlyAnalysis:
         
         try:
             response = self.client.chat.completions.create(
-                model="deepseek-chat",
+                model=self._model,
                 messages=[
                     {"role": "system", "content": "你是一个JSON修复专家。用户会给你一个格式有问题的JSON字符串，请修复它并返回有效的JSON。只返回修复后的JSON，不要有任何其他文字。"},
                     {"role": "user", "content": f"请修复这个JSON:\n{broken_json[:4000]}"}
@@ -314,7 +332,7 @@ class MonthlyAnalysis:
                 if start != -1 and end != -1:
                     return json.loads(content[start:end+1])
         except Exception as e:
-            print(f"AI修复JSON失败: {e}")
+            logger.warning(f"AI修复JSON失败: {e}")
         
         return None
     
@@ -339,7 +357,7 @@ class MonthlyAnalysis:
             return self._cached_events[month_key]
         
         # 1. 首先尝试从新闻中自动识别事件
-        print(f"正在自动识别 {year}年{month}月 的重大事件...")
+        logger.info(f"正在自动识别 {year}年{month}月 的重大事件...")
         auto_events = self._fetch_events_from_news(year, month)
         
         # 2. 获取预设的事件日历
@@ -380,7 +398,7 @@ class MonthlyAnalysis:
         
         # 4. 评估事件影响程度并排序
         if all_events and self.client:
-            print("正在评估事件对市场的影响...")
+            logger.info("正在评估事件对市场的影响...")
             all_events = self._identify_high_impact_events(all_events)
         
         # 按日期排序
@@ -742,7 +760,7 @@ class MonthlyAnalysis:
         
         try:
             response = self.client.chat.completions.create(
-                model="deepseek-chat",
+                model=self._model,
                 messages=[
                     {"role": "system", "content": "你是一位资深金融分析师，擅长宏观分析和投资策略制定。请提供专业、客观、可操作的分析建议。请严格返回有效的JSON格式，不要包含任何注释或额外文字。"},
                     {"role": "user", "content": prompt}
@@ -779,7 +797,7 @@ class MonthlyAnalysis:
                             analysis = json.loads(fixed_json)
                         except:
                             # 如果仍然失败，用AI修复
-                            print(f"JSON解析失败，尝试AI修复...")
+                            logger.warning("JSON解析失败，尝试AI修复...")
                             analysis = self._fix_json_with_ai(json_str, events)
                             if not analysis:
                                 return {
@@ -833,7 +851,7 @@ class MonthlyAnalysis:
         
         try:
             response = self.client.chat.completions.create(
-                model="deepseek-chat",
+                model=self._model,
                 messages=messages,
                 temperature=0.4,
                 max_tokens=2000
@@ -912,7 +930,7 @@ class MonthlyAnalysis:
         
         try:
             response = self.client.chat.completions.create(
-                model="deepseek-chat",
+                model=self._model,
                 messages=[{"role": "user", "content": update_prompt}],
                 temperature=0.3,
                 max_tokens=1500
@@ -945,49 +963,49 @@ if __name__ == '__main__':
     analyzer = MonthlyAnalysis()
     
     # 获取12月事件（支持自动抓取）
-    print("=" * 60)
-    print("正在获取2025年12月重大事件（自动识别 + 预设）...")
-    print("=" * 60)
+    logger.info("=" * 60)
+    logger.info("正在获取2025年12月重大事件（自动识别 + 预设）...")
+    logger.info("=" * 60)
     
     events = analyzer.get_monthly_events(2025, 12)
     
-    print(f"\n共发现 {len(events)} 个重大事件：\n")
+    logger.info(f"共发现 {len(events)} 个重大事件")
     for e in events:
         source_tag = "[自动]" if e.get('source') == 'auto_detected' else "[预设]"
         impact = f"影响:{e.get('impact_score', '-')}/10" if e.get('impact_score') else ""
         direction = e.get('expected_direction', '')
         
-        print(f"  📅 {e.get('date', '待定')} - {e.get('name', '')} ({e.get('importance', 'medium')}) {source_tag}")
+        logger.info(f"📅 {e.get('date', '待定')} - {e.get('name', '')} ({e.get('importance', 'medium')}) {source_tag}")
         if impact or direction:
-            print(f"     {impact} {direction}")
+            logger.info(f"   {impact} {direction}")
         if e.get('analysis'):
-            print(f"     💡 {e['analysis'][:80]}...")
+            logger.info(f"   💡 {e['analysis'][:80]}...")
     
-    print("\n" + "=" * 60)
-    print("正在生成月度深度分析...")
-    print("=" * 60)
+    logger.info("=" * 60)
+    logger.info("正在生成月度深度分析...")
+    logger.info("=" * 60)
     
     analysis = analyzer.generate_monthly_analysis(2025, 12)
     
     if not analysis.get('error'):
         filename = analyzer.save_analysis(analysis)
-        print(f"\n✅ 分析已保存: {filename}")
-        print(f"\n📝 月度总结:")
-        print("-" * 40)
-        print(analysis.get('summary', '无总结'))
+        logger.info(f"✅ 分析已保存: {filename}")
+        logger.info(f"📝 月度总结:")
+        logger.info("-" * 40)
+        logger.info(analysis.get('summary', '无总结'))
         
         # 显示关键建议
         if analysis.get('stock_recommendations'):
             recs = analysis['stock_recommendations']
             if recs.get('buy'):
-                print(f"\n📈 建议加仓 ({len(recs['buy'])}只):")
+                logger.info(f"📈 建议加仓 ({len(recs['buy'])}只):")
                 for stock in recs['buy'][:3]:
-                    print(f"   - {stock.get('symbol', '')} {stock.get('name', '')}: {stock.get('reason', '')[:50]}")
+                    logger.info(f"  - {stock.get('symbol', '')} {stock.get('name', '')}: {stock.get('reason', '')[:50]}")
             if recs.get('sell'):
-                print(f"\n📉 建议减仓 ({len(recs['sell'])}只):")
+                logger.info(f"📉 建议减仓 ({len(recs['sell'])}只):")
                 for stock in recs['sell'][:3]:
-                    print(f"   - {stock.get('symbol', '')} {stock.get('name', '')}: {stock.get('reason', '')[:50]}")
+                    logger.info(f"  - {stock.get('symbol', '')} {stock.get('name', '')}: {stock.get('reason', '')[:50]}")
     else:
-        print(f"\n❌ 错误: {analysis.get('message')}")
+        logger.error(f"❌ 错误: {analysis.get('message')}")
         if analysis.get('raw_content'):
-            print(f"\n原始内容预览: {analysis['raw_content'][:500]}...")
+            logger.debug(f"原始内容预览: {analysis['raw_content'][:500]}...")
