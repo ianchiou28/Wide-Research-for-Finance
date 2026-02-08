@@ -2,7 +2,7 @@ feedparser==6.0.11
 openai>=1.0.0
 python-dotenv==1.0.1
 pyyaml==6.0.1
-schedule==1.2.0
+APScheduler==3.10.4      # 替代 schedule，支持线程池和 cron 表达式
 requests==2.31.0
 beautifulsoup4==4.12.3
 flask==3.0.0

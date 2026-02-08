@@ -1,5 +1,6 @@
 import requests
 from bs4 import BeautifulSoup
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from typing import List, Dict, Optional
 import urllib.parse
@@ -179,7 +180,7 @@ class WebScraper:
             return []
 
     def scrape_all(self) -> List[Dict]:
-        """爬取所有官方网站"""
+        """并发爬取所有官方网站（ThreadPoolExecutor）"""
         all_articles = []
         scrapers = [
             ('美联储', self.scrape_fed),
@@ -190,14 +191,19 @@ class WebScraper:
             ('同花顺', self.scrape_tonghuashun),
         ]
         
-        for name, scraper in scrapers:
-            try:
-                articles = scraper()
-                all_articles.extend(articles)
-                if articles:
-                    logger.info(f"{name}: {len(articles)}条")
-            except Exception as e:
-                logger.warning(f"{name}: {str(e)[:60]}")
+        with ThreadPoolExecutor(max_workers=6) as executor:
+            future_to_name = {
+                executor.submit(fn): name for name, fn in scrapers
+            }
+            for future in as_completed(future_to_name, timeout=60):
+                name = future_to_name[future]
+                try:
+                    articles = future.result(timeout=15)
+                    all_articles.extend(articles)
+                    if articles:
+                        logger.info(f"{name}: {len(articles)}条")
+                except Exception as e:
+                    logger.warning(f"{name}: {str(e)[:60]}")
         
-        logger.info(f"网页采集完成, 共 {len(all_articles)} 条")
+        logger.info(f"网页并发采集完成, 共 {len(all_articles)} 条")
         return all_articles

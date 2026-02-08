@@ -1,10 +1,16 @@
 import os
 import sys
 from dotenv import load_dotenv
-import schedule
 import time
 from datetime import datetime
 import subprocess
+
+try:
+    from apscheduler.schedulers.background import BackgroundScheduler
+    from apscheduler.executors.pool import ThreadPoolExecutor as APThreadPool
+    HAS_APSCHEDULER = True
+except ImportError:
+    HAS_APSCHEDULER = False
 
 sys.path.append('src')
 from logger import setup_logger
@@ -124,6 +130,20 @@ def run_backtest_verification():
     except Exception as e:
         logger.error(f"回测验证运行失败: {e}")
 
+def _create_scheduler():
+    """创建 APScheduler 实例，带线程池和容错配置"""
+    if not HAS_APSCHEDULER:
+        logger.error("APScheduler 未安装，请运行: pip install APScheduler")
+        return None
+    return BackgroundScheduler(
+        executors={'default': APThreadPool(max_workers=4)},
+        job_defaults={
+            'coalesce': True,          # 错过的任务合并执行一次
+            'max_instances': 1,        # 同一任务不并发
+            'misfire_grace_time': 300,  # 5分钟容忍期
+        }
+    )
+
 def main():
     logger.info("Wide Research for Finance - MVP v1.0")
     
@@ -134,36 +154,47 @@ def main():
     
     # 服务器环境自动选择模式2
     if os.getenv('DOCKER_ENV') == 'True':
-        logger.info("Docker环境检测到，自动启用计划任务")
+        logger.info("Docker环境检测到，启用 APScheduler 计划任务")
+        
+        scheduler = _create_scheduler()
+        if not scheduler:
+            return
 
-        # 1. 小时报
-        schedule.every().hour.at(":00").do(run_daily_report)
+        # 1. 小时报（每小时整点）
+        scheduler.add_job(run_daily_report, 'cron', minute=0, id='hourly_report',
+                          name='小时报告')
 
         # 2. 日报（12小时摘要）
         try:
             from daily_summary_main import generate_and_send_summary
-            schedule.every().day.at("08:00").do(generate_and_send_summary)
-            schedule.every().day.at("20:00").do(generate_and_send_summary)
+            scheduler.add_job(generate_and_send_summary, 'cron', hour='8,20', id='daily_summary',
+                              name='每日摘要')
         except ImportError:
             logger.warning("无法导入 daily_summary_main，跳过摘要生成任务")
 
         # 3. 周报
-        schedule.every().day.at("08:00").do(run_weekly_report_script)
-        schedule.every().day.at("20:00").do(run_weekly_report_script)
+        scheduler.add_job(run_weekly_report_script, 'cron', hour='8,20', id='weekly_report',
+                          name='周报分析')
         
         # 4. 月报（每天早上9点更新，保持实时性）
-        # - 自动抓取最新事件
-        # - 根据已发生事件修正预测
-        # - 更新加减仓建议
-        schedule.every().day.at("09:00").do(run_monthly_report_script)
+        scheduler.add_job(run_monthly_report_script, 'cron', hour=9, id='monthly_report',
+                          name='月度分析')
         
-        # 5. 回测验证（每天晚上9点，验证历史预测的准确性）
-        schedule.every().day.at("21:00").do(run_backtest_verification)
+        # 5. 回测验证（每天晚上9点）
+        scheduler.add_job(run_backtest_verification, 'cron', hour=21, id='backtest',
+                          name='回测验证')
 
-        logger.info("后台运行中，按 Ctrl+C 停止")
-        while True:
-            schedule.run_pending()
-            time.sleep(60)
+        scheduler.start()
+        logger.info(f"已注册 {len(scheduler.get_jobs())} 个定时任务，后台运行中 (Ctrl+C 停止)")
+        for job in scheduler.get_jobs():
+            logger.info(f"  - {job.name}: 下次执行 {job.next_run_time}")
+        
+        try:
+            while True:
+                time.sleep(60)
+        except KeyboardInterrupt:
+            scheduler.shutdown(wait=False)
+            logger.info("调度器已关闭")
         return
     else:
         # 选择运行模式
@@ -180,25 +211,38 @@ def main():
     if choice == '1':
         run_daily_report()
     elif choice == '2':
-        # 在每个整点执行
-        schedule.every().hour.at(":00").do(run_daily_report)
+        scheduler = _create_scheduler()
+        if not scheduler:
+            print("无法创建调度器")
+            return
+        scheduler.add_job(run_daily_report, 'cron', minute=0, id='hourly_report')
+        scheduler.start()
         
         next_hour = (datetime.now().hour + 1) % 24
         print(f"\n已设置定时任务：每个整点执行（0:00, 1:00, 2:00...）")
         print(f"下次执行时间：{next_hour:02d}:00")
         print("按 Ctrl+C 停止\n")
         
-        while True:
-            schedule.run_pending()
-            time.sleep(60)
+        try:
+            while True:
+                time.sleep(60)
+        except KeyboardInterrupt:
+            scheduler.shutdown(wait=False)
     elif choice == '3':
-        schedule.every().day.at("08:00").do(run_daily_report)
+        scheduler = _create_scheduler()
+        if not scheduler:
+            print("无法创建调度器")
+            return
+        scheduler.add_job(run_daily_report, 'cron', hour=8, id='daily_8am')
+        scheduler.start()
         print("\n已设置定时任务：每天 08:00 执行")
         print("按 Ctrl+C 停止\n")
         
-        while True:
-            schedule.run_pending()
-            time.sleep(60)
+        try:
+            while True:
+                time.sleep(60)
+        except KeyboardInterrupt:
+            scheduler.shutdown(wait=False)
     elif choice == '4':
         print("\n请运行: python daily_summary_main.py")
         print("或双击: run_daily_summary.bat")

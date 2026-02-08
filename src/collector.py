@@ -2,6 +2,8 @@ import feedparser
 import hashlib
 import yaml
 import requests
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta
 from typing import List, Dict, Optional
 from logger import setup_logger
@@ -33,8 +35,9 @@ class DataCollector:
         self._fetch_timeout = Config.FETCH_TIMEOUT if Config else 15
         self._max_per_source = Config.MAX_PER_SOURCE if Config else 15
         
-        # 去重缓存
+        # 去重缓存（线程安全）
         self._seen_hashes = set()
+        self._dedup_lock = threading.Lock()
         self._load_recent_hashes()
     
     def _url_hash(self, url: str) -> str:
@@ -72,103 +75,137 @@ class DataCollector:
             logger.warning(f"请求失败: {str(e)[:60]}")
             return feedparser.FeedParserDict()
     
+    def _fetch_single_source(self, source: Dict, cutoff_time: datetime, max_per_source: int) -> Dict:
+        """采集单个 RSS 源（线程安全），返回 {articles, duplicates_skipped}"""
+        articles = []
+        duplicates_skipped = 0
+        
+        try:
+            feed = self._fetch_feed_with_timeout(source['url'], timeout=self._fetch_timeout)
+            count = 0
+            
+            for entry in feed.entries[:max_per_source*2]:
+                if count >= max_per_source:
+                    break
+                
+                try:
+                    published_parsed = None
+                    if hasattr(entry, 'published_parsed'):
+                        published_parsed = entry.published_parsed
+                    elif isinstance(entry, dict) and 'published_parsed' in entry:
+                        published_parsed = entry['published_parsed']
+                    if published_parsed:
+                        safe_defaults = (1970, 1, 1, 0, 0, 0)
+                        date_parts = []
+                        for value, fallback in zip(published_parsed[:6], safe_defaults):
+                            if isinstance(value, (int, float, str)):
+                                try:
+                                    date_parts.append(int(value))
+                                except (TypeError, ValueError):
+                                    date_parts.append(fallback)
+                            else:
+                                date_parts.append(fallback)
+                        pub_date = datetime(*date_parts)
+                    else:
+                        pub_date = datetime.now()
+                except Exception:
+                    pub_date = datetime.now()
+                
+                if pub_date < cutoff_time:
+                    continue
+                
+                title = getattr(entry, 'title', None)
+                if not title:
+                    title = entry.get('title', 'Untitled')
+
+                summary_value = (
+                    entry.get('summary')
+                    or getattr(entry, 'summary', None)
+                    or entry.get('description')
+                    or getattr(entry, 'description', None)
+                    or ''
+                )
+                if not isinstance(summary_value, str):
+                    summary_value = str(summary_value)
+
+                url = getattr(entry, 'link', None) or entry.get('link', '')
+                
+                # 线程安全的去重检查
+                with self._dedup_lock:
+                    if self._is_duplicate(url):
+                        duplicates_skipped += 1
+                        continue
+                    if url:
+                        self._seen_hashes.add(self._url_hash(url))
+
+                articles.append({
+                    'title': title,
+                    'content': summary_value[:1000],
+                    'source': source['name'],
+                    'category': source.get('category', 'general'),
+                    'url': url,
+                    'published_at': pub_date.isoformat()
+                })
+                count += 1
+                
+        except Exception as e:
+            logger.warning(f"{source['name']}: {str(e)[:60]}")
+        
+        return {'articles': articles, 'duplicates_skipped': duplicates_skipped}
+
     def fetch_latest(self, hours=24, max_per_source=15) -> List[Dict]:
-        """获取最近N小时的新闻"""
+        """并发获取最近N小时的新闻（ThreadPoolExecutor）"""
         articles = []
         cutoff_time = datetime.now() - timedelta(hours=hours)
         success_count = 0
         duplicates_skipped = 0
         
-        for source in self.config.get('rss_sources', []):
-            try:
-                feed = self._fetch_feed_with_timeout(source['url'], timeout=self._fetch_timeout)
-                count = 0
-                
-                for entry in feed.entries[:max_per_source*2]:  # 多取一些以防过滤
-                    if count >= max_per_source:
-                        break
-                    
-                    try:
-                        published_parsed = None
-                        if hasattr(entry, 'published_parsed'):
-                            published_parsed = entry.published_parsed
-                        elif isinstance(entry, dict) and 'published_parsed' in entry:
-                            published_parsed = entry['published_parsed']
-                        if published_parsed:
-                            safe_defaults = (1970, 1, 1, 0, 0, 0)
-                            date_parts = []
-                            for value, fallback in zip(published_parsed[:6], safe_defaults):
-                                if isinstance(value, (int, float, str)):
-                                    try:
-                                        date_parts.append(int(value))
-                                    except (TypeError, ValueError):
-                                        date_parts.append(fallback)
-                                else:
-                                    date_parts.append(fallback)
-                            pub_date = datetime(*date_parts)
-                        else:
-                            pub_date = datetime.now()
-                    except Exception:
-                        pub_date = datetime.now()
-                    
-                    if pub_date < cutoff_time:
-                        continue
-                    
-                    # Normalize entry fields to avoid AttributeError/TypeError when values are missing
-                    title = getattr(entry, 'title', None)
-                    if not title:
-                        title = entry.get('title', 'Untitled')
-
-                    summary_value = (
-                        entry.get('summary')
-                        or getattr(entry, 'summary', None)
-                        or entry.get('description')
-                        or getattr(entry, 'description', None)
-                        or ''
-                    )
-                    if not isinstance(summary_value, str):
-                        summary_value = str(summary_value)
-
-                    url = getattr(entry, 'link', None) or entry.get('link', '')
-                    
-                    # 去重检查
-                    if self._is_duplicate(url):
-                        duplicates_skipped += 1
-                        continue
-                    
-                    # 记录已采集
-                    if url:
-                        self._seen_hashes.add(self._url_hash(url))
-
-                    articles.append({
-                        'title': title,
-                        'content': summary_value[:1000],
-                        'source': source['name'],
-                        'category': source.get('category', 'general'),
-                        'url': url,
-                        'published_at': pub_date.isoformat()
-                    })
-                    count += 1
-                
-                if count > 0:
-                    success_count += 1
-                    
-            except Exception as e:
-                logger.warning(f"{source['name']}: {str(e)[:60]}")
+        sources = self.config.get('rss_sources', [])
+        max_workers = min(8, len(sources))  # 最多8个并发线程
         
-        logger.info(f"成功采集 {len(articles)} 条新闻 (来自 {success_count} 个源, 去重跳过 {duplicates_skipped} 条)")
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future_to_source = {
+                executor.submit(self._fetch_single_source, source, cutoff_time, max_per_source): source['name']
+                for source in sources
+            }
+            
+            for future in as_completed(future_to_source, timeout=90):
+                source_name = future_to_source[future]
+                try:
+                    result = future.result(timeout=30)
+                    if result['articles']:
+                        articles.extend(result['articles'])
+                        success_count += 1
+                    duplicates_skipped += result['duplicates_skipped']
+                except Exception as e:
+                    logger.warning(f"{source_name} 并发采集异常: {str(e)[:60]}")
+        
+        logger.info(f"并发采集完成: {len(articles)} 条新闻 (来自 {success_count}/{len(sources)} 个源, 去重跳过 {duplicates_skipped} 条)")
         return articles
 
     def fetch_stock_specific_news(self) -> List[Dict]:
-        """获取用户自选股相关新闻"""
+        """并发获取用户自选股相关新闻"""
         my_stocks = self.user_config.get('my_stocks', [])
         if not my_stocks:
             return []
         
-        logger.info(f"采集自选股新闻 ({len(my_stocks)}只)...")
+        logger.info(f"并发采集自选股新闻 ({len(my_stocks)}只)...")
         stock_articles = []
         scraper = WebScraper()
-        for stock in my_stocks:
-            news = scraper.search_stock_news(stock['name'])
-            stock_articles.extend(news)
+        max_workers = min(4, len(my_stocks))
+        
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future_to_stock = {
+                executor.submit(scraper.search_stock_news, stock['name']): stock['name']
+                for stock in my_stocks
+            }
+            for future in as_completed(future_to_stock, timeout=60):
+                stock_name = future_to_stock[future]
+                try:
+                    news = future.result(timeout=15)
+                    stock_articles.extend(news)
+                except Exception as e:
+                    logger.warning(f"自选股'{stock_name}'采集异常: {e}")
+        
+        logger.info(f"自选股新闻采集完成: {len(stock_articles)} 条")
         return stock_articles

@@ -12,7 +12,7 @@
 |------|------|----------|--------|
 | **Phase 1** | 🔴 安全加固 & 生产就绪 | 1-2天 | ✅ **已完成** |
 | **Phase 2** | 🟡 工程化 & 可维护性 | 3-5天 | ✅ **已完成** |
-| **Phase 3** | 🟢 性能优化 & 可扩展 | 3-5天 | **推荐** |
+| **Phase 3** | 🟢 性能优化 & 可扩展 | 3-5天 | ✅ **已完成** |
 | **Phase 4** | 🔵 金融专业性提升 | 持续 | **长期** |
 
 ---
@@ -260,6 +260,18 @@ services:
 
 ## 🟡 Phase 2: 工程化 & 可维护性（3-5天）
 
+> **执行记录** (2026-02-08):
+> | 编号 | 计划内容 | 实际执行 | 说明 |
+> |------|----------|----------|------|
+> | 2.1 | logging 替代 print | ✅ 按计划完成 | 创建 src/logger.py |
+> | 2.2 | 拆分 web_app.py | ⏭️ 延后至 Phase 3 | 破坏性大，需先有测试覆盖 |
+> | 2.3 | 统一配置管理 | ✅ 按计划完成 | 创建 config/settings.py |
+> | 2.4 | 数据去重 | ✅ 按计划完成 | collector URL hash + database 查询 |
+> | 2.5 | 单元测试框架 | ✅ 按计划完成 | 26 个测试 (3 test files) |
+> | 2.6 | CI/CD | ✅ 按计划完成 | GitHub Actions 3 阶段流水线 |
+> | +2.7 | 全模块集成 logger + Config | ✅ 新增完成 | 9 个文件 60+ 处 print→logger |
+> | +2.8 | SQLite WAL 模式 | ✅ 从 Phase 3 提前完成 | 与去重技术耦合，一起做更合理 |
+
 ### 2.1 引入 Python logging 替代 print
 
 **现状**: 全项目使用 `print()` 输出，无日志级别、无文件保存、无结构化。
@@ -311,7 +323,9 @@ logger.error(f"采集失败: {e}", exc_info=True)
 
 ---
 
-### 2.2 拆分 web_app.py（1495行 → 多文件）
+### 2.2 ⏭️ 拆分 web_app.py（1495行 → 多文件）— 延后至 Phase 3.6
+
+> **延后原因**: 1500行大拆分破坏性高，需先建立测试覆盖（2.5）再安全重构。已移至 Phase 3.6。
 
 **当前**: 所有路由、业务逻辑混在一个文件。
 
@@ -532,6 +546,8 @@ jobs:
 
 ## 🟢 Phase 3: 性能优化 & 可扩展（3-5天）
 
+> **调整说明**: 3.4 SQLite WAL 已在 Phase 2 提前完成。新增 3.6 web_app.py Blueprint 拆分（从 Phase 2.2 延后）。
+
 ### 3.1 并发采集（最大收益）
 
 **现状**: 17个RSS源 + 6个网站**串行**请求，耗时可能超过3分钟。
@@ -652,18 +668,9 @@ http {
 
 ---
 
-### 3.4 SQLite → SQLite WAL 模式（短期）/ PostgreSQL（长期）
+### 3.4 SQLite WAL 模式 ✅ 已在 Phase 2 完成 / PostgreSQL（长期）
 
-**短期**: 启用 WAL 模式支持并发读写：
-```python
-# src/database.py
-def get_connection():
-    conn = sqlite3.connect(get_db_path())
-    conn.execute("PRAGMA journal_mode=WAL")
-    conn.execute("PRAGMA busy_timeout=5000")
-    conn.row_factory = sqlite3.Row
-    ...
-```
+**短期** ✅ **已完成**: WAL 模式 + busy_timeout + get_recent_news_hashes() 已在 Phase 2.8 中实现。
 
 **长期**: docker-compose 中加入 PostgreSQL：
 ```yaml
@@ -711,6 +718,35 @@ scheduler.add_job(run_backtest_verification, 'cron', hour=21)            # 回�
 ```txt
 # requirements.txt 替换 schedule
 APScheduler==3.10.4
+```
+
+---
+
+### 3.6 web_app.py Blueprint 拆分（从 Phase 2.2 延后）
+
+**现状**: web_app.py ~1500 行，所有路由和业务逻辑混在单文件。
+
+**前置条件**: ✅ Phase 2.5 单元测试框架已建立，可安全重构。
+
+**目标结构**:
+```
+web/
+├── __init__.py          # Flask app 工厂函数
+├── middleware.py         # 限流、认证、CORS
+├── routes/
+│   ├── report.py        # /api/latest, /api/report/*, /api/summary/*
+│   ├── stock.py         # /api/stocks/*, /api/watchlist/*
+│   ├── crypto.py        # /api/crypto/*
+│   ├── analysis.py      # /api/weekly/*, /api/monthly/*
+│   ├── backtest.py      # /api/backtest/*
+│   └── hot_search.py    # /api/hot-searches/*
+├── services/
+│   ├── report_service.py
+│   ├── stock_service.py
+│   └── cache_service.py
+└── utils/
+    ├── file_helper.py   # safe_filename, get_latest_file
+    └── response.py      # 统一响应格式
 ```
 
 ---
@@ -789,20 +825,21 @@ class EnsembleAnalyzer:
 ## 🛠️ 实施优先级路线图
 
 ```
-Week 1 (Phase 1 - 安全加固)
+Week 1 (Phase 1 - 安全加固) ✅ 已完成
 ├── Day 1: 关闭debug + Gunicorn + 速率限制 + 路径校验
 ├── Day 2: HTTPS配置 + Docker健康检查 + 资源限制
 │
-Week 2-3 (Phase 2 - 工程化)
-├── Day 3: logging模块 + 统一配置管理
-├── Day 4-5: web_app.py拆分为Blueprint
-├── Day 6: 数据去重 + .env.example完善
-├── Day 7: 基础测试框架 + CI/CD
+Week 2-3 (Phase 2 - 工程化) ✅ 已完成
+├── Day 3: logging模块 + 统一配置管理 + 全模块集成
+├── Day 4: 数据去重 + SQLite WAL (从Phase 3提前)
+├── Day 5: 基础测试框架(26个测试) + CI/CD
+├── [延后] web_app.py Blueprint拆分 → Phase 3.6
 │
-Week 3-4 (Phase 3 - 性能优化)
-├── Day 8: 并发采集（ThreadPoolExecutor）
-├── Day 9: 内存缓存 + Nginx优化
-├── Day 10: SQLite WAL + APScheduler
+Week 3-4 (Phase 3 - 性能优化 & 架构) ⬅️ 当前
+├── Day 6: 并发采集（ThreadPoolExecutor）
+├── Day 7: 内存缓存层 + Nginx优化
+├── Day 8: APScheduler 替代 schedule
+├── Day 9-10: web_app.py Blueprint 拆分
 │
 Week 5+ (Phase 4 - 持续迭代)
 ├── 情绪校准 + 量价整合
@@ -815,14 +852,15 @@ Week 5+ (Phase 4 - 持续迭代)
 
 ## 📊 预期改进效果
 
-| 指标 | 当前 | Phase 1后 | Phase 3后 |
-|------|------|-----------|-----------|
-| **安全评分** | 3/10 | 7/10 | 8/10 |
-| **API响应时间** | ~2s | ~1.5s | ~200ms (缓存) |
-| **数据采集耗时** | ~3min | ~3min | ~20s |
-| **LLM月度开支** | ~$3 | ~$3 | ~$1.5 (去重) |
-| **故障可观测性** | 无 | 日志文件 | 结构化日志 |
-| **部署流程** | 手动SSH | 手动SSH | Git push自动 |
+| 指标 | 初始 | Phase 1后 | Phase 2后 | Phase 3目标 |
+|------|------|-----------|-----------|------------|
+| **安全评分** | 3/10 | 7/10 | 7/10 | 8/10 |
+| **API响应时间** | ~2s | ~1.5s | ~1.5s | ~200ms (缓存) |
+| **数据采集耗时** | ~3min | ~3min | ~3min (去重减少LLM调用) | ~20s (并发) |
+| **LLM月度开支** | ~$3 | ~$3 | ~$1.5 (去重生效) | ~$1.5 |
+| **故障可观测性** | 无 | 日志文件 | ✅ 结构化日志+轮转 | 结构化日志 |
+| **部署流程** | 手动SSH | 手动SSH | ✅ CI/CD流水线 | Git push自动 |
+| **代码可维护性** | 低 | 低 | ✅ Config集中+测试覆盖 | Blueprint模块化 |
 
 ---
 
