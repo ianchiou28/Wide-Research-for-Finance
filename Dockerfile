@@ -22,17 +22,22 @@ RUN apt-get update \
 # 复制依赖文件
 COPY requirements.txt .
 
-# 安装Python依赖
+# 安装Python依赖（含 gunicorn 生产服务器）
 RUN pip install --no-cache-dir -r requirements.txt
 
 # 复制项目文件
 COPY . .
 
-# 创建数据目录
-RUN mkdir -p data/reports data/summaries data/weekly data/raw
+# 创建数据目录和日志目录
+RUN mkdir -p data/reports data/summaries data/weekly data/raw data/logs
+
+# 创建非 root 用户运行应用
+RUN adduser --disabled-password --gecos '' appuser \
+    && chown -R appuser:appuser /app
+USER appuser
 
 # 暴露端口
 EXPOSE 5000
 
-# 启动命令
-CMD ["python", "web_app.py"]
+# 生产环境使用 gunicorn，4 worker + 2 thread，超时120s
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "--threads", "2", "--timeout", "120", "--access-logfile", "-", "--error-logfile", "-", "web_app:app"]

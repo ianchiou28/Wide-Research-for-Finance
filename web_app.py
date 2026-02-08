@@ -1,9 +1,12 @@
 from flask import Flask, render_template, jsonify, request
 import os
 import sys
+import re
 import glob
+import logging
 from datetime import datetime, timedelta
 from collections import Counter
+from functools import wraps
 import json
 from dotenv import load_dotenv
 
@@ -11,6 +14,43 @@ load_dotenv()
 
 sys.path.append('src')
 from weekly_summary import WeeklySummary
+
+# ============== 日志配置 ==============
+logging.basicConfig(
+    level=getattr(logging, os.getenv('LOG_LEVEL', 'INFO')),
+    format='%(asctime)s [%(name)s] %(levelname)s: %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+logger = logging.getLogger('web_app')
+
+
+# ============== 安全工具 ==============
+def safe_filename(filename: str) -> str:
+    """防止路径遍历攻击，只允许安全的文件名"""
+    if not filename:
+        return None
+    if not re.match(r'^[a-zA-Z0-9_\-\.]+$', filename):
+        return None
+    # 不允许 .. 路径遍历
+    if '..' in filename:
+        return None
+    return filename
+
+
+def require_api_key(f):
+    """管理操作需要 API Key 认证"""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        admin_key = os.getenv('ADMIN_API_KEY', '')
+        if not admin_key:
+            # 未配置API Key时跳过认证（向后兼容）
+            return f(*args, **kwargs)
+        api_key = request.headers.get('X-API-Key') or request.args.get('api_key')
+        if api_key != admin_key:
+            logger.warning(f"Unauthorized API access attempt from {request.remote_addr}")
+            return jsonify({'error': 'Unauthorized'}), 401
+        return f(*args, **kwargs)
+    return decorated
 
 # 导入翻译服务
 def get_translator():
@@ -497,14 +537,17 @@ def daily_summary():
     # 如果请求特定文件
     requested_file = request.args.get('file')
     if requested_file:
+        requested_file = safe_filename(requested_file)
+        if not requested_file:
+            return jsonify({'content': '无效的文件名', 'error': True}), 400
         file_path = f'data/summaries/{requested_file}'
         if os.path.exists(file_path):
             try:
                 with open(file_path, 'r', encoding='utf-8') as f:
                     content = f.read()
                 return jsonify({'content': content, 'file': requested_file})
-            except:
-                pass
+            except Exception as e:
+                logger.error(f"读取摘要文件失败: {e}")
         return jsonify({'content': '无法读取文件', 'error': True})
     
     # 返回文件列表和最新内容
@@ -539,6 +582,9 @@ def weekly_analysis():
     # 如果请求特定文件
     requested_file = request.args.get('file')
     if requested_file:
+        requested_file = safe_filename(requested_file)
+        if not requested_file:
+            return jsonify({'error': True, 'message': '无效的文件名'}), 400
         file_path = f'data/weekly/{requested_file}'
         if os.path.exists(file_path):
             try:
@@ -546,8 +592,8 @@ def weekly_analysis():
                     data = json.load(f)
                     data['file'] = requested_file
                     return jsonify(data)
-            except:
-                pass
+            except Exception as e:
+                logger.error(f"读取周报文件失败: {e}")
         return jsonify({'error': True, 'message': '无法读取文件'})
     
     # 返回文件列表
@@ -1235,6 +1281,9 @@ def api_monthly_analysis():
     # 如果请求特定文件
     requested_file = request.args.get('file')
     if requested_file:
+        requested_file = safe_filename(requested_file)
+        if not requested_file:
+            return jsonify({'error': '无效的文件名'}), 400
         file_path = f'data/monthly/{requested_file}'
         if os.path.exists(file_path):
             try:
@@ -1245,6 +1294,7 @@ def api_monthly_analysis():
                     analyzer.current_analysis = data  # 设置当前分析用于对话
                     return jsonify(data)
             except Exception as e:
+                logger.error(f"读取月度分析文件失败: {e}")
                 return jsonify({'error': str(e)}), 500
         return jsonify({'error': '文件不存在'}), 404
     
@@ -1417,13 +1467,15 @@ def get_monthly_backtest():
 
 
 @app.route('/api/backtest/run', methods=['POST'])
+@require_api_key
 def run_backtest():
-    """运行回测（异步）"""
+    """运行回测（异步）- 需要API Key认证"""
     try:
         from backtester import run_daily_verification
         result = run_daily_verification(auto_optimize=True)
         return jsonify({'success': True, 'result': result})
     except Exception as e:
+        logger.error(f"Backtest run failed: {e}", exc_info=True)
         return jsonify({'error': str(e)}), 500
 
 
@@ -1465,13 +1517,15 @@ def get_optimization_status():
 
 
 @app.route('/api/backtest/optimize', methods=['POST'])
+@require_api_key
 def run_optimization():
-    """手动运行优化"""
+    """手动运行优化 - 需要API Key认证"""
     try:
-        from prediction_optimizer import run_optimization
-        result = run_optimization()
+        from prediction_optimizer import run_optimization as _run_opt
+        result = _run_opt()
         return jsonify({'success': True, 'result': result})
     except Exception as e:
+        logger.error(f"Optimization failed: {e}", exc_info=True)
         return jsonify({'error': str(e)}), 500
 
 
@@ -1479,15 +1533,11 @@ if __name__ == '__main__':
     # 初始化数据库
     init_database()
     
-    # 生产环境配置
-    import argparse
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--debug', action='store_true', help='Enable debug mode')
-    args = parser.parse_args()
+    # 生产环境通过 gunicorn 启动，此处仅用于本地开发
+    is_debug = os.getenv('FLASK_DEBUG', 'false').lower() == 'true'
     
     app.run(
-        # debug=args.debug,
-        debug=True,
+        debug=is_debug,
         host='0.0.0.0',  # 监听所有接口，允许容器间访问
         port=5000,
         threaded=True

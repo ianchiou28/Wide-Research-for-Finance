@@ -8,6 +8,9 @@ services:
     environment:
       - TZ=Asia/Shanghai
       - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+      - FLASK_DEBUG=false
+      - ADMIN_API_KEY=${ADMIN_API_KEY}
+      - LOG_LEVEL=INFO
       # 代理（可选）：在服务器已配置代理时取消注释
       # - HTTP_PROXY=${HTTP_PROXY}
       # - HTTPS_PROXY=${HTTPS_PROXY}
@@ -15,6 +18,16 @@ services:
     volumes:
       - ./data:/app/data
       - ./.env:/app/.env
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/latest"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     restart: unless-stopped
     
   finance-collector:
@@ -24,6 +37,7 @@ services:
       - TZ=Asia/Shanghai
       - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
       - DOCKER_ENV=True
+      - LOG_LEVEL=INFO
       # 代理（可选）：在服务器已配置代理时取消注释
       # - HTTP_PROXY=${HTTP_PROXY}
       # - HTTPS_PROXY=${HTTPS_PROXY}
@@ -31,9 +45,19 @@ services:
     volumes:
       - ./data:/app/data
       - ./.env:/app/.env
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os; exit(0)"]
+      interval: 300s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 1G
     restart: unless-stopped
     depends_on:
-      - finance-app
+      finance-app:
+        condition: service_healthy
 
   nginx:
     image: nginx:alpine
@@ -42,6 +66,16 @@ services:
       - "443:443"
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./certbot/conf:/etc/letsencrypt:ro
+      - ./certbot/www:/var/www/certbot:ro
     depends_on:
       - finance-app
     restart: unless-stopped
+
+  # HTTPS 证书自动续期（可选，需先手动申请证书）
+  # certbot:
+  #   image: certbot/certbot
+  #   volumes:
+  #     - ./certbot/conf:/etc/letsencrypt
+  #     - ./certbot/www:/var/www/certbot
+  #   entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
