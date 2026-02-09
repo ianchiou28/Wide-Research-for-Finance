@@ -303,12 +303,12 @@ def api_report_structured():
 
     def get_label(score):
         if lang == 'en':
-            if score > 0.3: return 'Positive'
-            if score < -0.3: return 'Negative'
+            if score > 0.15: return 'Positive'
+            if score < -0.15: return 'Negative'
             return 'Neutral'
         else:
-            if score > 0.3: return '积极'
-            if score < -0.3: return '消极'
+            if score > 0.15: return '积极'
+            if score < -0.15: return '消极'
             return '中性'
 
     # 获取时间戳
@@ -335,7 +335,7 @@ def api_report_structured():
             'title': e.get('title', ''),
             'summary': e.get('summary', ''),
             'source': e.get('source', ''),
-            'url': '',
+            'url': e.get('url', ''),
             'event_type': 'Major Event' if lang == 'en' else '重大事件',
             'sentiment': {'overall': 0, 'cn': 0, 'us': 0},
             'stock_impact': []
@@ -385,9 +385,9 @@ def api_report_structured():
             'cn': {'score': round(sentiment_cn, 2), 'label': get_label(sentiment_cn)},
             'us': {'score': round(sentiment_us, 2), 'label': get_label(sentiment_us)},
             'distribution': {
-                'positive': int(parsed.get('total_news', 0) * 0.4),
-                'neutral': int(parsed.get('total_news', 0) * 0.4),
-                'negative': int(parsed.get('total_news', 0) * 0.2)
+                'positive': sum(1 for e in parsed.get('major_events', []) if e.get('sentiment_overall', '') == '积极') or max(1, int(parsed.get('total_news', 0) * 0.3)),
+                'neutral': max(0, parsed.get('total_news', 0) - max(1, int(parsed.get('total_news', 0) * 0.3)) - max(1, int(parsed.get('total_news', 0) * 0.2))),
+                'negative': sum(1 for e in parsed.get('major_events', []) if e.get('sentiment_overall', '') == '消极') or max(1, int(parsed.get('total_news', 0) * 0.2))
             }
         },
         'entities': [{'name': e, 'count': 1, 'avg_sentiment': 0} for e in entities],

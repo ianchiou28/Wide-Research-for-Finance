@@ -101,12 +101,12 @@ class ReportGeneratorV2:
             avg_us = sum(n.get('sentiment_us', n.get('sentiment', 0)) for n in news_list) / total
         
         def get_label(score):
-            if score > 0.3: return '积极'
-            if score < -0.3: return '消极'
+            if score > 0.15: return '积极'
+            if score < -0.15: return '消极'
             return '中性'
         
-        positive = sum(1 for n in news_list if n.get('sentiment', 0) > 0.3)
-        negative = sum(1 for n in news_list if n.get('sentiment', 0) < -0.3)
+        positive = sum(1 for n in news_list if n.get('sentiment', 0) > 0.15)
+        negative = sum(1 for n in news_list if n.get('sentiment', 0) < -0.15)
         neutral = total - positive - negative
         
         return {

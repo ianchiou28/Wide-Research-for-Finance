@@ -13,9 +13,9 @@ logger = setup_logger('report_generator')
 
 
 def _sentiment_label(score: float) -> str:
-    if score > 0.3:
+    if score > 0.15:
         return '积极'
-    elif score < -0.3:
+    elif score < -0.15:
         return '消极'
     return '中性'
 
@@ -94,9 +94,9 @@ class ReportGenerator:
         report += f"\n【重大事件提醒】\n"
         if high_impact:
             for news in high_impact:
-                sentiment_text = '积极' if news['sentiment'] > 0.3 else '消极' if news['sentiment'] < -0.3 else '中性'
-                sentiment_cn_text = '积极' if news.get('sentiment_cn', news['sentiment']) > 0.3 else '消极' if news.get('sentiment_cn', news['sentiment']) < -0.3 else '中性'
-                sentiment_us_text = '积极' if news.get('sentiment_us', news['sentiment']) > 0.3 else '消极' if news.get('sentiment_us', news['sentiment']) < -0.3 else '中性'
+                sentiment_text = '积极' if news['sentiment'] > 0.15 else '消极' if news['sentiment'] < -0.15 else '中性'
+                sentiment_cn_text = '积极' if news.get('sentiment_cn', news['sentiment']) > 0.15 else '消极' if news.get('sentiment_cn', news['sentiment']) < -0.15 else '中性'
+                sentiment_us_text = '积极' if news.get('sentiment_us', news['sentiment']) > 0.15 else '消极' if news.get('sentiment_us', news['sentiment']) < -0.15 else '中性'
                 
                 stock_text = ""
                 stock_impact = news.get('stock_impact', [])

@@ -245,9 +245,9 @@ def parse_report(content):
 
     # 解析情绪
     def get_sentiment_label(score):
-        if score > 0.3:
+        if score > 0.15:
             return '积极'
-        elif score < -0.3:
+        elif score < -0.15:
             return '消极'
         return '中性'
 
@@ -316,6 +316,10 @@ def parse_report(content):
                     current_event['sentiment_overall'] = parts[0] if len(parts) > 0 else '中性'
                     current_event['sentiment_cn'] = parts[1].replace('中国:', '') if len(parts) > 1 else '中性'
                     current_event['sentiment_us'] = parts[2].replace('美国:', '') if len(parts) > 2 else '中性'
+                elif line.startswith('链接:'):
+                    url = line.replace('链接:', '').strip()
+                    if url.startswith('http'):
+                        current_event['url'] = url
 
             # 添加最后一个事件
             if current_event and 'title' in current_event:
@@ -398,9 +402,9 @@ def get_market_prediction():
     sentiment = data.get('sentiment', {})
 
     def predict_trend(score):
-        if score > 0.3:
+        if score > 0.15:
             return '上涨'
-        elif score < -0.3:
+        elif score < -0.15:
             return '下跌'
         else:
             return '震荡'
@@ -410,18 +414,18 @@ def get_market_prediction():
             'name': 'A股',
             'sentiment': sentiment.get('cn', 0),
             'trend': predict_trend(sentiment.get('cn', 0)),
-            'icon': '↑' if sentiment.get('cn', 0) > 0.3 else '↓' if sentiment.get('cn', 0) < -0.3 else '→'
+            'icon': '↑' if sentiment.get('cn', 0) > 0.15 else '↓' if sentiment.get('cn', 0) < -0.15 else '→'
         },
         'us': {
             'name': '美股',
             'sentiment': sentiment.get('us', 0),
             'trend': predict_trend(sentiment.get('us', 0)),
-            'icon': '↑' if sentiment.get('us', 0) > 0.3 else '↓' if sentiment.get('us', 0) < -0.3 else '→'
+            'icon': '↑' if sentiment.get('us', 0) > 0.15 else '↓' if sentiment.get('us', 0) < -0.15 else '→'
         },
         'global': {
             'name': '全球',
             'sentiment': sentiment.get('overall', 0),
             'trend': predict_trend(sentiment.get('overall', 0)),
-            'icon': '↑' if sentiment.get('overall', 0) > 0.3 else '↓' if sentiment.get('overall', 0) < -0.3 else '→'
+            'icon': '↑' if sentiment.get('overall', 0) > 0.15 else '↓' if sentiment.get('overall', 0) < -0.15 else '→'
         }
     }

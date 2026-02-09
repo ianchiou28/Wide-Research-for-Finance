@@ -171,7 +171,8 @@
                   <span class="event-source">{{ event.source }}</span>
                   <span class="event-type">{{ event.event_type }}</span>
                 </div>
-                <div class="event-title">{{ event.title }}</div>
+                <a v-if="event.url" :href="event.url" target="_blank" rel="noopener noreferrer" class="event-title event-link">{{ event.title }} <span class="link-icon">↗</span></a>
+                <div v-else class="event-title">{{ event.title }}</div>
                 <div class="event-summary">{{ event.summary }}</div>
                 <div class="event-stocks" v-if="event.stock_impact?.length">
                   <span v-for="stock in event.stock_impact" :key="stock.symbol" 
@@ -824,6 +825,28 @@ onUnmounted(() => {
 .event-title {
   font-weight: 700;
   margin-bottom: 0.5rem;
+}
+
+a.event-link {
+  display: block;
+  color: var(--c-text);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+a.event-link:hover {
+  color: var(--c-accent);
+  text-decoration: underline;
+}
+
+a.event-link .link-icon {
+  font-size: 0.75em;
+  opacity: 0.5;
+  margin-left: 4px;
+}
+
+a.event-link:hover .link-icon {
+  opacity: 1;
 }
 
 .event-summary {
