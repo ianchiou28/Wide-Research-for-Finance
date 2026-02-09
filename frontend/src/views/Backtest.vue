@@ -60,17 +60,27 @@
         <div class="summary-card" :class="getAccuracyClass(weeklyAccuracy)">
           <div class="card-label">周报准确率</div>
           <div class="card-value">{{ weeklyAccuracy.toFixed(1) }}%</div>
-          <div class="card-sub">{{ summary.weekly?.total_predictions || 0 }} 条预测</div>
+          <div class="card-sub">{{ summary.weekly?.total_predictions || 0 }} 条已验证</div>
+          <div class="card-note" v-if="summary.weekly?.unverified > 0">
+            提取 {{ summary.weekly?.total_extracted || 0 }} / 未验证 {{ summary.weekly?.unverified || 0 }}
+          </div>
+          <div class="card-note" v-if="summary.weekly?.note">{{ summary.weekly?.note }}</div>
         </div>
         <div class="summary-card" :class="getAccuracyClass(monthlyStockAccuracy)">
           <div class="card-label">月报股票准确率</div>
           <div class="card-value">{{ monthlyStockAccuracy.toFixed(1) }}%</div>
-          <div class="card-sub">{{ summary.monthly?.stock_predictions?.total || 0 }} 条预测</div>
+          <div class="card-sub">{{ summary.monthly?.stock_predictions?.total || 0 }} 条已验证</div>
+          <div class="card-note" v-if="(summary.monthly?.stock_predictions?.unverified || 0) > 0">
+            提取 {{ summary.monthly?.stock_predictions?.total_extracted || 0 }} / 未验证 {{ summary.monthly?.stock_predictions?.unverified || 0 }}
+          </div>
         </div>
         <div class="summary-card" :class="getAccuracyClass(monthlyEventAccuracy)">
           <div class="card-label">月报事件准确率</div>
           <div class="card-value">{{ monthlyEventAccuracy.toFixed(1) }}%</div>
-          <div class="card-sub">{{ summary.monthly?.event_predictions?.total || 0 }} 条预测</div>
+          <div class="card-sub">{{ summary.monthly?.event_predictions?.total || 0 }} 条已验证</div>
+          <div class="card-note" v-if="(summary.monthly?.event_predictions?.unverified || 0) > 0">
+            提取 {{ summary.monthly?.event_predictions?.total_extracted || 0 }} / 未验证 {{ summary.monthly?.event_predictions?.unverified || 0 }}
+          </div>
         </div>
       </div>
 
@@ -533,6 +543,7 @@ onUnmounted(() => {
 .card-label { font-size: 0.85rem; color: var(--c-muted); margin-bottom: 0.5rem; }
 .card-value { font-family: var(--font-mono); font-size: 2rem; font-weight: 700; }
 .card-sub { font-size: 0.75rem; color: var(--c-muted); margin-top: 0.25rem; }
+.card-note { font-size: 0.65rem; color: var(--c-warning, #e6a23c); margin-top: 0.15rem; opacity: 0.85; }
 .summary-card.good .card-value { color: #4CAF50; }
 .summary-card.medium .card-value { color: #FF9800; }
 .summary-card.poor .card-value { color: #F44336; }

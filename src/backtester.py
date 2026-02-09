@@ -162,54 +162,94 @@ class PriceDataFetcher:
             return prices
             
         except Exception as e:
-            print(f"获取A股数据失败 {symbol}: {e}")
+            logger.warning(f"获取A股数据失败 {symbol}: {e}")
             return []
     
     def get_us_stock_price(self, symbol: str, start_date: str, end_date: str) -> List[Dict]:
-        """获取美股价格数据"""
-        if not HAS_YFINANCE:
-            return []
-        
+        """获取美股价格数据（优先yfinance，备用akshare）"""
         cache_key = f"us_{symbol}_{start_date}_{end_date}"
         if cache_key in self.cache:
             return self.cache[cache_key]
         
-        try:
-            # 转换指数代码
-            yf_symbol = symbol
-            if symbol == 'DJI':
-                yf_symbol = '^DJI'
-            elif symbol == 'SPX' or symbol == 'SP500':
-                yf_symbol = '^GSPC'
-            elif symbol == 'IXIC' or symbol == 'NASDAQ':
-                yf_symbol = '^IXIC'
-            
-            ticker = yf.Ticker(yf_symbol)
-            df = ticker.history(start=start_date, end=end_date)
-            
-            prices = []
-            prev_close = None
-            for date, row in df.iterrows():
-                close = float(row['Close'])
-                change_pct = ((close - prev_close) / prev_close * 100) if prev_close else 0
-                prices.append({
-                    'date': date.strftime('%Y-%m-%d'),
-                    'open': float(row['Open']),
-                    'high': float(row['High']),
-                    'low': float(row['Low']),
-                    'close': close,
-                    'volume': float(row['Volume']),
-                    'change_pct': change_pct
-                })
-                prev_close = close
-            
-            self.cache[cache_key] = prices
-            self._save_cache()
-            return prices
-            
-        except Exception as e:
-            print(f"获取美股数据失败 {symbol}: {e}")
-            return []
+        prices = []
+        
+        # 方案 1: yfinance
+        if HAS_YFINANCE:
+            try:
+                # 转换指数代码
+                yf_symbol = symbol
+                if symbol == 'DJI':
+                    yf_symbol = '^DJI'
+                elif symbol == 'SPX' or symbol == 'SP500':
+                    yf_symbol = '^GSPC'
+                elif symbol == 'IXIC' or symbol == 'NASDAQ':
+                    yf_symbol = '^IXIC'
+                
+                ticker = yf.Ticker(yf_symbol)
+                df = ticker.history(start=start_date, end=end_date)
+                
+                prev_close = None
+                for date, row in df.iterrows():
+                    close = float(row['Close'])
+                    change_pct = ((close - prev_close) / prev_close * 100) if prev_close else 0
+                    prices.append({
+                        'date': date.strftime('%Y-%m-%d'),
+                        'open': float(row['Open']),
+                        'high': float(row['High']),
+                        'low': float(row['Low']),
+                        'close': close,
+                        'volume': float(row['Volume']),
+                        'change_pct': change_pct
+                    })
+                    prev_close = close
+                
+                if prices:
+                    self.cache[cache_key] = prices
+                    self._save_cache()
+                    return prices
+                else:
+                    logger.warning(f"yfinance 返回空数据 {symbol} ({start_date} ~ {end_date})")
+                    
+            except Exception as e:
+                logger.warning(f"yfinance 获取失败 {symbol}: {e}")
+        
+        # 方案 2: akshare 获取美股数据 (备用)
+        if HAS_AKSHARE and not prices:
+            try:
+                df = ak.stock_us_daily(symbol=symbol, adjust="qfq")
+                if df is not None and not df.empty:
+                    # 筛选日期范围
+                    df['date'] = df['date'].astype(str)
+                    mask = (df['date'] >= start_date) & (df['date'] <= end_date)
+                    df = df[mask]
+                    
+                    prev_close = None
+                    for _, row in df.iterrows():
+                        close = float(row['close'])
+                        change_pct = ((close - prev_close) / prev_close * 100) if prev_close else 0
+                        prices.append({
+                            'date': str(row['date']),
+                            'open': float(row['open']),
+                            'high': float(row['high']),
+                            'low': float(row['low']),
+                            'close': close,
+                            'volume': float(row.get('volume', 0)),
+                            'change_pct': change_pct
+                        })
+                        prev_close = close
+                    
+                    if prices:
+                        self.cache[cache_key] = prices
+                        self._save_cache()
+                        return prices
+                    else:
+                        logger.warning(f"akshare 美股返回空数据 {symbol} ({start_date} ~ {end_date})")
+            except Exception as e:
+                logger.warning(f"akshare 美股获取失败 {symbol}: {e}")
+        
+        if not prices:
+            logger.error(f"所有数据源均无法获取 {symbol} ({start_date} ~ {end_date}), HAS_YFINANCE={HAS_YFINANCE}, HAS_AKSHARE={HAS_AKSHARE}")
+        return prices
     
     def get_price(self, symbol: str, start_date: str, end_date: str) -> List[Dict]:
         """自动识别市场并获取价格"""
@@ -221,12 +261,17 @@ class PriceDataFetcher:
     
     def get_price_change(self, symbol: str, date: str, days_after: int = 1) -> Optional[float]:
         """获取指定日期后的价格变化百分比"""
-        start = datetime.strptime(date, '%Y-%m-%d')
+        try:
+            start = datetime.strptime(date, '%Y-%m-%d')
+        except ValueError:
+            logger.warning(f"日期格式错误: {date}")
+            return None
         end = start + timedelta(days=days_after + 5)  # 多取几天防止节假日
         
         prices = self.get_price(symbol, date, end.strftime('%Y-%m-%d'))
         
         if len(prices) < 2:
+            logger.debug(f"价格数据不足: {symbol} ({date}), 获取到 {len(prices)} 条")
             return None
         
         # 返回days_after天后的涨跌幅
@@ -754,7 +799,8 @@ class WeeklyAnalysisBacktester:
         actual_change = self.price_fetcher.get_price_change(symbol, pred_date, days_after)
         
         if actual_change is None:
-            return {**prediction, 'verified': False, 'reason': '无法获取价格数据'}
+            logger.warning(f"[Weekly] 无法获取价格数据: {symbol} @ {pred_date}")
+            return {**prediction, 'verified': False, 'reason': f'无法获取价格数据 ({symbol})'}
         
         # 使用统一配置阈值
         cfg = _load_backtest_config()
@@ -792,7 +838,20 @@ class WeeklyAnalysisBacktester:
         logger.info(f"加载了 {len(analyses)} 份周报")
         
         if not analyses:
-            return {'error': '无周报数据'}
+            empty_stats = {
+                'total_predictions': 0,
+                'total_extracted': 0,
+                'unverified': 0,
+                'accuracy': 0,
+                'backtest_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                'period_days': days,
+                'verify_days': verify_days,
+                'note': f'回看 {days} 天内无周报数据'
+            }
+            self.results['verified'] = []
+            self.results['stats'] = empty_stats
+            self._save_results()
+            return {'error': '无周报数据', 'stats': empty_stats}
         
         # 提取并验证预测
         all_predictions = []
@@ -802,6 +861,9 @@ class WeeklyAnalysisBacktester:
             predictions = self.extract_predictions(analysis)
             all_predictions.extend(predictions)
             
+            if not predictions:
+                logger.info(f"[Weekly] 文件 {os.path.basename(analysis.get('file_path', '?'))} stocks 为空，跳过")
+            
             # 只验证7天前的预测（确保有足够时间验证）
             analysis_date = datetime.strptime(analysis.get('analysis_date', '2000-01-01'), '%Y-%m-%d')
             if datetime.now() - analysis_date > timedelta(days=verify_days + 2):
@@ -809,6 +871,11 @@ class WeeklyAnalysisBacktester:
                     verified = self.verify_prediction(pred, verify_days)
                     if verified.get('verified'):
                         verified_predictions.append(verified)
+                    else:
+                        logger.info(f"[Weekly] 预测未验证: {pred.get('symbol')} - {verified.get('reason', '未知')}")
+            else:
+                if predictions:
+                    logger.info(f"[Weekly] 分析日期 {analysis.get('analysis_date')} 距今不足 {verify_days+2} 天，暂不验证 {len(predictions)} 条预测")
         
         logger.info(f"提取了 {len(all_predictions)} 条预测")
         logger.info(f"验证了 {len(verified_predictions)} 条预测")
@@ -833,6 +900,8 @@ class WeeklyAnalysisBacktester:
             
             stats = {
                 'total_predictions': len(verified_predictions),
+                'total_extracted': len(all_predictions),
+                'unverified': len(all_predictions) - len(verified_predictions),
                 'correct_predictions': correct,
                 'accuracy': round(accuracy, 1),
                 'by_direction': dict(by_direction),
@@ -841,7 +910,16 @@ class WeeklyAnalysisBacktester:
                 'verify_days': verify_days
             }
         else:
-            stats = {'total_predictions': 0, 'accuracy': 0}
+            stats = {
+                'total_predictions': 0,
+                'total_extracted': len(all_predictions),
+                'unverified': len(all_predictions),
+                'accuracy': 0,
+                'backtest_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                'period_days': days,
+                'verify_days': verify_days,
+                'note': f'共提取 {len(all_predictions)} 条预测但均未能验证（可能缺少价格数据源）'
+            }
         
         # ---- 专业指标增强 ----
         if HAS_METRICS and verified_predictions:
@@ -1026,7 +1104,8 @@ class MonthlyAnalysisBacktester:
         actual_change = self.price_fetcher.get_price_change(symbol, pred_date, days_after)
         
         if actual_change is None:
-            return {**prediction, 'verified': False, 'reason': '无法获取价格数据'}
+            logger.warning(f"[Monthly] 无法获取价格数据: {symbol} @ {pred_date}")
+            return {**prediction, 'verified': False, 'reason': f'无法获取价格数据 ({symbol})'}
         
         # 使用统一配置阈值
         cfg = _load_backtest_config()
@@ -1110,7 +1189,24 @@ class MonthlyAnalysisBacktester:
         logger.info(f"加载了 {len(analyses)} 份月度分析")
         
         if not analyses:
-            return {'error': '无月度分析数据'}
+            empty_stats = {
+                'stock_predictions': {
+                    'total': 0, 'total_extracted': 0, 'unverified': 0,
+                    'correct': 0, 'accuracy': 0
+                },
+                'event_predictions': {
+                    'total': 0, 'total_extracted': 0, 'unverified': 0,
+                    'correct': 0, 'accuracy': 0
+                },
+                'backtest_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                'period_days': days,
+                'note': f'回看 {days} 天内无月度分析数据'
+            }
+            self.results['verified_stocks'] = []
+            self.results['verified_events'] = []
+            self.results['stats'] = empty_stats
+            self._save_results()
+            return {'error': '无月度分析数据', 'stats': empty_stats}
         
         all_stock_preds = []
         all_event_preds = []
@@ -1125,6 +1221,9 @@ class MonthlyAnalysisBacktester:
             all_stock_preds.extend(stock_preds)
             all_event_preds.extend(event_preds)
             
+            logger.info(f"[Monthly] 文件 {os.path.basename(analysis.get('file_path', '?'))}: "
+                        f"股票 {len(stock_preds)} 条, 事件 {len(event_preds)} 条")
+            
             # 验证（只验证10天前的预测）
             analysis_date = analysis.get('generated_at', '2000-01-01')[:10]
             try:
@@ -1134,27 +1233,38 @@ class MonthlyAnalysisBacktester:
                         verified = self.verify_stock_prediction(pred)
                         if verified.get('verified'):
                             verified_stocks.append(verified)
-            except:
-                pass
+                        else:
+                            logger.info(f"[Monthly] 股票预测未验证: {pred.get('symbol')} - {verified.get('reason', '未知')}")
+                else:
+                    if stock_preds:
+                        logger.info(f"[Monthly] 分析日期 {analysis_date} 距今不足 12 天，暂不验证 {len(stock_preds)} 条股票预测")
+            except Exception as e:
+                logger.warning(f"[Monthly] 日期解析失败 {analysis_date}: {e}")
             
             # 验证事件预测
             for pred in event_preds:
                 verified = self.verify_event_prediction(pred)
                 if verified.get('verified'):
                     verified_events.append(verified)
+                else:
+                    logger.info(f"[Monthly] 事件预测未验证: {pred.get('event_name')} - {verified.get('reason', '未知')}")
         
-        logger.info(f"股票预测: {len(all_stock_preds)} 条, 已验证: {len(verified_stocks)} 条")
-        logger.info(f"事件预测: {len(all_event_preds)} 条, 已验证: {len(verified_events)} 条")
+        logger.info(f"股票预测: {len(all_stock_preds)} 条提取, {len(verified_stocks)} 条已验证")
+        logger.info(f"事件预测: {len(all_event_preds)} 条提取, {len(verified_events)} 条已验证")
         
         # 计算统计
         stats = {
             'stock_predictions': {
                 'total': len(verified_stocks),
+                'total_extracted': len(all_stock_preds),
+                'unverified': len(all_stock_preds) - len(verified_stocks),
                 'correct': sum(1 for v in verified_stocks if v.get('is_correct')),
                 'accuracy': 0
             },
             'event_predictions': {
                 'total': len(verified_events),
+                'total_extracted': len(all_event_preds),
+                'unverified': len(all_event_preds) - len(verified_events),
                 'correct': sum(1 for v in verified_events if v.get('is_correct')),
                 'accuracy': 0
             },
@@ -1238,13 +1348,13 @@ def run_daily_verification(auto_optimize: bool = True):
     logger.info(f"每日预测验证 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     logger.info(f"{'='*60}")
     
-    # 周报回测
+    # 周报回测（使用较大时间窗口以覆盖所有历史数据）
     weekly_bt = WeeklyAnalysisBacktester()
-    weekly_result = weekly_bt.run_backtest(days=30, verify_days=5)
+    weekly_result = weekly_bt.run_backtest(days=365, verify_days=5)
     
     # 月报回测
     monthly_bt = MonthlyAnalysisBacktester()
-    monthly_result = monthly_bt.run_backtest(days=60)
+    monthly_result = monthly_bt.run_backtest(days=365)
     
     # 汇总报告
     report = {
