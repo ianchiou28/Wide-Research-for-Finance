@@ -68,28 +68,35 @@ class WeeklySummary:
             for sym, data in sorted(all_stocks.items(), key=lambda x: x[1]['up'] + x[1]['down'], reverse=True)[:20]
         ])
         
-        prompt = f"""基于过去7天的财经新闻分析数据：
+        prompt = f"""你是资深金融策略分析师。根据过去7天的新闻情绪数据，对活跃个股进行 **逐步推理** 预测。
 
-【一周市场情绪】
-- 整体: {avg_sentiment['overall']:.2f}
+## 本周数据
+【市场情绪指数】
+- 整体: {avg_sentiment['overall']:.2f}  (>0.3 乐观 / <-0.3 悲观)
 - 中国: {avg_sentiment['cn']:.2f}
 - 美国: {avg_sentiment['us']:.2f}
 
-【股票提及统计】
+【个股新闻频次】
 {stocks_summary}
 
-请分析这些股票在未来一周的走势预期。返回JSON（仅JSON，无其他文字）：
+## 分析要求
+对每只股票：
+1. 综合情绪方向 + 出现频次判断多空
+2. 结合当前市场环境（整体偏多/偏空）修正预测
+3. 置信度：高(频次≥4且方向一致) / 中(频次2-3) / 低(频次1或方向矛盾)
+4. 给出不超过30字的理由
+
+## Few-shot 示例
+{{"symbol": "600519", "name": "贵州茅台", "prediction": "上涨", "confidence": "高", "reason": "Q3超预期+消费政策利好, 机构增持"}}
+
+返回纯JSON:
 {{
   "stocks": [
-    {{
-      "symbol": "TSLA",
-      "name": "特斯拉",
-      "prediction": "上涨/下跌/震荡",
-      "confidence": "高/中/低",
-      "reason": "分析原因"
-    }}
+    {{"symbol": "xxx", "name": "xxx", "prediction": "上涨/下跌/震荡", "confidence": "高/中/低", "reason": "xxx"}}
   ],
-  "summary": "一周市场总体分析"
+  "market_outlook": "本周市场总体展望（50字内）",
+  "risk_factors": ["风险1", "风险2"],
+  "summary": "一周市场综合分析（100字内）"
 }}"""
         
         if not self.client:

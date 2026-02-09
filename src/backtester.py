@@ -36,6 +36,13 @@ try:
 except ImportError:
     HAS_DATABASE = False
 
+# 导入专业回测指标计算
+try:
+    from backtest_metrics import BacktestMetrics
+    HAS_METRICS = True
+except ImportError:
+    HAS_METRICS = False
+
 
 class PriceDataFetcher:
     """价格数据获取器"""
@@ -492,7 +499,7 @@ class NewsBacktester:
         total_trades = wins + losses
         total_return = (capital - initial_capital) / initial_capital * 100
         
-        return {
+        result = {
             'initial_capital': initial_capital,
             'final_capital': capital,
             'total_return': total_return,
@@ -502,6 +509,22 @@ class NewsBacktester:
             'win_rate': wins / total_trades * 100 if total_trades > 0 else 0,
             'trades': trades[-20:]  # 返回最近20笔交易
         }
+        
+        # ---- 专业指标增强 ----
+        if HAS_METRICS and trades:
+            equity_curve = [initial_capital] + [t['capital_after'] for t in trades]
+            period_returns = []
+            for i in range(1, len(equity_curve)):
+                prev = equity_curve[i - 1]
+                period_returns.append((equity_curve[i] - prev) / prev if prev else 0)
+            
+            dd = BacktestMetrics.max_drawdown(equity_curve)
+            result['sharpe_ratio'] = BacktestMetrics.sharpe_ratio(period_returns)
+            result['sortino_ratio'] = BacktestMetrics.sortino_ratio(period_returns)
+            result['max_drawdown_pct'] = dd['max_dd_pct']
+            result['calmar_ratio'] = BacktestMetrics.calmar_ratio(total_return, dd['max_dd_pct'])
+        
+        return result
     
     def generate_report(self) -> Dict:
         """生成回测报告"""
@@ -816,6 +839,31 @@ class WeeklyAnalysisBacktester:
         else:
             stats = {'total_predictions': 0, 'accuracy': 0}
         
+        # ---- 专业指标增强 ----
+        if HAS_METRICS and verified_predictions:
+            # IC (Information Coefficient)
+            pred_scores = []
+            act_returns = []
+            for v in verified_predictions:
+                conf = v.get('confidence', 0.5)
+                sign = 1 if v.get('predicted_direction') == '上涨' else -1
+                pred_scores.append(conf * sign)
+                act_returns.append(v.get('actual_change_pct', v.get('actual_change', 0)))
+            
+            ic_result = BacktestMetrics.information_coefficient(pred_scores, act_returns)
+            stats['ic'] = ic_result['ic']
+            stats['ic_significant'] = ic_result['significant']
+            
+            # 显著性检验
+            sig_result = BacktestMetrics.significance_test(
+                stats.get('accuracy', 0), len(verified_predictions)
+            )
+            stats['significance'] = {
+                'z_stat': sig_result['z_stat'],
+                'p_value': sig_result['p_value'],
+                'significant': sig_result['significant'],
+            }
+        
         # 保存结果
         self.results['verified'] = verified_predictions[-100:]  # 保留最近100条
         self.results['stats'] = stats
@@ -829,6 +877,13 @@ class WeeklyAnalysisBacktester:
             print(f"  按方向:")
             for d, s in stats['by_direction'].items():
                 print(f"    {d}: {s['correct']}/{s['total']} ({s['accuracy']:.1f}%)")
+        if stats.get('ic') is not None:
+            sig_mark = '✓' if stats.get('ic_significant') else '✗'
+            print(f"  IC (信息系数): {stats['ic']:.4f} [{sig_mark}显著]")
+        if stats.get('significance'):
+            sig = stats['significance']
+            sig_mark = '✓' if sig['significant'] else '✗'
+            print(f"  统计检验: z={sig['z_stat']:.2f}, p={sig['p_value']:.4f} [{sig_mark}显著]")
         
         return {
             'stats': stats,
@@ -1105,6 +1160,42 @@ class MonthlyAnalysisBacktester:
                 stats['event_predictions']['correct'] / stats['event_predictions']['total'] * 100, 1
             )
         
+        # ---- 专业指标增强 ----
+        if HAS_METRICS and verified_stocks:
+            pred_scores = []
+            act_returns = []
+            for v in verified_stocks:
+                sign = 1 if v.get('predicted_direction') == '上涨' else -1
+                pred_scores.append(sign * 0.7)
+                act_returns.append(v.get('actual_change_pct', 0))
+            
+            ic_result = BacktestMetrics.information_coefficient(pred_scores, act_returns)
+            stats['stock_predictions']['ic'] = ic_result['ic']
+            stats['stock_predictions']['ic_significant'] = ic_result['significant']
+            
+            sig_result = BacktestMetrics.significance_test(
+                stats['stock_predictions']['accuracy'],
+                stats['stock_predictions']['total'],
+                null_accuracy=50.0  # 二分类(买/卖)基线
+            )
+            stats['stock_predictions']['significance'] = {
+                'z_stat': sig_result['z_stat'],
+                'p_value': sig_result['p_value'],
+                'significant': sig_result['significant'],
+            }
+        
+        if HAS_METRICS and verified_events:
+            sig_result = BacktestMetrics.significance_test(
+                stats['event_predictions']['accuracy'],
+                stats['event_predictions']['total'],
+                null_accuracy=33.33
+            )
+            stats['event_predictions']['significance'] = {
+                'z_stat': sig_result['z_stat'],
+                'p_value': sig_result['p_value'],
+                'significant': sig_result['significant'],
+            }
+        
         # 保存结果
         self.results['verified_stocks'] = verified_stocks[-50:]
         self.results['verified_events'] = verified_events[-50:]
@@ -1114,6 +1205,8 @@ class MonthlyAnalysisBacktester:
         # 打印结果
         print(f"\n【回测结果】")
         print(f"  股票预测准确率: {stats['stock_predictions']['accuracy']:.1f}% ({stats['stock_predictions']['correct']}/{stats['stock_predictions']['total']})")
+        if stats['stock_predictions'].get('ic') is not None:
+            print(f"  股票IC: {stats['stock_predictions']['ic']:.4f}")
         print(f"  事件预测准确率: {stats['event_predictions']['accuracy']:.1f}% ({stats['event_predictions']['correct']}/{stats['event_predictions']['total']})")
         
         return {
@@ -1145,8 +1238,20 @@ def run_daily_verification(auto_optimize: bool = True):
     report = {
         'date': datetime.now().strftime('%Y-%m-%d'),
         'weekly': weekly_result.get('stats', {}),
-        'monthly': monthly_result.get('stats', {})
+        'monthly': monthly_result.get('stats', {}),
     }
+    
+    # 使用 BacktestMetrics 生成综合指标
+    if HAS_METRICS:
+        weekly_verified = weekly_result.get('verified_predictions', [])
+        monthly_verified = monthly_result.get('verified_stocks', [])
+        all_verified = weekly_verified + monthly_verified
+        if all_verified:
+            full = BacktestMetrics.full_report(
+                predictions=all_verified,
+                actuals=all_verified,  # verified 条目已包含 actual_direction
+            )
+            report['professional_metrics'] = full
     
     # 保存汇总
     os.makedirs('data', exist_ok=True)

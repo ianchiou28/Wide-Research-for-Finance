@@ -7,6 +7,15 @@ from typing import List, Dict, Any
 from collections import Counter
 import json
 import os
+from logger import setup_logger
+
+try:
+    from sentiment_calibrator import SentimentCalibrator
+    _calibrator = SentimentCalibrator()
+except ImportError:
+    _calibrator = None
+
+logger = setup_logger('report_generator_v2')
 
 
 class ReportGeneratorV2:
@@ -76,12 +85,20 @@ class ReportGeneratorV2:
         }
     
     def _analyze_sentiment(self, news_list: List[Dict]) -> Dict:
-        """分析情绪数据"""
+        """分析情绪数据（使用校准器加权）"""
         total = len(news_list)
         
-        avg_overall = sum(n.get('sentiment', 0) for n in news_list) / total
-        avg_cn = sum(n.get('sentiment_cn', n.get('sentiment', 0)) for n in news_list) / total
-        avg_us = sum(n.get('sentiment_us', n.get('sentiment', 0)) for n in news_list) / total
+        # 优先使用校准器（来源权重 + 时间衰减 + 偏差校正）
+        if _calibrator:
+            cal = _calibrator.calibrate_batch(news_list)
+            avg_overall = cal['overall']
+            avg_cn = cal['cn']
+            avg_us = cal['us']
+            logger.debug(f"V2 校准情绪: overall={avg_overall:.3f}, cn={avg_cn:.3f}, us={avg_us:.3f}")
+        else:
+            avg_overall = sum(n.get('sentiment', 0) for n in news_list) / total
+            avg_cn = sum(n.get('sentiment_cn', n.get('sentiment', 0)) for n in news_list) / total
+            avg_us = sum(n.get('sentiment_us', n.get('sentiment', 0)) for n in news_list) / total
         
         def get_label(score):
             if score > 0.3: return '积极'

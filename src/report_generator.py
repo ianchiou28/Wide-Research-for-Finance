@@ -1,6 +1,24 @@
 from datetime import datetime
 from typing import List, Dict
 from collections import Counter
+from logger import setup_logger
+
+try:
+    from sentiment_calibrator import SentimentCalibrator
+    _calibrator = SentimentCalibrator()
+except ImportError:
+    _calibrator = None
+
+logger = setup_logger('report_generator')
+
+
+def _sentiment_label(score: float) -> str:
+    if score > 0.3:
+        return '积极'
+    elif score < -0.3:
+        return '消极'
+    return '中性'
+
 
 class ReportGenerator:
     def generate(self, processed_news: List[Dict]) -> str:
@@ -12,15 +30,22 @@ class ReportGenerator:
         for i, news in enumerate(processed_news, 1):
             news['ref_id'] = i
 
-        # 统计分析
+        # 统计分析 —— 使用校准器加权（有来源权重 + 时间衰减 + 偏差校正）
         total = len(processed_news)
-        avg_sentiment = sum(n['sentiment'] for n in processed_news) / total
-        avg_sentiment_cn = sum(n.get('sentiment_cn', n['sentiment']) for n in processed_news) / total
-        avg_sentiment_us = sum(n.get('sentiment_us', n['sentiment']) for n in processed_news) / total
+        if _calibrator:
+            cal = _calibrator.calibrate_batch(processed_news)
+            avg_sentiment = cal['overall']
+            avg_sentiment_cn = cal['cn']
+            avg_sentiment_us = cal['us']
+            logger.debug(f"校准情绪: overall={avg_sentiment:.3f}, cn={avg_sentiment_cn:.3f}, us={avg_sentiment_us:.3f}")
+        else:
+            avg_sentiment = sum(n['sentiment'] for n in processed_news) / total
+            avg_sentiment_cn = sum(n.get('sentiment_cn', n['sentiment']) for n in processed_news) / total
+            avg_sentiment_us = sum(n.get('sentiment_us', n['sentiment']) for n in processed_news) / total
         
-        sentiment_label = "积极" if avg_sentiment > 0.3 else "消极" if avg_sentiment < -0.3 else "中性"
-        sentiment_label_cn = "积极" if avg_sentiment_cn > 0.3 else "消极" if avg_sentiment_cn < -0.3 else "中性"
-        sentiment_label_us = "积极" if avg_sentiment_us > 0.3 else "消极" if avg_sentiment_us < -0.3 else "中性"
+        sentiment_label = _sentiment_label(avg_sentiment)
+        sentiment_label_cn = _sentiment_label(avg_sentiment_cn)
+        sentiment_label_us = _sentiment_label(avg_sentiment_us)
         
         # 热门实体
         all_entities = []

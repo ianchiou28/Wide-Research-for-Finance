@@ -13,6 +13,20 @@ try:
 except ImportError:
     Config = None
 
+# 导入市场上下文（可选增强）
+try:
+    from market_context import MarketContext
+    _market_ctx = MarketContext()
+except ImportError:
+    _market_ctx = None
+
+# 导入多模型集成分析器（可选增强）
+try:
+    from ensemble_analyzer import EnsembleAnalyzer
+    _ensemble = EnsembleAnalyzer()
+except ImportError:
+    _ensemble = None
+
 logger = setup_logger('processor')
 
 class NLPProcessor:
@@ -65,22 +79,26 @@ class NLPProcessor:
         titles_text = "\n".join([f"{i+1}. [{a['source']}] {a['title']}" 
                                   for i, a in enumerate(articles)])
         
-        prompt = f"""你是财经分析师，快速判断以下新闻标题是否值得深入分析。
+        prompt = f"""你是资深财经编辑，根据以下标题快速筛选出对股市有实际影响的新闻。
 
 {titles_text}
 
-筛选标准（满足任一即可）：
-- 涉及重大市场事件（IPO/并购/财报/政策）
-- 提及知名公司或行业龙头
-- 可能影响股市走势
-- 涉及宏观经济数据
+## 筛选标准（满足任一即可）
+- 央行/监管机构政策（加息、降准、新规）
+- 上市公司重大事项（财报、并购、增减持、停牌）
+- 宏观经济关键指标（GDP、CPI、PMI、就业）
+- 地缘政治风险（战争、制裁、贸易摩擦）
+- 行业变革性事件（技术突破、供应链中断）
 
-    只返回你认为最有价值的20条以内，按重要度从高到低排序。
+## 排除标准
+- 纯市场评论无新增信息
+- 旧闻重复报道
+- 娱乐/体育/社会新闻
 
-    返回JSON数组（仅包含值得分析的序号）：
+返回最有价值的 ≤20 条序号（JSON数组），按重要性排序：
 [1, 3, 5]
 
-如果都不感兴趣，返回：[]"""
+如都不值得分析，返回：[]"""
         
         max_retries = 3
         for attempt in range(max_retries):
@@ -124,33 +142,96 @@ class NLPProcessor:
         for i, article in enumerate(articles):
             articles_text += f"\n[文章{i+1}]\n标题: {article['title']}\n来源: {article['source']}\n内容: {article['content']}\n"
         
-        prompt = f"""分析以下财经新闻，为每篇文章返回JSON数组：
+        # 获取市场上下文（可选）
+        market_section = ""
+        if _market_ctx:
+            try:
+                market_section = _market_ctx.get_context_text()
+            except Exception as e:
+                logger.debug(f"获取市场上下文失败: {e}")
+        
+        prompt = f"""你是资深金融分析师，请对每篇新闻进行 **逐步推理** 后给出结论。
+{market_section}
+## 分析框架（Chain-of-Thought）
+对每篇文章：
+1. **识别事件类型** — 央行决议 / 财报 / 政策法规 / 并购重组 / 地缘政治 / 宏观数据 / 其他
+2. **判断影响范围** — 单只股票 / 行业板块 / 整体市场
+3. **评估传导路径** — 事件 → 直接影响 → 间接传导 → 情绪扩散
+4. **给出量化结论** — 情绪打分 + 影响等级
 
+## Few-shot 示例
+输入："美联储宣布加息25个基点，符合市场预期"
+输出：
+{{
+  "index": 1,
+  "summary": "美联储加息25bp符合预期",
+  "reasoning": "加息符合预期利空有限，短期美元走强压制A股，但预期已消化",
+  "sentiment": -0.2,
+  "sentiment_cn": -0.3,
+  "sentiment_us": -0.1,
+  "key_entities": ["美联储", "美元"],
+  "event_type": "央行决议",
+  "impact_level": "高",
+  "stock_impact": []
+}}
+
+输入："贵州茅台Q3净利润同比增长15%，超出市场预期"
+输出：
+{{
+  "index": 2,
+  "summary": "茅台Q3净利增15%超预期",
+  "reasoning": "业绩超预期直接利好股价，白酒板块情绪提振，对美股无影响",
+  "sentiment": 0.6,
+  "sentiment_cn": 0.7,
+  "sentiment_us": 0.0,
+  "key_entities": ["贵州茅台", "白酒"],
+  "event_type": "财报",
+  "impact_level": "中",
+  "stock_impact": [{{"symbol": "600519", "name": "贵州茅台", "impact": "利好", "reason": "业绩超预期"}}]
+}}
+
+## 待分析文章
 {articles_text}
 
-返回格式（纯JSON数组，无其他文字）：
-[
-  {{
-    "index": 1,
-    "summary": "一句话摘要（中文，20字内）",
-    "sentiment": 0.5,
-    "sentiment_cn": 0.3,
-    "sentiment_us": 0.6,
-    "key_entities": ["公司A", "行业B"],
-    "event_type": "财报/政策/并购/其他",
-    "impact_level": "高/中/低",
-    "stock_impact": []
-  }}
-]
+## 评分细则
+- sentiment / sentiment_cn / sentiment_us: 范围 [-1.0, +1.0]
+  · 重大利好/利空：±0.7 ~ ±1.0
+  · 一般消息：±0.2 ~ ±0.5
+  · 无明确方向或影响极小：-0.1 ~ +0.1
+- impact_level: 高（影响大盘或行业龙头）/ 中（影响个股或子行业）/ 低（边际消息）
+- stock_impact: 最多3个相关股票；无直接个股关联时为 []
 
-重要说明：
-- sentiment: 整体市场情绪 (-1.0到+1.0)
-- sentiment_cn: 对中国股市影响 (-1.0到+1.0)
-- sentiment_us: 对美国股市影响 (-1.0到+1.0)
-- stock_impact: 相关股票影响预测（最多3个，如无直接相关股票则为空数组）
+返回纯JSON数组，必须包含所有{len(articles)}篇文章。"""
 
-必须返回所有{len(articles)}篇文章的分析结果。"""
+        # ---- 多模型集成模式 ----
+        use_ensemble = os.getenv('ENSEMBLE_MODE', '').lower() in ('1', 'true', 'yes')
+        if use_ensemble and _ensemble and _ensemble._client:
+            logger.info("使用多模型集成分析 (EnsembleAnalyzer)...")
+            result = _ensemble.analyze(prompt, len(articles))
+            if result:
+                processed = []
+                for item in result:
+                    idx = item.get('index', 0) - 1
+                    if 0 <= idx < len(articles):
+                        processed.append({
+                            **articles[idx],
+                            'summary': item.get('summary', ''),
+                            'sentiment': float(item.get('sentiment', 0)),
+                            'sentiment_cn': float(item.get('sentiment_cn', item.get('sentiment', 0))),
+                            'sentiment_us': float(item.get('sentiment_us', item.get('sentiment', 0))),
+                            'entities': item.get('key_entities', []),
+                            'event_type': item.get('event_type', '其他'),
+                            'impact_level': item.get('impact_level', '中'),
+                            'stock_impact': item.get('stock_impact', []),
+                            'ensemble_confidence': item.get('ensemble_confidence', ''),
+                            'sentiment_std': item.get('sentiment_std', 0),
+                        })
+                if processed:
+                    logger.info(f"集成分析完成, {len(processed)} 条结果")
+                    return processed
+            logger.warning("集成分析未返回结果，回退到单次调用")
 
+        # ---- 单次调用模式（默认） ----
         max_retries = Config.LLM_MAX_RETRIES if Config else 3
         for attempt in range(max_retries):
             try:
