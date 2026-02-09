@@ -146,12 +146,22 @@ class PriceDataFetcher:
     
     def _get_wide_cache_key(self, symbol: str) -> str:
         """宽缓存 key（按 symbol 聚合）"""
-        market = 'cn' if (symbol.isdigit() or symbol.startswith('SH') or symbol.startswith('SZ')) else 'us'
+        upper = symbol.upper()
+        if symbol.isdigit() or upper.startswith('SH') or upper.startswith('SZ') or \
+           any(upper.endswith(s) for s in self._CN_SUFFIXES):
+            market = 'cn'
+        elif any(upper.endswith(s) for s in self._YF_INTL_SUFFIXES):
+            market = 'intl'
+        else:
+            market = 'us'
         return f"wide_{market}_{symbol}"
     
     def get_cn_stock_price(self, symbol: str, start_date: str, end_date: str) -> List[Dict]:
-        """获取A股价格数据"""
+        """获取A股价格数据（支持纯数字、SH/SZ前缀、.SS/.SZ后缀）"""
         if not HAS_AKSHARE:
+            # akshare 不可用时尝试 yfinance (.SS/.SZ 格式)
+            if HAS_YFINANCE:
+                return self.get_intl_stock_price(symbol, start_date, end_date)
             return []
         
         cache_key = f"cn_{symbol}_{start_date}_{end_date}"
@@ -165,17 +175,24 @@ class PriceDataFetcher:
         
         self._throttle()
         try:
-            # 转换股票代码格式
-            if symbol.startswith('6'):
-                ak_symbol = f"sh{symbol}"
-            elif symbol.startswith('0') or symbol.startswith('3'):
-                ak_symbol = f"sz{symbol}"
-            elif symbol in ['SH000001', '000001.SH']:
+            # 转换股票代码格式 — 统一提取纯数字代码给 akshare
+            raw = symbol.upper().replace('.SS', '').replace('.SZ', '')
+            if raw.startswith('SH'):
+                raw = raw[2:]
+            elif raw.startswith('SZ'):
+                raw = raw[2:]
+            
+            # 特殊索引
+            if raw in ['000001'] and ('SH' in symbol.upper() or '.SS' in symbol.upper()):
                 ak_symbol = "sh000001"  # 上证指数
-            elif symbol in ['SZ399001', '399001.SZ']:
+            elif raw in ['399001'] and ('SZ' in symbol.upper() or '.SZ' in symbol.upper().replace('.SS','')):
                 ak_symbol = "sz399001"  # 深证成指
+            elif raw.startswith('6'):
+                ak_symbol = f"sh{raw}"
+            elif raw.startswith('0') or raw.startswith('3'):
+                ak_symbol = f"sz{raw}"
             else:
-                ak_symbol = symbol
+                ak_symbol = raw
             
             # 取宽范围数据（一次取够）
             wide_start = (datetime.strptime(start_date, '%Y-%m-%d') - timedelta(days=10)).strftime('%Y-%m-%d')
@@ -333,6 +350,74 @@ class PriceDataFetcher:
             logger.error(f"所有数据源均无法获取 {symbol} ({start_date} ~ {end_date}), HAS_YFINANCE={HAS_YFINANCE}, HAS_AKSHARE={HAS_AKSHARE}")
         return prices
     
+    def get_intl_stock_price(self, symbol: str, start_date: str, end_date: str) -> List[Dict]:
+        """获取国际市场股票数据（港股/印度/日本等）— 仅走 yfinance"""
+        if not HAS_YFINANCE:
+            logger.warning(f"yfinance 未安装，无法获取 {symbol}")
+            return []
+        
+        cache_key = f"intl_{symbol}_{start_date}_{end_date}"
+        if cache_key in self.cache:
+            return self.cache[cache_key]
+        
+        sliced = self._slice_wide_cache(symbol, start_date, end_date)
+        if sliced is not None:
+            return sliced
+        
+        wide_start = (datetime.strptime(start_date, '%Y-%m-%d') - timedelta(days=10)).strftime('%Y-%m-%d')
+        wide_end = (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d')
+        
+        for attempt in range(self.MAX_RETRIES + 1):
+            self._wait_rate_limit()
+            self._throttle()
+            try:
+                ticker = yf.Ticker(symbol)
+                df = ticker.history(start=wide_start, end=wide_end)
+                
+                all_prices = []
+                prev_close = None
+                for date, row in df.iterrows():
+                    close = float(row['Close'])
+                    change_pct = ((close - prev_close) / prev_close * 100) if prev_close else 0
+                    all_prices.append({
+                        'date': date.strftime('%Y-%m-%d'),
+                        'open': float(row['Open']),
+                        'high': float(row['High']),
+                        'low': float(row['Low']),
+                        'close': close,
+                        'volume': float(row['Volume']),
+                        'change_pct': change_pct
+                    })
+                    prev_close = close
+                
+                if all_prices:
+                    self._wide_cache[self._get_wide_cache_key(symbol)] = {
+                        'start': wide_start, 'end': wide_end, 'prices': all_prices
+                    }
+                    prices = [p for p in all_prices if start_date <= p['date'] <= end_date]
+                    self.cache[cache_key] = prices
+                    self._save_cache()
+                    return prices
+                else:
+                    logger.warning(f"yfinance 返回空数据 {symbol} ({wide_start} ~ {wide_end})")
+                    break
+                    
+            except Exception as e:
+                err_str = str(e)
+                if 'Too Many Requests' in err_str or 'Rate' in err_str or '429' in err_str:
+                    self._rate_limited = True
+                    if attempt < self.MAX_RETRIES:
+                        logger.warning(f"yfinance 限流 {symbol} (第{attempt+1}次), 等待重试...")
+                        continue
+                    else:
+                        logger.warning(f"yfinance 限流 {symbol}: 重试{self.MAX_RETRIES}次仍失败")
+                else:
+                    logger.warning(f"yfinance 获取失败 {symbol}: {e}")
+                    break
+        
+        logger.error(f"无法获取国际市场数据 {symbol} ({start_date} ~ {end_date})")
+        return []
+    
     def _slice_wide_cache(self, symbol: str, start_date: str, end_date: str) -> Optional[List[Dict]]:
         """从宽缓存中切片数据，命中则返回 list，未命中返回 None"""
         wkey = self._get_wide_cache_key(symbol)
@@ -340,19 +425,45 @@ class PriceDataFetcher:
         if wc and wc['start'] <= start_date and wc['end'] >= end_date:
             result = [p for p in wc['prices'] if start_date <= p['date'] <= end_date]
             if result:
-                # 也存入精确缓存
-                cache_key = ('cn_' if symbol.isdigit() or symbol.startswith('SH') or symbol.startswith('SZ') else 'us_') + f"{symbol}_{start_date}_{end_date}"
+                cache_key = f"cache_{symbol}_{start_date}_{end_date}"
                 self.cache[cache_key] = result
                 return result
         return None
     
+    # yfinance 支持的国际交易所后缀
+    _YF_INTL_SUFFIXES = ('.HK', '.NS', '.BO', '.L', '.T', '.KS', '.TW', '.AX', '.TO', '.SA')
+    _CN_SUFFIXES = ('.SS', '.SZ')  # 上交所/深交所 (yfinance 格式)
+    # 不可能是合法股票代码的模式
+    _INVALID_PATTERNS = re.compile(r'[\u4e00-\u9fff]|\s{2,}|^[a-z]\d|\.(KE|FN|XX)$', re.IGNORECASE)
+    
+    def _is_valid_symbol(self, symbol: str) -> bool:
+        """过滤明显无效的 symbol（含中文、怪异后缀等）"""
+        if not symbol or len(symbol) > 20:
+            return False
+        if self._INVALID_PATTERNS.search(symbol):
+            logger.debug(f"跳过无效 symbol: {symbol}")
+            return False
+        return True
+    
     def get_price(self, symbol: str, start_date: str, end_date: str) -> List[Dict]:
         """自动识别市场并获取价格"""
-        # 判断市场
-        if symbol.isdigit() or symbol.startswith('SH') or symbol.startswith('SZ'):
+        if not self._is_valid_symbol(symbol):
+            return []
+        
+        upper = symbol.upper()
+        
+        # A 股: 纯数字 / SH.../SZ... / xxx.SS / xxx.SZ
+        if symbol.isdigit() or upper.startswith('SH') or upper.startswith('SZ'):
             return self.get_cn_stock_price(symbol, start_date, end_date)
-        else:
-            return self.get_us_stock_price(symbol, start_date, end_date)
+        if any(upper.endswith(s) for s in self._CN_SUFFIXES):
+            return self.get_cn_stock_price(symbol, start_date, end_date)
+        
+        # 国际市场: .HK / .NS / .L 等 — 走 yfinance-only 路径
+        if any(upper.endswith(s) for s in self._YF_INTL_SUFFIXES):
+            return self.get_intl_stock_price(symbol, start_date, end_date)
+        
+        # 默认: 美股
+        return self.get_us_stock_price(symbol, start_date, end_date)
     
     def get_price_change(self, symbol: str, date: str, days_after: int = 1) -> Optional[float]:
         """获取指定日期后的价格变化百分比"""
