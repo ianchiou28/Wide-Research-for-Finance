@@ -6,7 +6,7 @@ import glob
 import json
 import logging
 import threading
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from flask import Blueprint, jsonify, request
 
@@ -333,9 +333,11 @@ def run_backtest():
             _backtest_task['result'] = result
             _backtest_task['error'] = None
         except Exception as e:
+            import traceback
             logger.error(f"Backtest run failed: {e}", exc_info=True)
             _backtest_task['result'] = None
             _backtest_task['error'] = str(e)
+            _backtest_task['traceback'] = traceback.format_exc()
         finally:
             _backtest_task['running'] = False
             _backtest_task['finished_at'] = datetime.now().isoformat()
@@ -360,14 +362,128 @@ def run_backtest():
 
 @analysis_bp.route('/api/backtest/status')
 def get_backtest_status():
-    """获取异步回测任务状态"""
-    return jsonify({
+    """获取异步回测任务状态（含诊断信息）"""
+    status = {
         'running': _backtest_task['running'],
         'started_at': _backtest_task.get('started_at'),
         'finished_at': _backtest_task.get('finished_at'),
         'has_result': _backtest_task.get('result') is not None,
         'error': _backtest_task.get('error'),
-    })
+    }
+    # 如果回测完成且有结果，附上诊断摘要
+    result = _backtest_task.get('result')
+    if result and isinstance(result, dict):
+        diag = result.get('diagnostics', {})
+        if diag:
+            status['diagnostics'] = {
+                'environment': diag.get('environment', {}),
+                'weekly_files': diag.get('weekly', {}).get('files_found', 0),
+                'monthly_files': diag.get('monthly', {}).get('files_found', 0),
+            }
+    return jsonify(status)
+
+
+@analysis_bp.route('/api/backtest/diagnostics')
+def get_backtest_diagnostics():
+    """获取回测详细诊断信息 - 用于排查问题"""
+    try:
+        # 1. 从最近一次回测结果获取诊断
+        result_diag = None
+        result = _backtest_task.get('result')
+        if result and isinstance(result, dict):
+            result_diag = result.get('diagnostics')
+
+        # 2. 从磁盘读取已保存的回测数据
+        disk_data = {}
+        for name, path in [
+            ('summary', 'data/backtest_summary.json'),
+            ('weekly', 'data/weekly_backtest_results.json'),
+            ('monthly', 'data/monthly_backtest_results.json'),
+        ]:
+            if os.path.exists(path):
+                try:
+                    mtime = os.path.getmtime(path)
+                    size = os.path.getsize(path)
+                    with open(path, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                    disk_data[name] = {
+                        'exists': True,
+                        'size_bytes': size,
+                        'modified': datetime.fromtimestamp(mtime).isoformat(),
+                        'stats': data.get('stats', data.get('weekly', data.get('monthly', {}))),
+                    }
+                except Exception as e:
+                    disk_data[name] = {'exists': True, 'error': str(e)}
+            else:
+                disk_data[name] = {'exists': False}
+
+        # 3. 数据文件盘点
+        weekly_files = glob.glob('data/weekly/analysis_*.json')
+        monthly_files = glob.glob('data/monthly/analysis_*.json')
+
+        # 4. 环境检测
+        env_check = {}
+        try:
+            import akshare
+            env_check['akshare'] = {'installed': True, 'version': getattr(akshare, '__version__', '?')}
+        except ImportError:
+            env_check['akshare'] = {'installed': False}
+        try:
+            import yfinance
+            env_check['yfinance'] = {'installed': True, 'version': getattr(yfinance, '__version__', '?')}
+        except ImportError:
+            env_check['yfinance'] = {'installed': False}
+
+        # 5. 快速价格获取测试
+        price_test = {}
+        try:
+            from backtester import PriceDataFetcher
+            fetcher = PriceDataFetcher()
+            test_date = (datetime.now() - __import__('datetime').timedelta(days=10)).strftime('%Y-%m-%d')
+
+            # 测试A股（上证指数）
+            cn_change = fetcher.get_price_change('SH000001', test_date, 3)
+            price_test['cn_index'] = {
+                'symbol': 'SH000001',
+                'date': test_date,
+                'result': cn_change,
+                'success': cn_change is not None,
+            }
+
+            # 测试美股
+            us_change = fetcher.get_price_change('AAPL', test_date, 3)
+            price_test['us_stock'] = {
+                'symbol': 'AAPL',
+                'date': test_date,
+                'result': us_change,
+                'success': us_change is not None,
+            }
+        except Exception as e:
+            price_test['error'] = str(e)
+
+        return jsonify({
+            'task_status': {
+                'running': _backtest_task['running'],
+                'started_at': _backtest_task.get('started_at'),
+                'finished_at': _backtest_task.get('finished_at'),
+                'has_error': _backtest_task.get('error') is not None,
+                'error': _backtest_task.get('error'),
+                'traceback': _backtest_task.get('traceback'),
+            },
+            'last_run_diagnostics': result_diag,
+            'disk_data': disk_data,
+            'data_files': {
+                'weekly_count': len(weekly_files),
+                'monthly_count': len(monthly_files),
+                'weekly_latest': sorted(weekly_files)[-1] if weekly_files else None,
+                'monthly_latest': sorted(monthly_files)[-1] if monthly_files else None,
+            },
+            'environment': env_check,
+            'price_test': price_test,
+        })
+    except Exception as e:
+        logger.error(f"Diagnostics failed: {e}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
 
 
 @analysis_bp.route('/api/backtest/optimization')

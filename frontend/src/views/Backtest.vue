@@ -388,6 +388,91 @@
           <li><strong>运行时间</strong>：每日 21:00 自动运行回测+优化</li>
         </ul>
       </div>
+
+      <!-- 诊断信息面板 -->
+      <div class="panel diag-panel" v-if="diagData">
+        <div class="panel-header" @click="showDiag = !showDiag">
+          <div class="panel-title-wrap">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            <span class="panel-title">诊断信息</span>
+            <span class="diag-badge" v-if="diagHasIssues">需要关注</span>
+          </div>
+          <span class="toggle-icon" :class="{ open: showDiag }">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </span>
+        </div>
+        <div v-show="showDiag" class="panel-body diag-body">
+          <!-- 环境检测 -->
+          <div class="diag-section">
+            <h4>环境检测</h4>
+            <div class="diag-grid">
+              <div class="diag-item" :class="diagData.environment?.akshare?.installed ? 'ok' : 'fail'">
+                <span class="diag-icon">{{ diagData.environment?.akshare?.installed ? '✓' : '✗' }}</span>
+                <span>akshare {{ diagData.environment?.akshare?.version || '未安装' }}</span>
+              </div>
+              <div class="diag-item" :class="diagData.environment?.yfinance?.installed ? 'ok' : 'fail'">
+                <span class="diag-icon">{{ diagData.environment?.yfinance?.installed ? '✓' : '✗' }}</span>
+                <span>yfinance {{ diagData.environment?.yfinance?.version || '未安装' }}</span>
+              </div>
+            </div>
+          </div>
+          <!-- 价格获取测试 -->
+          <div class="diag-section" v-if="diagData.price_test">
+            <h4>价格获取测试</h4>
+            <div class="diag-grid">
+              <div class="diag-item" :class="diagData.price_test.cn_index?.success ? 'ok' : 'fail'">
+                <span class="diag-icon">{{ diagData.price_test.cn_index?.success ? '✓' : '✗' }}</span>
+                <span>A股 (上证指数): {{ diagData.price_test.cn_index?.success ? diagData.price_test.cn_index.result?.toFixed(2) + '%' : '获取失败' }}</span>
+              </div>
+              <div class="diag-item" :class="diagData.price_test.us_stock?.success ? 'ok' : 'fail'">
+                <span class="diag-icon">{{ diagData.price_test.us_stock?.success ? '✓' : '✗' }}</span>
+                <span>美股 (AAPL): {{ diagData.price_test.us_stock?.success ? diagData.price_test.us_stock.result?.toFixed(2) + '%' : '获取失败 (可能因网络被墙)' }}</span>
+              </div>
+              <div class="diag-item fail" v-if="diagData.price_test.error">
+                <span class="diag-icon">✗</span>
+                <span>{{ diagData.price_test.error }}</span>
+              </div>
+            </div>
+          </div>
+          <!-- 数据文件 -->
+          <div class="diag-section">
+            <h4>数据文件</h4>
+            <div class="diag-grid">
+              <div class="diag-item" :class="diagData.data_files?.weekly_count > 0 ? 'ok' : 'fail'">
+                <span class="diag-icon">{{ diagData.data_files?.weekly_count > 0 ? '✓' : '✗' }}</span>
+                <span>周报: {{ diagData.data_files?.weekly_count || 0 }} 份</span>
+              </div>
+              <div class="diag-item" :class="diagData.data_files?.monthly_count > 0 ? 'ok' : 'fail'">
+                <span class="diag-icon">{{ diagData.data_files?.monthly_count > 0 ? '✓' : '✗' }}</span>
+                <span>月报: {{ diagData.data_files?.monthly_count || 0 }} 份</span>
+              </div>
+            </div>
+          </div>
+          <!-- 失败Symbols -->
+          <div class="diag-section" v-if="failedSymbols.length > 0">
+            <h4>价格获取失败的Symbol ({{ failedSymbols.length }})</h4>
+            <div class="failed-symbols">
+              <span v-for="sym in failedSymbols" :key="sym" class="failed-sym">{{ sym }}</span>
+            </div>
+          </div>
+          <!-- 错误信息 -->
+          <div class="diag-section" v-if="diagData.task_status?.error">
+            <h4>错误</h4>
+            <pre class="error-trace">{{ diagData.task_status.error }}</pre>
+            <details v-if="diagData.task_status.traceback">
+              <summary>堆栈跟踪</summary>
+              <pre class="error-trace">{{ diagData.task_status.traceback }}</pre>
+            </details>
+          </div>
+          <button class="refresh-diag" @click="loadDiagnostics">刷新诊断</button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -407,6 +492,8 @@ const showOptimization = ref(true)
 const showMetrics = ref(true)
 const showAllWeekly = ref(false)
 const taskStartedAt = ref('')
+const diagData = ref(null)
+const showDiag = ref(false)
 let pollTimer = null
 
 const weeklyAccuracy = computed(() => summary.value?.weekly?.accuracy || 0)
@@ -431,6 +518,20 @@ const proMetrics = computed(() => summary.value?.professional_metrics || null)
 
 const hasProMetrics = computed(() => {
   return weeklyIC.value !== null || monthlyIC.value !== null || weeklySig.value || monthlyStockSig.value || monthlyEventSig.value || proMetrics.value
+})
+
+// 诊断相关 computed
+const diagHasIssues = computed(() => {
+  if (!diagData.value) return false
+  const pt = diagData.value.price_test || {}
+  const env = diagData.value.environment || {}
+  return !pt.cn_index?.success || !pt.us_stock?.success || !env.akshare?.installed || !env.yfinance?.installed || diagData.value.task_status?.error
+})
+
+const failedSymbols = computed(() => {
+  const weekly = summary.value?.weekly?.failed_symbols || []
+  const monthly = summary.value?.monthly?.failed_symbols || []
+  return [...new Set([...weekly, ...monthly])]
 })
 
 const getAccuracyClass = (acc) => {
@@ -458,10 +559,26 @@ const loadData = async () => {
     weeklyDetails.value = await weeklyRes.json()
     monthlyDetails.value = await monthlyRes.json()
     optimization.value = await optRes.json()
+
+    // 异步加载诊断（不阻塞主数据加载）
+    loadDiagnostics()
   } catch (e) {
     console.error(e)
   } finally {
     loading.value = false
+  }
+}
+
+const loadDiagnostics = async () => {
+  try {
+    const res = await fetch('/api/backtest/diagnostics')
+    diagData.value = await res.json()
+    // 如果有问题，自动展开诊断面板
+    if (diagHasIssues.value) {
+      showDiag.value = true
+    }
+  } catch (e) {
+    console.error('诊断加载失败:', e)
   }
 }
 
@@ -638,6 +755,23 @@ onUnmounted(() => {
 .info-panel li { margin-bottom: 0.35rem; font-size: 0.9rem; }
 
 .empty { text-align: center; color: var(--c-muted); padding: 2rem 1rem; }
+
+/* 诊断面板样式 */
+.diag-panel .panel-header { background: linear-gradient(135deg, rgba(255,152,0,0.15), rgba(244,67,54,0.15)); }
+.diag-badge { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 3px; font-size: 0.7rem; font-weight: 700; background: rgba(244,67,54,0.2); color: #F44336; margin-left: 0.5rem; }
+.diag-body { font-size: 0.9rem; }
+.diag-section { margin-bottom: 1.25rem; }
+.diag-section h4 { margin: 0 0 0.5rem; font-size: 0.85rem; color: var(--c-muted); border-bottom: 1px solid var(--c-grid); padding-bottom: 0.25rem; }
+.diag-grid { display: flex; flex-direction: column; gap: 0.35rem; }
+.diag-item { display: flex; align-items: center; gap: 0.5rem; padding: 0.35rem 0.5rem; border-radius: 3px; font-size: 0.85rem; }
+.diag-item.ok { background: rgba(76,175,80,0.1); color: #4CAF50; }
+.diag-item.fail { background: rgba(244,67,54,0.1); color: #F44336; }
+.diag-icon { font-weight: 700; min-width: 1.25rem; text-align: center; }
+.failed-symbols { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.failed-sym { display: inline-block; padding: 0.15rem 0.5rem; background: rgba(244,67,54,0.15); color: #F44336; border-radius: 3px; font-family: var(--font-mono); font-size: 0.8rem; font-weight: 600; }
+.error-trace { background: var(--c-hover); padding: 0.75rem; font-size: 0.75rem; font-family: var(--font-mono); overflow-x: auto; white-space: pre-wrap; word-break: break-all; max-height: 200px; overflow-y: auto; }
+.refresh-diag { padding: 0.5rem 1rem; background: var(--c-ink); color: var(--c-bg); border: none; cursor: pointer; font-weight: 600; font-size: 0.85rem; margin-top: 0.5rem; }
+.refresh-diag:hover { opacity: 0.85; }
 
 @media (max-width: 768px) {
   .table-header, .table-row { grid-template-columns: 80px 60px 50px 50px 60px 40px; font-size: 0.75rem; }

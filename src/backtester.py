@@ -271,7 +271,8 @@ class PriceDataFetcher:
         prices = self.get_price(symbol, date, end.strftime('%Y-%m-%d'))
         
         if len(prices) < 2:
-            logger.debug(f"价格数据不足: {symbol} ({date}), 获取到 {len(prices)} 条")
+            logger.warning(f"价格数据不足: {symbol} ({date} ~ {end.strftime('%Y-%m-%d')}), "
+                          f"获取到 {len(prices)} 条, HAS_AKSHARE={HAS_AKSHARE}, HAS_YFINANCE={HAS_YFINANCE}")
             return None
         
         # 返回days_after天后的涨跌幅
@@ -856,6 +857,8 @@ class WeeklyAnalysisBacktester:
         # 提取并验证预测
         all_predictions = []
         verified_predictions = []
+        price_failures = []  # 诊断：记录价格获取失败的symbol
+        skipped_too_recent = 0
         
         for analysis in analyses:
             predictions = self.extract_predictions(analysis)
@@ -872,13 +875,20 @@ class WeeklyAnalysisBacktester:
                     if verified.get('verified'):
                         verified_predictions.append(verified)
                     else:
-                        logger.info(f"[Weekly] 预测未验证: {pred.get('symbol')} - {verified.get('reason', '未知')}")
+                        reason = verified.get('reason', '未知')
+                        logger.warning(f"[Weekly] 预测验证失败: {pred.get('symbol')} @ {pred.get('analysis_date')} - {reason}")
+                        price_failures.append({
+                            'symbol': pred.get('symbol'),
+                            'date': pred.get('analysis_date'),
+                            'reason': reason,
+                        })
             else:
+                skipped_too_recent += len(predictions)
                 if predictions:
                     logger.info(f"[Weekly] 分析日期 {analysis.get('analysis_date')} 距今不足 {verify_days+2} 天，暂不验证 {len(predictions)} 条预测")
         
-        logger.info(f"提取了 {len(all_predictions)} 条预测")
-        logger.info(f"验证了 {len(verified_predictions)} 条预测")
+        logger.info(f"[Weekly] 汇总: 提取 {len(all_predictions)} 条, 已验证 {len(verified_predictions)} 条, "
+                    f"价格获取失败 {len(price_failures)} 条, 太新未验证 {skipped_too_recent} 条")
         
         # 计算准确率
         if verified_predictions:
@@ -907,7 +917,10 @@ class WeeklyAnalysisBacktester:
                 'by_direction': dict(by_direction),
                 'backtest_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
                 'period_days': days,
-                'verify_days': verify_days
+                'verify_days': verify_days,
+                'price_failures': len(price_failures),
+                'skipped_too_recent': skipped_too_recent,
+                'failed_symbols': list(set(f['symbol'] for f in price_failures))[:20],
             }
         else:
             stats = {
@@ -918,7 +931,12 @@ class WeeklyAnalysisBacktester:
                 'backtest_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
                 'period_days': days,
                 'verify_days': verify_days,
-                'note': f'共提取 {len(all_predictions)} 条预测但均未能验证（可能缺少价格数据源）'
+                'price_failures': len(price_failures),
+                'skipped_too_recent': skipped_too_recent,
+                'failed_symbols': list(set(f['symbol'] for f in price_failures))[:20],
+                'note': f'共提取 {len(all_predictions)} 条预测: '
+                        f'{len(price_failures)} 条价格获取失败, '
+                        f'{skipped_too_recent} 条太新未验证'
             }
         
         # ---- 专业指标增强 ----
@@ -967,10 +985,15 @@ class WeeklyAnalysisBacktester:
             sig_mark = '✓' if sig['significant'] else '✗'
             logger.info(f"  统计检验: z={sig['z_stat']:.2f}, p={sig['p_value']:.4f} [{sig_mark}显著]")
         
+        if stats.get('price_failures', 0) > 0:
+            logger.warning(f"  ⚠ 价格获取失败 {stats['price_failures']} 条, "
+                          f"失败symbol: {stats.get('failed_symbols', [])}")
+        
         return {
             'stats': stats,
             'verified_predictions': verified_predictions,
-            'all_predictions': len(all_predictions)
+            'all_predictions': len(all_predictions),
+            'price_failures': price_failures[:20],  # 诊断用，最多返回20条
         }
     
     def get_accuracy_report(self) -> Dict:
@@ -1212,6 +1235,9 @@ class MonthlyAnalysisBacktester:
         all_event_preds = []
         verified_stocks = []
         verified_events = []
+        stock_price_failures = []
+        event_failures = []
+        skipped_too_recent = 0
         
         for analysis in analyses:
             # 提取预测
@@ -1224,7 +1250,7 @@ class MonthlyAnalysisBacktester:
             logger.info(f"[Monthly] 文件 {os.path.basename(analysis.get('file_path', '?'))}: "
                         f"股票 {len(stock_preds)} 条, 事件 {len(event_preds)} 条")
             
-            # 验证（只验证10天前的预测）
+            # 验证（只验证12天前的预测）
             analysis_date = analysis.get('generated_at', '2000-01-01')[:10]
             try:
                 analysis_dt = datetime.strptime(analysis_date, '%Y-%m-%d')
@@ -1234,8 +1260,15 @@ class MonthlyAnalysisBacktester:
                         if verified.get('verified'):
                             verified_stocks.append(verified)
                         else:
-                            logger.info(f"[Monthly] 股票预测未验证: {pred.get('symbol')} - {verified.get('reason', '未知')}")
+                            reason = verified.get('reason', '未知')
+                            logger.warning(f"[Monthly] 股票验证失败: {pred.get('symbol')} @ {pred.get('analysis_date')} - {reason}")
+                            stock_price_failures.append({
+                                'symbol': pred.get('symbol'),
+                                'date': pred.get('analysis_date'),
+                                'reason': reason,
+                            })
                 else:
+                    skipped_too_recent += len(stock_preds)
                     if stock_preds:
                         logger.info(f"[Monthly] 分析日期 {analysis_date} 距今不足 12 天，暂不验证 {len(stock_preds)} 条股票预测")
             except Exception as e:
@@ -1247,10 +1280,16 @@ class MonthlyAnalysisBacktester:
                 if verified.get('verified'):
                     verified_events.append(verified)
                 else:
-                    logger.info(f"[Monthly] 事件预测未验证: {pred.get('event_name')} - {verified.get('reason', '未知')}")
+                    reason = verified.get('reason', '未知')
+                    logger.info(f"[Monthly] 事件未验证: {pred.get('event_name')} - {reason}")
+                    event_failures.append({
+                        'event': pred.get('event_name'),
+                        'reason': reason,
+                    })
         
-        logger.info(f"股票预测: {len(all_stock_preds)} 条提取, {len(verified_stocks)} 条已验证")
-        logger.info(f"事件预测: {len(all_event_preds)} 条提取, {len(verified_events)} 条已验证")
+        logger.info(f"[Monthly] 汇总: 股票 {len(all_stock_preds)} 提取/{len(verified_stocks)} 验证/{len(stock_price_failures)} 失败, "
+                    f"事件 {len(all_event_preds)} 提取/{len(verified_events)} 验证/{len(event_failures)} 失败, "
+                    f"太新未验证 {skipped_too_recent}")
         
         # 计算统计
         stats = {
@@ -1269,7 +1308,11 @@ class MonthlyAnalysisBacktester:
                 'accuracy': 0
             },
             'backtest_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            'period_days': days
+            'period_days': days,
+            'price_failures': len(stock_price_failures),
+            'event_failures': len(event_failures),
+            'skipped_too_recent': skipped_too_recent,
+            'failed_symbols': list(set(f['symbol'] for f in stock_price_failures))[:20],
         }
         
         if stats['stock_predictions']['total'] > 0:
@@ -1330,11 +1373,18 @@ class MonthlyAnalysisBacktester:
         if stats['stock_predictions'].get('ic') is not None:
             logger.info(f"  股票IC: {stats['stock_predictions']['ic']:.4f}")
         logger.info(f"  事件预测准确率: {stats['event_predictions']['accuracy']:.1f}% ({stats['event_predictions']['correct']}/{stats['event_predictions']['total']})")
+        if stats.get('price_failures', 0) > 0:
+            logger.warning(f"  ⚠ 股票价格获取失败 {stats['price_failures']} 条, "
+                          f"失败symbol: {stats.get('failed_symbols', [])}")
+        if stats.get('event_failures', 0) > 0:
+            logger.warning(f"  ⚠ 事件验证失败 {stats['event_failures']} 条")
         
         return {
             'stats': stats,
             'verified_stocks': verified_stocks,
-            'verified_events': verified_events
+            'verified_events': verified_events,
+            'stock_price_failures': stock_price_failures[:20],
+            'event_failures': event_failures[:20],
         }
     
     def get_accuracy_report(self) -> Dict:
@@ -1348,19 +1398,51 @@ def run_daily_verification(auto_optimize: bool = True):
     logger.info(f"每日预测验证 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     logger.info(f"{'='*60}")
     
-    # 周报回测（使用较大时间窗口以覆盖所有历史数据）
+    # 诊断信息收集
+    diagnostics = {
+        'started_at': datetime.now().isoformat(),
+        'environment': {
+            'has_akshare': HAS_AKSHARE,
+            'has_yfinance': HAS_YFINANCE,
+            'has_metrics': HAS_METRICS,
+            'has_database': HAS_DATABASE,
+        },
+        'weekly': {},
+        'monthly': {},
+        'errors': [],
+    }
+    
+    logger.info(f"[环境检测] akshare={HAS_AKSHARE}, yfinance={HAS_YFINANCE}, "
+                f"metrics={HAS_METRICS}, database={HAS_DATABASE}")
+    
+    # 检查数据文件
+    weekly_files = glob.glob('data/weekly/analysis_*.json')
+    monthly_files = glob.glob('data/monthly/analysis_*.json')
+    logger.info(f"[数据文件] 周报 {len(weekly_files)} 份, 月报 {len(monthly_files)} 份")
+    
+    # 周报回测
     weekly_bt = WeeklyAnalysisBacktester()
-    weekly_result = weekly_bt.run_backtest(days=365, verify_days=5)
+    weekly_result = weekly_bt.run_backtest(days=90, verify_days=5)
+    diagnostics['weekly'] = {
+        'files_found': len(weekly_files),
+        'stats': weekly_result.get('stats', {}),
+        'all_predictions': weekly_result.get('all_predictions', 0),
+    }
     
     # 月报回测
     monthly_bt = MonthlyAnalysisBacktester()
-    monthly_result = monthly_bt.run_backtest(days=365)
+    monthly_result = monthly_bt.run_backtest(days=180)
+    diagnostics['monthly'] = {
+        'files_found': len(monthly_files),
+        'stats': monthly_result.get('stats', {}),
+    }
     
     # 汇总报告
     report = {
         'date': datetime.now().strftime('%Y-%m-%d'),
         'weekly': weekly_result.get('stats', {}),
         'monthly': monthly_result.get('stats', {}),
+        'diagnostics': diagnostics,
     }
     
     # 使用 BacktestMetrics 生成综合指标
