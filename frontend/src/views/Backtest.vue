@@ -171,6 +171,9 @@
         </div>
       </div>
 
+      <!-- 数据可视化面板 -->
+      <BacktestCharts :charts="chartsData" />
+
       <!-- 周报详情 -->
       <div class="panel">
         <div class="panel-header" @click="toggleWeekly">
@@ -479,6 +482,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import BacktestCharts from '../components/BacktestCharts.vue'
 
 const loading = ref(false)
 const running = ref(false)
@@ -486,6 +490,7 @@ const summary = ref(null)
 const weeklyDetails = ref(null)
 const monthlyDetails = ref(null)
 const optimization = ref(null)
+const chartsData = ref({})
 const showWeekly = ref(true)
 const showMonthly = ref(false)
 const showOptimization = ref(true)
@@ -562,10 +567,21 @@ const loadData = async () => {
 
     // 异步加载诊断（不阻塞主数据加载）
     loadDiagnostics()
+    loadChartsData()
   } catch (e) {
     console.error(e)
   } finally {
     loading.value = false
+  }
+}
+
+const loadChartsData = async () => {
+  try {
+    const res = await fetch('/api/backtest/charts')
+    const data = await res.json()
+    chartsData.value = data.charts || {}
+  } catch (e) {
+    console.error('图表数据加载失败:', e)
   }
 }
 

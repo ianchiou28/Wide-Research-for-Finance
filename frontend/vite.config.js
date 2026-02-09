@@ -3,6 +3,15 @@ import vue from '@vitejs/plugin-vue'
 
 export default defineConfig({
   plugins: [vue()],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'echarts': ['echarts', 'vue-echarts'],
+        }
+      }
+    }
+  },
   server: {
     proxy: {
       '/api': {

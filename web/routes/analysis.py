@@ -523,6 +523,203 @@ def get_optimization_status():
         return jsonify({'error': str(e)}), 500
 
 
+@analysis_bp.route('/api/backtest/charts')
+def get_backtest_charts():
+    """获取回测可视化数据 - 方向偏差/涨跌幅分布/个股胜率/置信度/资金曲线"""
+    try:
+        from collections import defaultdict, Counter
+        import math
+
+        # 1. 加载 verified 数据
+        weekly_verified = []
+        monthly_verified = []
+        for name, path in [
+            ('weekly', 'data/weekly_backtest_results.json'),
+            ('monthly', 'data/monthly_backtest_results.json'),
+        ]:
+            if os.path.exists(path):
+                try:
+                    with open(path, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                    vlist = data.get('verified', data.get('verified_stocks', []))
+                    if name == 'weekly':
+                        weekly_verified = vlist
+                    else:
+                        monthly_verified = vlist
+                except Exception:
+                    pass
+
+        all_verified = weekly_verified + monthly_verified
+        if not all_verified:
+            return jsonify({'error': '暂无已验证的预测数据', 'charts': {}})
+
+        # ========== 图1: 方向偏差 ==========
+        pred_dir_counts = Counter()
+        actual_dir_counts = Counter()
+        confusion = defaultdict(lambda: defaultdict(int))  # confusion[predicted][actual]
+        for v in all_verified:
+            pd_ = v.get('predicted_direction', '未知')
+            ad_ = v.get('actual_direction', '未知')
+            pred_dir_counts[pd_] += 1
+            actual_dir_counts[ad_] += 1
+            confusion[pd_][ad_] += 1
+
+        direction_labels = ['上涨', '下跌', '震荡']
+        direction_bias = {
+            'predicted': {d: pred_dir_counts.get(d, 0) for d in direction_labels},
+            'actual': {d: actual_dir_counts.get(d, 0) for d in direction_labels},
+            'confusion': {pd_: dict(acts) for pd_, acts in confusion.items()},
+            'total': len(all_verified),
+        }
+
+        # ========== 图2: 涨跌幅分布 ==========
+        correct_changes = []
+        wrong_changes = []
+        for v in all_verified:
+            change = v.get('actual_change_pct', v.get('actual_change', 0))
+            if change is None:
+                continue
+            if v.get('is_correct'):
+                correct_changes.append(round(change, 2))
+            else:
+                wrong_changes.append(round(change, 2))
+
+        # 生成直方图 bins
+        all_changes = correct_changes + wrong_changes
+        if all_changes:
+            min_c = max(math.floor(min(all_changes)), -30)
+            max_c = min(math.ceil(max(all_changes)), 30)
+            bin_size = 2
+            bins = list(range(min_c, max_c + bin_size, bin_size))
+            correct_hist = [0] * (len(bins) - 1)
+            wrong_hist = [0] * (len(bins) - 1)
+            for c in correct_changes:
+                for i in range(len(bins) - 1):
+                    if bins[i] <= c < bins[i + 1]:
+                        correct_hist[i] += 1
+                        break
+            for c in wrong_changes:
+                for i in range(len(bins) - 1):
+                    if bins[i] <= c < bins[i + 1]:
+                        wrong_hist[i] += 1
+                        break
+            bin_labels = [f'{bins[i]}~{bins[i+1]}%' for i in range(len(bins) - 1)]
+        else:
+            bin_labels, correct_hist, wrong_hist = [], [], []
+
+        return_distribution = {
+            'bins': bin_labels,
+            'correct': correct_hist,
+            'wrong': wrong_hist,
+        }
+
+        # ========== 图3: 个股胜率排名 ==========
+        symbol_stats = defaultdict(lambda: {'total': 0, 'correct': 0, 'name': ''})
+        for v in all_verified:
+            sym = v.get('symbol', '?')
+            symbol_stats[sym]['total'] += 1
+            symbol_stats[sym]['name'] = v.get('name', sym)
+            if v.get('is_correct'):
+                symbol_stats[sym]['correct'] += 1
+
+        # 只取出现>=2次的 symbol，按胜率排序
+        sym_ranking = []
+        for sym, st in symbol_stats.items():
+            if st['total'] >= 2:
+                rate = st['correct'] / st['total'] * 100
+                sym_ranking.append({
+                    'symbol': sym,
+                    'name': st['name'],
+                    'total': st['total'],
+                    'correct': st['correct'],
+                    'win_rate': round(rate, 1),
+                })
+        sym_ranking.sort(key=lambda x: (-x['win_rate'], -x['total']))
+
+        symbol_win_rate = {
+            'top': sym_ranking[:15],
+            'bottom': list(reversed(sym_ranking[-15:])) if len(sym_ranking) > 15 else [],
+        }
+
+        # ========== 图4: 置信度分层效果 ==========
+        conf_buckets = {'high': [], 'medium': [], 'low': []}
+        for v in all_verified:
+            conf = v.get('confidence', 0.5)
+            if isinstance(conf, str):
+                conf = {'高': 0.8, '中': 0.5, '低': 0.3}.get(conf, 0.5)
+            if conf > 0.6:
+                conf_buckets['high'].append(v)
+            elif conf > 0.3:
+                conf_buckets['medium'].append(v)
+            else:
+                conf_buckets['low'].append(v)
+
+        confidence_strat = {}
+        for level, items in conf_buckets.items():
+            total = len(items)
+            correct = sum(1 for it in items if it.get('is_correct'))
+            confidence_strat[level] = {
+                'total': total,
+                'correct': correct,
+                'accuracy': round(correct / total * 100, 1) if total else 0,
+            }
+
+        # ========== 图5: 模拟资金曲线 ==========
+        capital = 100000
+        equity_curve = [{'date': '起始', 'capital': capital, 'trade': ''}]
+        sorted_preds = sorted(all_verified, key=lambda x: x.get('analysis_date', ''))
+        for v in sorted_preds:
+            if v.get('predicted_direction') == '震荡':
+                continue
+            change = v.get('actual_change_pct', v.get('actual_change', 0))
+            if change is None:
+                continue
+            position = capital * 0.1
+            if v.get('predicted_direction') == '上涨':
+                pnl = position * (change / 100)
+            else:
+                pnl = position * (-change / 100)
+            capital += pnl
+            equity_curve.append({
+                'date': v.get('analysis_date', ''),
+                'capital': round(capital, 2),
+                'trade': f"{v.get('symbol', '?')} {v.get('predicted_direction', '')} {change:+.1f}%",
+            })
+
+        # ========== 图6: 按日期准确率趋势 ==========
+        date_stats = defaultdict(lambda: {'total': 0, 'correct': 0})
+        for v in all_verified:
+            d = v.get('analysis_date', '')
+            if d:
+                date_stats[d]['total'] += 1
+                if v.get('is_correct'):
+                    date_stats[d]['correct'] += 1
+        accuracy_trend = []
+        for d in sorted(date_stats.keys()):
+            t = date_stats[d]['total']
+            c = date_stats[d]['correct']
+            accuracy_trend.append({
+                'date': d,
+                'accuracy': round(c / t * 100, 1) if t else 0,
+                'total': t,
+                'correct': c,
+            })
+
+        return jsonify({
+            'charts': {
+                'direction_bias': direction_bias,
+                'return_distribution': return_distribution,
+                'symbol_win_rate': symbol_win_rate,
+                'confidence_strat': confidence_strat,
+                'equity_curve': equity_curve,
+                'accuracy_trend': accuracy_trend,
+            }
+        })
+    except Exception as e:
+        logger.error(f"Charts data failed: {e}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
+
+
 @analysis_bp.route('/api/backtest/optimize', methods=['POST'])
 @require_api_key
 def run_optimization():
