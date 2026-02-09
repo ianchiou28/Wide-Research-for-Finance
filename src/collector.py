@@ -1,3 +1,4 @@
+import os
 import feedparser
 import hashlib
 import yaml
@@ -18,7 +19,6 @@ try:
 except ImportError:
     Config = None
 
-import os
 from web_scraper import WebScraper # 引入WebScraper
 
 class DataCollector:
