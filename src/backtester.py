@@ -652,7 +652,14 @@ class NewsBacktester:
             'buy_signals': sum(1 for s in signals if s['signal'] == 'BUY'),
             'sell_signals': sum(1 for s in signals if s['signal'] == 'SELL'),
             'hold_signals': sum(1 for s in signals if s['signal'] == 'HOLD'),
-            'note': '需要历史价格数据来计算实际收益'\n        }\n\n\n# StrategyEvaluator 已移除 — 功能完全被 BacktestMetrics 覆盖\n\n\nclass WeeklyAnalysisBacktester:
+            'note': '需要历史价格数据来计算实际收益'
+        }
+
+
+# StrategyEvaluator 已移除 -- 功能完全被 BacktestMetrics 覆盖
+
+
+class WeeklyAnalysisBacktester:
     """周度分析回测器"""
     
     def __init__(self):
