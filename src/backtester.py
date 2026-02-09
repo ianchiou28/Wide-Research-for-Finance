@@ -9,6 +9,7 @@ import re
 import json
 import glob
 import logging
+import time
 from datetime import datetime, timedelta
 from typing import List, Dict, Optional, Tuple
 from collections import defaultdict
@@ -91,11 +92,23 @@ except ImportError:
 
 
 class PriceDataFetcher:
-    """价格数据获取器"""
+    """价格数据获取器 - 带限流保护和智能缓存"""
+    
+    # 每个 symbol 的宽缓存范围（天）— 一次取够，后续切片
+    WIDE_CACHE_DAYS = 120
+    # API 请求间隔（秒）
+    REQUEST_INTERVAL = 0.6
+    # 限流后等待时间（秒）
+    RATE_LIMIT_WAIT = 30
+    # 最大重试次数
+    MAX_RETRIES = 2
     
     def __init__(self):
-        self.cache = {}  # 缓存价格数据
+        self.cache = {}  # 精确缓存：cache_key -> prices
+        self._wide_cache = {}  # 宽缓存：symbol -> {'start', 'end', 'prices'}
         self.cache_file = 'data/price_cache.json'
+        self._last_request_time = 0
+        self._rate_limited = False
         self._load_cache()
     
     def _load_cache(self):
@@ -116,6 +129,26 @@ class PriceDataFetcher:
         except:
             pass
     
+    def _throttle(self):
+        """限流：确保两次请求之间有足够间隔"""
+        now = time.time()
+        elapsed = now - self._last_request_time
+        if elapsed < self.REQUEST_INTERVAL:
+            time.sleep(self.REQUEST_INTERVAL - elapsed)
+        self._last_request_time = time.time()
+    
+    def _wait_rate_limit(self):
+        """限流等待"""
+        if self._rate_limited:
+            logger.info(f"[限流保护] 等待 {self.RATE_LIMIT_WAIT}s 后重试...")
+            time.sleep(self.RATE_LIMIT_WAIT)
+            self._rate_limited = False
+    
+    def _get_wide_cache_key(self, symbol: str) -> str:
+        """宽缓存 key（按 symbol 聚合）"""
+        market = 'cn' if (symbol.isdigit() or symbol.startswith('SH') or symbol.startswith('SZ')) else 'us'
+        return f"wide_{market}_{symbol}"
+    
     def get_cn_stock_price(self, symbol: str, start_date: str, end_date: str) -> List[Dict]:
         """获取A股价格数据"""
         if not HAS_AKSHARE:
@@ -125,6 +158,12 @@ class PriceDataFetcher:
         if cache_key in self.cache:
             return self.cache[cache_key]
         
+        # 尝试从宽缓存切片
+        sliced = self._slice_wide_cache(symbol, start_date, end_date)
+        if sliced is not None:
+            return sliced
+        
+        self._throttle()
         try:
             # 转换股票代码格式
             if symbol.startswith('6'):
@@ -138,11 +177,15 @@ class PriceDataFetcher:
             else:
                 ak_symbol = symbol
             
+            # 取宽范围数据（一次取够）
+            wide_start = (datetime.strptime(start_date, '%Y-%m-%d') - timedelta(days=10)).strftime('%Y-%m-%d')
+            wide_end = datetime.now().strftime('%Y-%m-%d')
+            
             # 获取日线数据
             df = ak.stock_zh_a_hist(symbol=ak_symbol.replace('sh', '').replace('sz', ''), 
                                      period="daily",
-                                     start_date=start_date.replace('-', ''),
-                                     end_date=end_date.replace('-', ''),
+                                     start_date=wide_start.replace('-', ''),
+                                     end_date=wide_end.replace('-', ''),
                                      adjust="qfq")
             
             prices = []
@@ -157,64 +200,103 @@ class PriceDataFetcher:
                     'change_pct': float(row['涨跌幅'])
                 })
             
-            self.cache[cache_key] = prices
+            # 存入宽缓存
+            self._wide_cache[self._get_wide_cache_key(symbol)] = {
+                'start': wide_start, 'end': wide_end, 'prices': prices
+            }
+            
+            # 切片出需要的范围
+            result = [p for p in prices if start_date <= p['date'] <= end_date]
+            self.cache[cache_key] = result
             self._save_cache()
-            return prices
+            return result
             
         except Exception as e:
             logger.warning(f"获取A股数据失败 {symbol}: {e}")
             return []
     
     def get_us_stock_price(self, symbol: str, start_date: str, end_date: str) -> List[Dict]:
-        """获取美股价格数据（优先yfinance，备用akshare）"""
+        """获取美股价格数据（优先yfinance，备用akshare）- 带限流保护和重试"""
         cache_key = f"us_{symbol}_{start_date}_{end_date}"
         if cache_key in self.cache:
             return self.cache[cache_key]
         
+        # 尝试从宽缓存切片
+        sliced = self._slice_wide_cache(symbol, start_date, end_date)
+        if sliced is not None:
+            return sliced
+        
         prices = []
         
-        # 方案 1: yfinance
+        # 取宽范围数据（当前日期往前足够远）
+        wide_start = (datetime.strptime(start_date, '%Y-%m-%d') - timedelta(days=10)).strftime('%Y-%m-%d')
+        wide_end = (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d')
+        
+        # 方案 1: yfinance（带重试）
         if HAS_YFINANCE:
-            try:
-                # 转换指数代码
-                yf_symbol = symbol
-                if symbol == 'DJI':
-                    yf_symbol = '^DJI'
-                elif symbol == 'SPX' or symbol == 'SP500':
-                    yf_symbol = '^GSPC'
-                elif symbol == 'IXIC' or symbol == 'NASDAQ':
-                    yf_symbol = '^IXIC'
-                
-                ticker = yf.Ticker(yf_symbol)
-                df = ticker.history(start=start_date, end=end_date)
-                
-                prev_close = None
-                for date, row in df.iterrows():
-                    close = float(row['Close'])
-                    change_pct = ((close - prev_close) / prev_close * 100) if prev_close else 0
-                    prices.append({
-                        'date': date.strftime('%Y-%m-%d'),
-                        'open': float(row['Open']),
-                        'high': float(row['High']),
-                        'low': float(row['Low']),
-                        'close': close,
-                        'volume': float(row['Volume']),
-                        'change_pct': change_pct
-                    })
-                    prev_close = close
-                
-                if prices:
-                    self.cache[cache_key] = prices
-                    self._save_cache()
-                    return prices
-                else:
-                    logger.warning(f"yfinance 返回空数据 {symbol} ({start_date} ~ {end_date})")
+            for attempt in range(self.MAX_RETRIES + 1):
+                self._wait_rate_limit()
+                self._throttle()
+                try:
+                    # 转换指数代码
+                    yf_symbol = symbol
+                    if symbol == 'DJI':
+                        yf_symbol = '^DJI'
+                    elif symbol == 'SPX' or symbol == 'SP500':
+                        yf_symbol = '^GSPC'
+                    elif symbol == 'IXIC' or symbol == 'NASDAQ':
+                        yf_symbol = '^IXIC'
                     
-            except Exception as e:
-                logger.warning(f"yfinance 获取失败 {symbol}: {e}")
+                    ticker = yf.Ticker(yf_symbol)
+                    df = ticker.history(start=wide_start, end=wide_end)
+                    
+                    all_prices = []
+                    prev_close = None
+                    for date, row in df.iterrows():
+                        close = float(row['Close'])
+                        change_pct = ((close - prev_close) / prev_close * 100) if prev_close else 0
+                        all_prices.append({
+                            'date': date.strftime('%Y-%m-%d'),
+                            'open': float(row['Open']),
+                            'high': float(row['High']),
+                            'low': float(row['Low']),
+                            'close': close,
+                            'volume': float(row['Volume']),
+                            'change_pct': change_pct
+                        })
+                        prev_close = close
+                    
+                    if all_prices:
+                        # 存入宽缓存
+                        self._wide_cache[self._get_wide_cache_key(symbol)] = {
+                            'start': wide_start, 'end': wide_end, 'prices': all_prices
+                        }
+                        # 切片出需要的范围
+                        prices = [p for p in all_prices if start_date <= p['date'] <= end_date]
+                        self.cache[cache_key] = prices
+                        self._save_cache()
+                        return prices
+                    else:
+                        logger.warning(f"yfinance 返回空数据 {symbol} ({wide_start} ~ {wide_end})")
+                        break  # 空数据不需要重试
+                        
+                except Exception as e:
+                    err_str = str(e)
+                    if 'Too Many Requests' in err_str or 'Rate' in err_str or '429' in err_str:
+                        self._rate_limited = True
+                        if attempt < self.MAX_RETRIES:
+                            logger.warning(f"yfinance 限流 {symbol} (第{attempt+1}次), "
+                                          f"等待 {self.RATE_LIMIT_WAIT}s 后重试...")
+                            continue
+                        else:
+                            logger.warning(f"yfinance 限流 {symbol}: 重试{self.MAX_RETRIES}次仍失败, 切换akshare")
+                    else:
+                        logger.warning(f"yfinance 获取失败 {symbol}: {e}")
+                        break  # 非限流错误不重试
         
         # 方案 2: akshare 获取美股数据 (备用)
         if HAS_AKSHARE and not prices:
+            self._throttle()
             try:
                 df = ak.stock_us_daily(symbol=symbol, adjust="qfq")
                 if df is not None and not df.empty:
@@ -250,6 +332,19 @@ class PriceDataFetcher:
         if not prices:
             logger.error(f"所有数据源均无法获取 {symbol} ({start_date} ~ {end_date}), HAS_YFINANCE={HAS_YFINANCE}, HAS_AKSHARE={HAS_AKSHARE}")
         return prices
+    
+    def _slice_wide_cache(self, symbol: str, start_date: str, end_date: str) -> Optional[List[Dict]]:
+        """从宽缓存中切片数据，命中则返回 list，未命中返回 None"""
+        wkey = self._get_wide_cache_key(symbol)
+        wc = self._wide_cache.get(wkey)
+        if wc and wc['start'] <= start_date and wc['end'] >= end_date:
+            result = [p for p in wc['prices'] if start_date <= p['date'] <= end_date]
+            if result:
+                # 也存入精确缓存
+                cache_key = ('cn_' if symbol.isdigit() or symbol.startswith('SH') or symbol.startswith('SZ') else 'us_') + f"{symbol}_{start_date}_{end_date}"
+                self.cache[cache_key] = result
+                return result
+        return None
     
     def get_price(self, symbol: str, start_date: str, end_date: str) -> List[Dict]:
         """自动识别市场并获取价格"""
