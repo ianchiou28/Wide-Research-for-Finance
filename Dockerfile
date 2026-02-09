@@ -15,6 +15,7 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         curl \
         tzdata \
+        gosu \
     && ln -fs /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
     && dpkg-reconfigure -f noninteractive tzdata \
     && rm -rf /var/lib/apt/lists/*
@@ -31,13 +32,19 @@ COPY . .
 # 创建数据目录和日志目录
 RUN mkdir -p data/reports data/summaries data/weekly data/raw data/logs
 
-# 创建非 root 用户运行应用
+# 创建非 root 用户（实际运行由 entrypoint 切换）
 RUN adduser --disabled-password --gecos '' appuser \
     && chown -R appuser:appuser /app
-USER appuser
+
+# 复制入口脚本
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 # 暴露端口
 EXPOSE 5000
+
+# entrypoint 以 root 启动 → 修复 volume 权限 → gosu 降权到 appuser
+ENTRYPOINT ["/entrypoint.sh"]
 
 # 生产环境使用 gunicorn，4 worker + 2 thread，超时120s
 CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "--threads", "2", "--timeout", "120", "--access-logfile", "-", "--error-logfile", "-", "web_app:app"]
