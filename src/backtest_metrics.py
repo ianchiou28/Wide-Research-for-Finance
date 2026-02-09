@@ -23,13 +23,18 @@ class BacktestMetrics:
                  pred_key: str = 'predicted_direction',
                  actual_key: str = 'actual_direction') -> Dict:
         """
-        方向预测的准确率、精确率、召回率 (按 '上涨' 为正类)。
+        方向预测的准确率、精确率、召回率。
+        支持多分类(上涨/下跌/震荡)，同时保留二分类 TP/FP/FN/TN 指标(以 '上涨' 为正类)。
         """
         if not predictions or not actuals:
             return {'accuracy': 0, 'precision': 0, 'recall': 0, 'f1': 0, 'n': 0}
 
         actual_map = {a.get('date', a.get('analysis_date', '')): a for a in actuals}
         tp = fp = fn = tn = 0
+        total_match = 0
+        total_count = 0
+        # 按方向统计
+        class_stats = {}
 
         for p in predictions:
             key = p.get('date', p.get('analysis_date', ''))
@@ -38,9 +43,27 @@ class BacktestMetrics:
                 continue
             pred_dir = p.get(pred_key, '')
             act_dir = a.get(actual_key, '')
+            total_count += 1
+
+            # 多分类准确率
+            if pred_dir == act_dir:
+                total_match += 1
+
+            # 按方向统计
+            for d in [pred_dir, act_dir]:
+                if d and d not in class_stats:
+                    class_stats[d] = {'tp': 0, 'fp': 0, 'fn': 0}
+            if pred_dir == act_dir and pred_dir in class_stats:
+                class_stats[pred_dir]['tp'] += 1
+            else:
+                if pred_dir in class_stats:
+                    class_stats[pred_dir]['fp'] += 1
+                if act_dir in class_stats:
+                    class_stats[act_dir]['fn'] += 1
+
+            # 保留二分类(上涨 vs 非上涨)指标
             is_positive_pred = pred_dir == '上涨'
             is_positive_act = act_dir == '上涨'
-
             if is_positive_pred and is_positive_act:
                 tp += 1
             elif is_positive_pred and not is_positive_act:
@@ -50,18 +73,26 @@ class BacktestMetrics:
             else:
                 tn += 1
 
-        total = tp + fp + fn + tn
-        accuracy = (tp + tn) / total if total else 0
+        overall_accuracy = (total_match / total_count * 100) if total_count else 0
         precision = tp / (tp + fp) if (tp + fp) else 0
         recall = tp / (tp + fn) if (tp + fn) else 0
         f1 = 2 * precision * recall / (precision + recall) if (precision + recall) else 0
 
+        # 计算每个方向的 precision/recall
+        per_class = {}
+        for d, s in class_stats.items():
+            d_prec = s['tp'] / (s['tp'] + s['fp']) if (s['tp'] + s['fp']) else 0
+            d_rec = s['tp'] / (s['tp'] + s['fn']) if (s['tp'] + s['fn']) else 0
+            per_class[d] = {'precision': round(d_prec * 100, 2), 'recall': round(d_rec * 100, 2)}
+
         return {
-            'accuracy': round(accuracy * 100, 2),
+            'accuracy': round(overall_accuracy, 2),
             'precision': round(precision * 100, 2),
             'recall': round(recall * 100, 2),
             'f1': round(f1 * 100, 2),
-            'n': total,
+            'n': total_count,
+            'num_classes': len(class_stats),
+            'per_class': per_class,
             'confusion': {'tp': tp, 'fp': fp, 'fn': fn, 'tn': tn},
         }
 
@@ -99,11 +130,14 @@ class BacktestMetrics:
         rf_per_period = risk_free_rate / periods_per_year
         downside = [r for r in returns if r < rf_per_period]
         if not downside:
-            return float('inf') if avg > rf_per_period else 0.0
+            # 无下行波动，返回封顶值而非 inf，避免 JSON 序列化失败
+            return 99.99 if avg > rf_per_period else 0.0
         dd_std = math.sqrt(sum((r - rf_per_period) ** 2 for r in downside) / len(downside))
         if dd_std == 0:
             return 0.0
-        return round((avg - rf_per_period) / dd_std * math.sqrt(periods_per_year), 4)
+        result = (avg - rf_per_period) / dd_std * math.sqrt(periods_per_year)
+        # 封顶防止极端值
+        return round(min(max(result, -99.99), 99.99), 4)
 
     @staticmethod
     def max_drawdown(equity_curve: List[float]) -> Dict:
@@ -202,13 +236,19 @@ class BacktestMetrics:
 
     @staticmethod
     def significance_test(accuracy_pct: float, n: int,
-                          null_accuracy: float = 33.33) -> Dict:
+                          null_accuracy: float = None,
+                          num_classes: int = 3) -> Dict:
         """
-        二项检验：给定准确率是否显著高于随机猜测 (三分类默认 1/3)。
+        二项检验：给定准确率是否显著高于随机猜测。
+        自动检测分类数: 2分类基线50%, 3分类基线33.33%。
         使用正态近似。
         """
         if n == 0:
             return {'z_stat': 0, 'p_value': 1.0, 'significant': False, 'n': 0}
+
+        # 自动推断基线
+        if null_accuracy is None:
+            null_accuracy = 100.0 / num_classes
 
         p_hat = accuracy_pct / 100
         p0 = null_accuracy / 100

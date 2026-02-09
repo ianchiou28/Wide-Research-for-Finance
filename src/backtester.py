@@ -5,11 +5,57 @@
 """
 
 import os
+import re
 import json
 import glob
+import logging
 from datetime import datetime, timedelta
 from typing import List, Dict, Optional, Tuple
 from collections import defaultdict
+
+logger = logging.getLogger('backtester')
+
+# ---- 统一回测配置 ----
+DEFAULT_BACKTEST_CONFIG = {
+    'weekly_threshold': 1.0,    # 周报: ±1% 判定涨跌
+    'monthly_threshold': 2.0,   # 月报: ±2% 判定涨跌
+    'event_threshold': 1.0,     # 事件: ±1% 判定利多利空
+    'neutral_tolerance': 2.0,   # 震荡容忍度
+    'verify_days_weekly': 5,
+    'verify_days_monthly': 10,
+}
+
+
+def _load_backtest_config() -> Dict:
+    """从 prediction_config.json 加载阈值，带默认回退"""
+    cfg = dict(DEFAULT_BACKTEST_CONFIG)
+    try:
+        path = 'data/prediction_config.json'
+        if os.path.exists(path):
+            with open(path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            thresholds = data.get('thresholds', {})
+            if 'bullish' in thresholds:
+                cfg['weekly_threshold'] = float(thresholds['bullish'])
+            if 'bearish' in thresholds:
+                pass  # 使用 bullish 的绝对值即可
+            if 'verify_days' in thresholds:
+                cfg['verify_days_weekly'] = int(thresholds['verify_days'])
+    except Exception:
+        pass
+    return cfg
+
+
+def _parse_timestamp_from_filename(filepath: str) -> datetime:
+    """从文件名中解析 YYYYMMDD_HHMMSS 时间戳"""
+    basename = os.path.basename(filepath)
+    m = re.search(r'(\d{8})_(\d{6})', basename)
+    if m:
+        return datetime.strptime(m.group(1) + m.group(2), '%Y%m%d%H%M%S')
+    m = re.search(r'(\d{8})', basename)
+    if m:
+        return datetime.strptime(m.group(1), '%Y%m%d')
+    return datetime.fromtimestamp(os.path.getmtime(filepath))
 
 # 尝试导入价格数据源
 try:
@@ -210,7 +256,7 @@ class NewsBacktester:
         
         for filepath in report_files:
             try:
-                mtime = datetime.fromtimestamp(os.path.getctime(filepath))
+                mtime = _parse_timestamp_from_filename(filepath)
                 if mtime < cutoff:
                     continue
                 
@@ -224,11 +270,11 @@ class NewsBacktester:
                 parsed['timestamp'] = mtime.isoformat()
                 reports.append(parsed)
             except Exception as e:
-                print(f"加载报告失败 {filepath}: {e}")
+                logger.warning(f"加载报告失败 {filepath}: {e}")
         
         # 按时间排序
         reports.sort(key=lambda x: x['timestamp'])
-        print(f"✓ 加载了 {len(reports)} 份历史报告")
+        logger.info(f"加载了 {len(reports)} 份历史报告")
         return reports
     
     def _parse_report_for_backtest(self, content: str) -> Dict:
@@ -290,7 +336,7 @@ class NewsBacktester:
         
         for filepath in analysis_files:
             try:
-                mtime = datetime.fromtimestamp(os.path.getctime(filepath))
+                mtime = _parse_timestamp_from_filename(filepath)
                 if mtime < cutoff:
                     continue
                 
@@ -302,10 +348,10 @@ class NewsBacktester:
                 data['timestamp'] = mtime.isoformat()
                 analyses.append(data)
             except Exception as e:
-                print(f"加载周报失败 {filepath}: {e}")
+                logger.warning(f"加载周报失败 {filepath}: {e}")
         
         analyses.sort(key=lambda x: x['timestamp'])
-        print(f"✓ 加载了 {len(analyses)} 份周报分析")
+        logger.info(f"加载了 {len(analyses)} 份周报分析")
         return analyses
     
     def extract_predictions(self, reports: List[Dict]) -> List[Dict]:
@@ -389,16 +435,18 @@ class NewsBacktester:
                     break
             
             if actual_change is not None:
-                # 判断实际方向
-                if actual_change > 0.5:
+                # 使用统一配置阈值
+                cfg = _load_backtest_config()
+                thresh = cfg['weekly_threshold']
+                if actual_change > thresh:
                     actual_dir = '上涨'
-                elif actual_change < -0.5:
+                elif actual_change < -thresh:
                     actual_dir = '下跌'
                 else:
                     actual_dir = '震荡'
                 
                 is_correct = (predicted_dir == actual_dir) or \
-                            (predicted_dir == '震荡' and abs(actual_change) < 1)
+                            (predicted_dir == '震荡' and abs(actual_change) < cfg['neutral_tolerance'])
                 
                 verified.append({
                     **pred,
@@ -507,7 +555,7 @@ class NewsBacktester:
             'wins': wins,
             'losses': losses,
             'win_rate': wins / total_trades * 100 if total_trades > 0 else 0,
-            'trades': trades[-20:]  # 返回最近20笔交易
+            'trades': trades  # 返回全部交易记录
         }
         
         # ---- 专业指标增强 ----
@@ -604,63 +652,7 @@ class NewsBacktester:
             'buy_signals': sum(1 for s in signals if s['signal'] == 'BUY'),
             'sell_signals': sum(1 for s in signals if s['signal'] == 'SELL'),
             'hold_signals': sum(1 for s in signals if s['signal'] == 'HOLD'),
-            'note': '需要历史价格数据来计算实际收益'
-        }
-
-
-class StrategyEvaluator:
-    """策略评估器"""
-    
-    @staticmethod
-    def calculate_sharpe_ratio(returns: List[float], risk_free_rate: float = 0.02) -> float:
-        """计算夏普比率"""
-        if not returns or len(returns) < 2:
-            return 0
-        
-        import statistics
-        avg_return = statistics.mean(returns)
-        std_return = statistics.stdev(returns)
-        
-        if std_return == 0:
-            return 0
-        
-        # 年化
-        daily_rf = risk_free_rate / 252
-        sharpe = (avg_return - daily_rf) / std_return * (252 ** 0.5)
-        return sharpe
-    
-    @staticmethod
-    def calculate_max_drawdown(capital_history: List[float]) -> Tuple[float, int, int]:
-        """计算最大回撤"""
-        if not capital_history:
-            return 0, 0, 0
-        
-        max_dd = 0
-        peak = capital_history[0]
-        peak_idx = 0
-        trough_idx = 0
-        
-        for i, value in enumerate(capital_history):
-            if value > peak:
-                peak = value
-                peak_idx = i
-            
-            dd = (peak - value) / peak
-            if dd > max_dd:
-                max_dd = dd
-                trough_idx = i
-        
-        return max_dd * 100, peak_idx, trough_idx
-    
-    @staticmethod
-    def calculate_calmar_ratio(total_return: float, max_drawdown: float) -> float:
-        """计算卡玛比率"""
-        if max_drawdown == 0:
-            return 0
-        return total_return / max_drawdown
-
-
-class WeeklyAnalysisBacktester:
+            'note': '需要历史价格数据来计算实际收益'\n        }\n\n\n# StrategyEvaluator 已移除 — 功能完全被 BacktestMetrics 覆盖\n\n\nclass WeeklyAnalysisBacktester:
     """周度分析回测器"""
     
     def __init__(self):
@@ -686,7 +678,7 @@ class WeeklyAnalysisBacktester:
             with open(self.results_file, 'w', encoding='utf-8') as f:
                 json.dump(self.results, f, ensure_ascii=False, indent=2)
         except Exception as e:
-            print(f"保存结果失败: {e}")
+            logger.error(f"保存结果失败: {e}")
     
     def load_weekly_analyses(self, days: int = 60) -> List[Dict]:
         """加载周报分析"""
@@ -697,7 +689,7 @@ class WeeklyAnalysisBacktester:
         
         for filepath in files:
             try:
-                mtime = datetime.fromtimestamp(os.path.getctime(filepath))
+                mtime = _parse_timestamp_from_filename(filepath)
                 if mtime < cutoff:
                     continue
                 
@@ -708,9 +700,11 @@ class WeeklyAnalysisBacktester:
                 data['analysis_date'] = mtime.strftime('%Y-%m-%d')
                 analyses.append(data)
             except Exception as e:
+                logger.warning(f"加载周报失败 {filepath}: {e}")
                 continue
         
         analyses.sort(key=lambda x: x.get('analysis_date', ''))
+        logger.info(f"[Weekly] 加载了 {len(analyses)} 份周报分析")
         return analyses
     
     def extract_predictions(self, analysis: Dict) -> List[Dict]:
@@ -755,17 +749,20 @@ class WeeklyAnalysisBacktester:
         if actual_change is None:
             return {**prediction, 'verified': False, 'reason': '无法获取价格数据'}
         
-        # 判断实际方向
-        if actual_change > 1.0:
+        # 使用统一配置阈值
+        cfg = _load_backtest_config()
+        thresh = cfg['weekly_threshold']
+        
+        if actual_change > thresh:
             actual_dir = '上涨'
-        elif actual_change < -1.0:
+        elif actual_change < -thresh:
             actual_dir = '下跌'
         else:
             actual_dir = '震荡'
         
         # 判断是否正确
         is_correct = (predicted_dir == actual_dir) or \
-                    (predicted_dir == '震荡' and abs(actual_change) < 2)
+                    (predicted_dir == '震荡' and abs(actual_change) < cfg['neutral_tolerance'])
         
         return {
             **prediction,
@@ -779,13 +776,13 @@ class WeeklyAnalysisBacktester:
     
     def run_backtest(self, days: int = 60, verify_days: int = 5) -> Dict:
         """运行周报回测"""
-        print(f"\n{'='*60}")
-        print("周度分析回测")
-        print(f"{'='*60}")
+        logger.info(f"{'='*60}")
+        logger.info("周度分析回测")
+        logger.info(f"{'='*60}")
         
         # 加载周报
         analyses = self.load_weekly_analyses(days)
-        print(f"加载了 {len(analyses)} 份周报")
+        logger.info(f"加载了 {len(analyses)} 份周报")
         
         if not analyses:
             return {'error': '无周报数据'}
@@ -806,8 +803,8 @@ class WeeklyAnalysisBacktester:
                     if verified.get('verified'):
                         verified_predictions.append(verified)
         
-        print(f"提取了 {len(all_predictions)} 条预测")
-        print(f"验证了 {len(verified_predictions)} 条预测")
+        logger.info(f"提取了 {len(all_predictions)} 条预测")
+        logger.info(f"验证了 {len(verified_predictions)} 条预测")
         
         # 计算准确率
         if verified_predictions:
@@ -870,20 +867,20 @@ class WeeklyAnalysisBacktester:
         self._save_results()
         
         # 打印结果
-        print(f"\n【回测结果】")
-        print(f"  总预测数: {stats.get('total_predictions', 0)}")
-        print(f"  准确率: {stats.get('accuracy', 0):.1f}%")
+        logger.info(f"【回测结果】")
+        logger.info(f"  总预测数: {stats.get('total_predictions', 0)}")
+        logger.info(f"  准确率: {stats.get('accuracy', 0):.1f}%")
         if stats.get('by_direction'):
-            print(f"  按方向:")
+            logger.info(f"  按方向:")
             for d, s in stats['by_direction'].items():
-                print(f"    {d}: {s['correct']}/{s['total']} ({s['accuracy']:.1f}%)")
+                logger.info(f"    {d}: {s['correct']}/{s['total']} ({s['accuracy']:.1f}%)")
         if stats.get('ic') is not None:
             sig_mark = '✓' if stats.get('ic_significant') else '✗'
-            print(f"  IC (信息系数): {stats['ic']:.4f} [{sig_mark}显著]")
+            logger.info(f"  IC (信息系数): {stats['ic']:.4f} [{sig_mark}显著]")
         if stats.get('significance'):
             sig = stats['significance']
             sig_mark = '✓' if sig['significant'] else '✗'
-            print(f"  统计检验: z={sig['z_stat']:.2f}, p={sig['p_value']:.4f} [{sig_mark}显著]")
+            logger.info(f"  统计检验: z={sig['z_stat']:.2f}, p={sig['p_value']:.4f} [{sig_mark}显著]")
         
         return {
             'stats': stats,
@@ -922,7 +919,7 @@ class MonthlyAnalysisBacktester:
             with open(self.results_file, 'w', encoding='utf-8') as f:
                 json.dump(self.results, f, ensure_ascii=False, indent=2)
         except Exception as e:
-            print(f"保存结果失败: {e}")
+            logger.error(f"保存结果失败: {e}")
     
     def load_monthly_analyses(self, days: int = 90) -> List[Dict]:
         """加载月度分析"""
@@ -933,7 +930,7 @@ class MonthlyAnalysisBacktester:
         
         for filepath in files:
             try:
-                mtime = datetime.fromtimestamp(os.path.getctime(filepath))
+                mtime = _parse_timestamp_from_filename(filepath)
                 if mtime < cutoff:
                     continue
                 
@@ -943,10 +940,12 @@ class MonthlyAnalysisBacktester:
                 data['file_path'] = filepath
                 data['file_date'] = mtime.strftime('%Y-%m-%d')
                 analyses.append(data)
-            except:
+            except Exception as e:
+                logger.warning(f"加载月度分析失败 {filepath}: {e}")
                 continue
         
         analyses.sort(key=lambda x: x.get('generated_at', ''))
+        logger.info(f"[Monthly] 加载了 {len(analyses)} 份月度分析")
         return analyses
     
     def extract_stock_predictions(self, analysis: Dict) -> List[Dict]:
@@ -1022,10 +1021,13 @@ class MonthlyAnalysisBacktester:
         if actual_change is None:
             return {**prediction, 'verified': False, 'reason': '无法获取价格数据'}
         
-        # 判断实际方向
-        if actual_change > 2.0:
+        # 使用统一配置阈值
+        cfg = _load_backtest_config()
+        thresh = cfg['monthly_threshold']
+        
+        if actual_change > thresh:
             actual_dir = '上涨'
-        elif actual_change < -2.0:
+        elif actual_change < -thresh:
             actual_dir = '下跌'
         else:
             actual_dir = '震荡'
@@ -1067,16 +1069,19 @@ class MonthlyAnalysisBacktester:
         if actual_change is None:
             return {**prediction, 'verified': False, 'reason': '无法获取市场数据'}
         
-        # 判断实际影响
-        if actual_change > 1.0:
+        # 使用统一配置阈值
+        cfg = _load_backtest_config()
+        thresh = cfg['event_threshold']
+        
+        if actual_change > thresh:
             actual_impact = '利多'
-        elif actual_change < -1.0:
+        elif actual_change < -thresh:
             actual_impact = '利空'
         else:
             actual_impact = '中性'
         
         is_correct = (prediction['predicted_direction'] == actual_impact) or \
-                    (prediction['predicted_direction'] == '中性' and abs(actual_change) < 2)
+                    (prediction['predicted_direction'] == '中性' and abs(actual_change) < cfg['neutral_tolerance'])
         
         return {
             **prediction,
@@ -1089,13 +1094,13 @@ class MonthlyAnalysisBacktester:
     
     def run_backtest(self, days: int = 90) -> Dict:
         """运行月度分析回测"""
-        print(f"\n{'='*60}")
-        print("月度分析回测")
-        print(f"{'='*60}")
+        logger.info(f"{'='*60}")
+        logger.info("月度分析回测")
+        logger.info(f"{'='*60}")
         
         # 加载月度分析
         analyses = self.load_monthly_analyses(days)
-        print(f"加载了 {len(analyses)} 份月度分析")
+        logger.info(f"加载了 {len(analyses)} 份月度分析")
         
         if not analyses:
             return {'error': '无月度分析数据'}
@@ -1131,8 +1136,8 @@ class MonthlyAnalysisBacktester:
                 if verified.get('verified'):
                     verified_events.append(verified)
         
-        print(f"股票预测: {len(all_stock_preds)} 条, 已验证: {len(verified_stocks)} 条")
-        print(f"事件预测: {len(all_event_preds)} 条, 已验证: {len(verified_events)} 条")
+        logger.info(f"股票预测: {len(all_stock_preds)} 条, 已验证: {len(verified_stocks)} 条")
+        logger.info(f"事件预测: {len(all_event_preds)} 条, 已验证: {len(verified_events)} 条")
         
         # 计算统计
         stats = {
@@ -1203,11 +1208,11 @@ class MonthlyAnalysisBacktester:
         self._save_results()
         
         # 打印结果
-        print(f"\n【回测结果】")
-        print(f"  股票预测准确率: {stats['stock_predictions']['accuracy']:.1f}% ({stats['stock_predictions']['correct']}/{stats['stock_predictions']['total']})")
+        logger.info(f"【回测结果】")
+        logger.info(f"  股票预测准确率: {stats['stock_predictions']['accuracy']:.1f}% ({stats['stock_predictions']['correct']}/{stats['stock_predictions']['total']})")
         if stats['stock_predictions'].get('ic') is not None:
-            print(f"  股票IC: {stats['stock_predictions']['ic']:.4f}")
-        print(f"  事件预测准确率: {stats['event_predictions']['accuracy']:.1f}% ({stats['event_predictions']['correct']}/{stats['event_predictions']['total']})")
+            logger.info(f"  股票IC: {stats['stock_predictions']['ic']:.4f}")
+        logger.info(f"  事件预测准确率: {stats['event_predictions']['accuracy']:.1f}% ({stats['event_predictions']['correct']}/{stats['event_predictions']['total']})")
         
         return {
             'stats': stats,
@@ -1222,9 +1227,9 @@ class MonthlyAnalysisBacktester:
 
 def run_daily_verification(auto_optimize: bool = True):
     """每日验证任务 - 验证过去的预测并自动优化"""
-    print(f"\n{'='*60}")
-    print(f"每日预测验证 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    print(f"{'='*60}")
+    logger.info(f"{'='*60}")
+    logger.info(f"每日预测验证 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    logger.info(f"{'='*60}")
     
     # 周报回测
     weekly_bt = WeeklyAnalysisBacktester()
@@ -1258,13 +1263,13 @@ def run_daily_verification(auto_optimize: bool = True):
     with open('data/backtest_summary.json', 'w', encoding='utf-8') as f:
         json.dump(report, f, ensure_ascii=False, indent=2)
     
-    print(f"\n回测报告已保存到 data/backtest_summary.json")
+    logger.info(f"回测报告已保存到 data/backtest_summary.json")
     
     # 自动优化
     if auto_optimize:
-        print(f"\n{'='*60}")
-        print("🔧 自动优化预测策略...")
-        print(f"{'='*60}")
+        logger.info(f"{'='*60}")
+        logger.info("自动优化预测策略...")
+        logger.info(f"{'='*60}")
         
         try:
             from prediction_optimizer import PredictionOptimizer
@@ -1281,22 +1286,22 @@ def run_daily_verification(auto_optimize: bool = True):
             # 输出优化建议
             recommendations = analysis.get('recommendations', [])
             if recommendations:
-                print("\n【优化建议】")
+                logger.info("【优化建议】")
                 for rec in recommendations:
-                    print(f"  {rec}")
+                    logger.info(f"  {rec}")
             
             # 自动应用优化
             opt_result = optimizer.apply_optimizations(analysis, auto_apply=True)
             
             if opt_result['applied']:
-                print(f"\n✓ 已自动应用 {len(opt_result['applied'])} 项优化")
+                logger.info(f"已自动应用 {len(opt_result['applied'])} 项优化")
                 report['optimization'] = {
                     'applied': len(opt_result['applied']),
                     'version': opt_result['new_version'],
                     'changes': [c['key'] for c in opt_result['applied']]
                 }
             else:
-                print("\n当前配置已是最优，无需调整")
+                logger.info("当前配置已是最优，无需调整")
                 report['optimization'] = {'applied': 0, 'message': '无需调整'}
             
             # 更新汇总报告
@@ -1304,7 +1309,7 @@ def run_daily_verification(auto_optimize: bool = True):
                 json.dump(report, f, ensure_ascii=False, indent=2)
                 
         except Exception as e:
-            print(f"⚠️ 优化过程出错: {e}")
+            logger.error(f"优化过程出错: {e}")
             report['optimization'] = {'error': str(e)}
     
     return report

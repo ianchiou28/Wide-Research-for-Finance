@@ -27,6 +27,12 @@
       </div>
     </header>
 
+    <!-- 异步运行状态横幅 -->
+    <div v-if="running" class="running-banner">
+      <div class="spinner-sm"></div>
+      <span>回测正在后台运行... 启动时间: {{ taskStartedAt }}</span>
+    </div>
+
     <div v-if="loading" class="loading-state">
       <div class="spinner"></div>
       <span>加载中...</span>
@@ -65,6 +71,93 @@
           <div class="card-label">月报事件准确率</div>
           <div class="card-value">{{ monthlyEventAccuracy.toFixed(1) }}%</div>
           <div class="card-sub">{{ summary.monthly?.event_predictions?.total || 0 }} 条预测</div>
+        </div>
+      </div>
+
+      <!-- 专业指标面板 -->
+      <div class="panel metrics-panel" v-if="hasProMetrics">
+        <div class="panel-header" @click="toggleMetrics">
+          <div class="panel-title-wrap">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+            </svg>
+            <span class="panel-title">专业量化指标</span>
+          </div>
+          <span class="toggle-icon" :class="{ open: showMetrics }">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </span>
+        </div>
+        <div v-show="showMetrics" class="panel-body">
+          <div class="metrics-grid">
+            <!-- IC -->
+            <div class="metric-card" v-if="weeklyIC !== null">
+              <div class="metric-label">周报 IC (信息系数)</div>
+              <div class="metric-value" :class="weeklyIC > 0 ? 'positive' : weeklyIC < 0 ? 'negative' : ''">
+                {{ weeklyIC.toFixed(4) }}
+              </div>
+              <div class="metric-badge" :class="weeklyICSignificant ? 'sig-yes' : 'sig-no'">
+                {{ weeklyICSignificant ? '显著' : '不显著' }}
+              </div>
+            </div>
+            <div class="metric-card" v-if="monthlyIC !== null">
+              <div class="metric-label">月报 IC (信息系数)</div>
+              <div class="metric-value" :class="monthlyIC > 0 ? 'positive' : monthlyIC < 0 ? 'negative' : ''">
+                {{ monthlyIC.toFixed(4) }}
+              </div>
+              <div class="metric-badge" :class="monthlyICSignificant ? 'sig-yes' : 'sig-no'">
+                {{ monthlyICSignificant ? '显著' : '不显著' }}
+              </div>
+            </div>
+            <!-- 统计显著性 -->
+            <div class="metric-card" v-if="weeklySig">
+              <div class="metric-label">周报统计检验</div>
+              <div class="metric-value">z = {{ weeklySig.z_stat?.toFixed(2) }}</div>
+              <div class="metric-sub">p = {{ weeklySig.p_value?.toFixed(4) }}</div>
+              <div class="metric-badge" :class="weeklySig.significant ? 'sig-yes' : 'sig-no'">
+                {{ weeklySig.significant ? '显著优于随机' : '未达显著' }}
+              </div>
+            </div>
+            <div class="metric-card" v-if="monthlyStockSig">
+              <div class="metric-label">月报股票统计检验</div>
+              <div class="metric-value">z = {{ monthlyStockSig.z_stat?.toFixed(2) }}</div>
+              <div class="metric-sub">p = {{ monthlyStockSig.p_value?.toFixed(4) }}</div>
+              <div class="metric-badge" :class="monthlyStockSig.significant ? 'sig-yes' : 'sig-no'">
+                {{ monthlyStockSig.significant ? '显著优于随机' : '未达显著' }}
+              </div>
+            </div>
+            <div class="metric-card" v-if="monthlyEventSig">
+              <div class="metric-label">月报事件统计检验</div>
+              <div class="metric-value">z = {{ monthlyEventSig.z_stat?.toFixed(2) }}</div>
+              <div class="metric-sub">p = {{ monthlyEventSig.p_value?.toFixed(4) }}</div>
+              <div class="metric-badge" :class="monthlyEventSig.significant ? 'sig-yes' : 'sig-no'">
+                {{ monthlyEventSig.significant ? '显著优于随机' : '未达显著' }}
+              </div>
+            </div>
+            <!-- 综合指标 -->
+            <div class="metric-card" v-if="proMetrics?.sharpe_ratio != null">
+              <div class="metric-label">夏普比率 (Sharpe)</div>
+              <div class="metric-value" :class="proMetrics.sharpe_ratio > 0 ? 'positive' : 'negative'">
+                {{ proMetrics.sharpe_ratio.toFixed(4) }}
+              </div>
+              <div class="metric-sub">年化风险调整收益</div>
+            </div>
+            <div class="metric-card" v-if="proMetrics?.sortino_ratio != null">
+              <div class="metric-label">索提诺比率 (Sortino)</div>
+              <div class="metric-value" :class="proMetrics.sortino_ratio > 0 ? 'positive' : 'negative'">
+                {{ proMetrics.sortino_ratio.toFixed(4) }}
+              </div>
+              <div class="metric-sub">下行风险调整收益</div>
+            </div>
+            <div class="metric-card" v-if="proMetrics?.max_drawdown != null">
+              <div class="metric-label">最大回撤</div>
+              <div class="metric-value negative">
+                {{ proMetrics.max_drawdown.max_dd_pct?.toFixed(2) }}%
+              </div>
+              <div class="metric-sub">历史最大回撤幅度</div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -279,7 +372,8 @@
         <ul>
           <li><strong>周报回测</strong>：验证周度分析中的股票预测，观察期 5 天</li>
           <li><strong>月报回测</strong>：验证月度分析中的股票和事件预测，观察期 10 天</li>
-          <li><strong>判定标准</strong>：涨幅 >1% 为上涨，跌幅 >1% 为下跌，其余为震荡</li>
+          <li><strong>判定标准</strong>：涨幅 >1% 为上涨，跌幅 >1% 为下跌，其余为震荡（统一阈值，可配置优化）</li>
+          <li><strong>IC 系数</strong>：预测评分与实际涨跌的 Spearman 秩相关，>0.05 为有效信号</li>
           <li><strong>自动优化</strong>：每次回测后自动分析结果并调整预测参数</li>
           <li><strong>运行时间</strong>：每日 21:00 自动运行回测+优化</li>
         </ul>
@@ -289,7 +383,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 
 const loading = ref(false)
 const running = ref(false)
@@ -300,11 +394,34 @@ const optimization = ref(null)
 const showWeekly = ref(true)
 const showMonthly = ref(false)
 const showOptimization = ref(true)
+const showMetrics = ref(true)
 const showAllWeekly = ref(false)
+const taskStartedAt = ref('')
+let pollTimer = null
 
 const weeklyAccuracy = computed(() => summary.value?.weekly?.accuracy || 0)
 const monthlyStockAccuracy = computed(() => summary.value?.monthly?.stock_predictions?.accuracy || 0)
 const monthlyEventAccuracy = computed(() => summary.value?.monthly?.event_predictions?.accuracy || 0)
+
+// 专业指标 computed
+const weeklyIC = computed(() => {
+  const ic = summary.value?.weekly?.ic
+  return ic != null ? ic : null
+})
+const weeklyICSignificant = computed(() => summary.value?.weekly?.ic_significant || false)
+const monthlyIC = computed(() => {
+  const ic = summary.value?.monthly?.stock_predictions?.ic
+  return ic != null ? ic : null
+})
+const monthlyICSignificant = computed(() => summary.value?.monthly?.stock_predictions?.ic_significant || false)
+const weeklySig = computed(() => summary.value?.weekly?.significance || null)
+const monthlyStockSig = computed(() => summary.value?.monthly?.stock_predictions?.significance || null)
+const monthlyEventSig = computed(() => summary.value?.monthly?.event_predictions?.significance || null)
+const proMetrics = computed(() => summary.value?.professional_metrics || null)
+
+const hasProMetrics = computed(() => {
+  return weeklyIC.value !== null || monthlyIC.value !== null || weeklySig.value || monthlyStockSig.value || monthlyEventSig.value || proMetrics.value
+})
 
 const getAccuracyClass = (acc) => {
   if (acc >= 60) return 'good'
@@ -315,15 +432,14 @@ const getAccuracyClass = (acc) => {
 const toggleWeekly = () => { showWeekly.value = !showWeekly.value }
 const toggleMonthly = () => { showMonthly.value = !showMonthly.value }
 const toggleOptimization = () => { showOptimization.value = !showOptimization.value }
+const toggleMetrics = () => { showMetrics.value = !showMetrics.value }
 
 const loadData = async () => {
   loading.value = true
   try {
-    // 加载汇总
     const summaryRes = await fetch('/api/backtest/summary')
     summary.value = await summaryRes.json()
 
-    // 加载详情和优化状态
     const [weeklyRes, monthlyRes, optRes] = await Promise.all([
       fetch('/api/backtest/weekly'),
       fetch('/api/backtest/monthly'),
@@ -339,24 +455,54 @@ const loadData = async () => {
   }
 }
 
+const pollStatus = async () => {
+  try {
+    const res = await fetch('/api/backtest/status')
+    const data = await res.json()
+    if (!data.running) {
+      running.value = false
+      clearInterval(pollTimer)
+      pollTimer = null
+      // 回测完成，刷新数据
+      if (data.error) {
+        alert('回测失败: ' + data.error)
+      } else {
+        await loadData()
+      }
+    }
+  } catch (e) {
+    // 忽略轮询错误
+  }
+}
+
 const runBacktest = async () => {
   running.value = true
   try {
-    const res = await fetch('/api/backtest/run', { method: 'POST' })
+    const headers = { 'Content-Type': 'application/json' }
+    const apiKey = localStorage.getItem('api_key')
+    if (apiKey) {
+      headers['X-API-Key'] = apiKey
+    }
+    const res = await fetch('/api/backtest/run', { method: 'POST', headers })
     const data = await res.json()
     if (data.success) {
-      await loadData()
+      taskStartedAt.value = data.started_at?.slice(11, 19) || ''
+      // 开始轮询
+      pollTimer = setInterval(pollStatus, 3000)
     } else {
-      alert(data.error || '回测失败')
+      alert(data.error || data.message || '回测启动失败')
+      running.value = false
     }
   } catch (e) {
     alert('回测请求失败: ' + e.message)
-  } finally {
     running.value = false
   }
 }
 
 onMounted(loadData)
+onUnmounted(() => {
+  if (pollTimer) clearInterval(pollTimer)
+})
 </script>
 
 <style scoped>
@@ -372,6 +518,10 @@ onMounted(loadData)
 .run-btn { background: var(--c-ink); color: var(--c-bg); }
 .run-btn:disabled, .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
+/* 运行横幅 */
+.running-banner { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; background: linear-gradient(135deg, rgba(255,152,0,0.15), rgba(255,193,7,0.15)); border: 1px solid rgba(255,152,0,0.4); margin-bottom: 1rem; font-size: 0.9rem; font-weight: 500; }
+.spinner-sm { width: 18px; height: 18px; border: 3px solid var(--c-grid); border-top-color: #FF9800; border-radius: 50%; animation: spin 1s linear infinite; flex-shrink: 0; }
+
 .loading-state, .empty-state { text-align: center; padding: 4rem 1rem; }
 .spinner { width: 40px; height: 40px; border: 4px solid var(--c-grid); border-top-color: var(--c-amber); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 1rem; }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -386,6 +536,19 @@ onMounted(loadData)
 .summary-card.good .card-value { color: #4CAF50; }
 .summary-card.medium .card-value { color: #FF9800; }
 .summary-card.poor .card-value { color: #F44336; }
+
+/* 专业指标面板 */
+.metrics-panel .panel-header { background: linear-gradient(135deg, rgba(33,150,243,0.15), rgba(0,188,212,0.15)); }
+.metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
+.metric-card { background: var(--c-hover); border: 1px solid var(--c-border); padding: 1rem; border-radius: 4px; display: flex; flex-direction: column; gap: 0.35rem; }
+.metric-label { font-size: 0.8rem; color: var(--c-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+.metric-value { font-family: var(--font-mono); font-size: 1.5rem; font-weight: 700; }
+.metric-value.positive { color: #4CAF50; }
+.metric-value.negative { color: #F44336; }
+.metric-sub { font-size: 0.75rem; color: var(--c-muted); }
+.metric-badge { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 3px; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.05em; width: fit-content; }
+.metric-badge.sig-yes { background: rgba(76,175,80,0.2); color: #4CAF50; }
+.metric-badge.sig-no { background: rgba(158,158,158,0.2); color: #9E9E9E; }
 
 .panel { background: var(--c-paper); border: 2px solid var(--c-border); margin-bottom: 1.5rem; box-shadow: 4px 4px 0 var(--c-shadow); }
 .panel-header { background: var(--c-hover); border-bottom: 1px solid var(--c-border); padding: 0.75rem 1rem; display: flex; justify-content: space-between; align-items: center; font-weight: 700; cursor: pointer; }
@@ -469,5 +632,6 @@ onMounted(loadData)
   .table-header, .table-row { grid-template-columns: 80px 60px 50px 50px 60px 40px; font-size: 0.75rem; }
   .summary-cards { grid-template-columns: 1fr 1fr; }
   .opt-grid { grid-template-columns: 1fr 1fr; }
+  .metrics-grid { grid-template-columns: 1fr 1fr; }
 }
 </style>

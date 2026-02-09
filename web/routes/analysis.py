@@ -5,6 +5,7 @@ import os
 import glob
 import json
 import logging
+import threading
 from datetime import datetime
 
 from flask import Blueprint, jsonify, request
@@ -24,6 +25,15 @@ analysis_bp = Blueprint('analysis', __name__)
 
 # 全局月度分析器实例（用于维持对话状态）
 _monthly_analyzer_instance = None
+
+# ---- 异步回测任务状态 ----
+_backtest_task = {
+    'running': False,
+    'started_at': None,
+    'finished_at': None,
+    'result': None,
+    'error': None,
+}
 
 
 def get_monthly_analyzer_instance():
@@ -306,13 +316,58 @@ def get_monthly_backtest():
 @require_api_key
 def run_backtest():
     """运行回测（异步）- 需要API Key认证"""
-    try:
-        from backtester import run_daily_verification
-        result = run_daily_verification(auto_optimize=True)
-        return jsonify({'success': True, 'result': result})
-    except Exception as e:
-        logger.error(f"Backtest run failed: {e}", exc_info=True)
-        return jsonify({'error': str(e)}), 500
+    global _backtest_task
+
+    if _backtest_task['running']:
+        return jsonify({
+            'success': False,
+            'message': '回测正在运行中，请稍候',
+            'started_at': _backtest_task['started_at'],
+        }), 409
+
+    def _run():
+        global _backtest_task
+        try:
+            from backtester import run_daily_verification
+            result = run_daily_verification(auto_optimize=True)
+            _backtest_task['result'] = result
+            _backtest_task['error'] = None
+        except Exception as e:
+            logger.error(f"Backtest run failed: {e}", exc_info=True)
+            _backtest_task['result'] = None
+            _backtest_task['error'] = str(e)
+        finally:
+            _backtest_task['running'] = False
+            _backtest_task['finished_at'] = datetime.now().isoformat()
+
+    _backtest_task = {
+        'running': True,
+        'started_at': datetime.now().isoformat(),
+        'finished_at': None,
+        'result': None,
+        'error': None,
+    }
+
+    thread = threading.Thread(target=_run, daemon=True)
+    thread.start()
+
+    return jsonify({
+        'success': True,
+        'message': '回测已启动，请轮询 /api/backtest/status 查看进度',
+        'started_at': _backtest_task['started_at'],
+    })
+
+
+@analysis_bp.route('/api/backtest/status')
+def get_backtest_status():
+    """获取异步回测任务状态"""
+    return jsonify({
+        'running': _backtest_task['running'],
+        'started_at': _backtest_task.get('started_at'),
+        'finished_at': _backtest_task.get('finished_at'),
+        'has_result': _backtest_task.get('result') is not None,
+        'error': _backtest_task.get('error'),
+    })
 
 
 @analysis_bp.route('/api/backtest/optimization')
