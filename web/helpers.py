@@ -20,6 +20,22 @@ from cache import cache
 
 logger = logging.getLogger('web_app')
 
+
+def parse_timestamp_from_filename(filepath):
+    """从文件名中解析时间戳，如 report_20251128_001110.txt -> datetime
+    文件名格式: *_YYYYMMDD_HHMMSS.*
+    比 os.path.getctime 可靠，因为 Docker 部署后 ctime 会变成部署时间
+    """
+    basename = os.path.basename(filepath)
+    match = re.search(r'(\d{8})_(\d{6})', basename)
+    if match:
+        try:
+            return datetime.strptime(f"{match.group(1)}_{match.group(2)}", '%Y%m%d_%H%M%S')
+        except ValueError:
+            pass
+    # fallback to ctime
+    return datetime.fromtimestamp(os.path.getctime(filepath))
+
 # Module-level instance used by analyze_weekly_stocks
 weekly_gen = WeeklySummary()
 
@@ -147,7 +163,7 @@ def get_latest_report():
     reports = glob.glob('data/reports/report_*.txt')
     if not reports:
         return None
-    latest = max(reports, key=os.path.getctime)
+    latest = max(reports, key=lambda f: parse_timestamp_from_filename(f))
     try:
         with open(latest, 'r', encoding='utf-8') as f:
             content = f.read()
@@ -165,7 +181,7 @@ def get_latest_summary():
     summaries = glob.glob('data/summaries/summary_*.txt')
     if not summaries:
         return None
-    latest = max(summaries, key=os.path.getctime)
+    latest = max(summaries, key=lambda f: parse_timestamp_from_filename(f))
     try:
         with open(latest, 'r', encoding='utf-8') as f:
             content = f.read()
@@ -187,7 +203,7 @@ def get_weekly_reports():
 
     for report_path in reports:
         try:
-            mtime = datetime.fromtimestamp(os.path.getctime(report_path))
+            mtime = parse_timestamp_from_filename(report_path)
             if mtime >= week_ago:
                 with open(report_path, 'r', encoding='utf-8') as f:
                     weekly.append(f.read())

@@ -19,6 +19,7 @@ from web.helpers import (
     get_market_prediction,
     parse_report,
     analyze_weekly_stocks,
+    parse_timestamp_from_filename,
 )
 
 logger = logging.getLogger('web_app')
@@ -51,9 +52,8 @@ def api_latest():
     reports = glob.glob('data/reports/report_*.txt')
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     if reports:
-        latest_file = max(reports, key=os.path.getctime)
-        mtime = os.path.getctime(latest_file)
-        timestamp = datetime.fromtimestamp(mtime).strftime('%Y-%m-%d %H:%M:%S')
+        latest_file = max(reports, key=lambda f: parse_timestamp_from_filename(f))
+        timestamp = parse_timestamp_from_filename(latest_file).strftime('%Y-%m-%d %H:%M:%S')
 
     data = {
         'timestamp': timestamp,
@@ -149,10 +149,9 @@ def hourly_report():
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M')
 
     if reports:
-        latest_file = max(reports, key=os.path.getctime)
-        # 获取文件修改时间
-        mtime = os.path.getctime(latest_file)
-        timestamp = datetime.fromtimestamp(mtime).strftime('%Y-%m-%d %H:%M:%S')
+        latest_file = max(reports, key=lambda f: parse_timestamp_from_filename(f))
+        # 从文件名解析时间
+        timestamp = parse_timestamp_from_filename(latest_file).strftime('%Y-%m-%d %H:%M:%S')
 
     content = get_latest_report()
     if not content:
@@ -171,7 +170,7 @@ def hourly_report():
 def daily_summary():
     # 获取所有摘要文件列表
     summary_files = glob.glob('data/summaries/summary_*.txt')
-    summary_files.sort(key=os.path.getctime, reverse=True)
+    summary_files.sort(key=lambda f: parse_timestamp_from_filename(f), reverse=True)
 
     # 如果请求特定文件
     requested_file = request.args.get('file')
@@ -220,7 +219,7 @@ def sentiment():
 def weekly_analysis():
     # 获取所有周报文件列表
     weekly_files = glob.glob('data/weekly/analysis_*.json')
-    weekly_files.sort(key=os.path.getctime, reverse=True)
+    weekly_files.sort(key=lambda f: parse_timestamp_from_filename(f), reverse=True)
 
     # 如果请求特定文件
     requested_file = request.args.get('file')
@@ -269,7 +268,7 @@ def api_report_structured():
     # 优先从 reports_json 目录读取
     json_reports = glob.glob('data/reports_json/report_*.json')
     if json_reports:
-        latest = max(json_reports, key=os.path.getctime)
+        latest = max(json_reports, key=lambda f: parse_timestamp_from_filename(f))
         try:
             with open(latest, 'r', encoding='utf-8') as f:
                 data = json.load(f)
@@ -316,9 +315,8 @@ def api_report_structured():
     reports = glob.glob('data/reports/report_*.txt')
     timestamp = datetime.now().isoformat()
     if reports:
-        latest_file = max(reports, key=os.path.getctime)
-        mtime = os.path.getctime(latest_file)
-        timestamp = datetime.fromtimestamp(mtime).isoformat()
+        latest_file = max(reports, key=lambda f: parse_timestamp_from_filename(f))
+        timestamp = parse_timestamp_from_filename(latest_file).isoformat()
 
     now = datetime.now()
     beijing_hour = now.hour
@@ -420,12 +418,12 @@ def api_reports_history():
     if report_type in ['all', 'hourly']:
         hourly_files = glob.glob('data/reports/report_*.txt')
         for f in hourly_files:
-            mtime = os.path.getctime(f)
+            ts = parse_timestamp_from_filename(f)
             reports.append({
                 'id': os.path.basename(f).replace('report_', '').replace('.txt', ''),
                 'type': 'hourly',
                 'title': 'Hourly Brief' if lang == 'en' else '每小时简报',
-                'timestamp': datetime.fromtimestamp(mtime).isoformat(),
+                'timestamp': ts.isoformat(),
                 'file_path': f
             })
 
@@ -433,12 +431,12 @@ def api_reports_history():
     if report_type in ['all', 'daily']:
         daily_files = glob.glob('data/summaries/summary_*.txt')
         for f in daily_files:
-            mtime = os.path.getctime(f)
+            ts = parse_timestamp_from_filename(f)
             reports.append({
                 'id': os.path.basename(f).replace('summary_', '').replace('.txt', ''),
                 'type': 'daily',
                 'title': 'Daily Summary' if lang == 'en' else '每日摘要',
-                'timestamp': datetime.fromtimestamp(mtime).isoformat(),
+                'timestamp': ts.isoformat(),
                 'file_path': f
             })
 
@@ -446,12 +444,12 @@ def api_reports_history():
     if report_type in ['all', 'weekly']:
         weekly_files = glob.glob('data/weekly/analysis_*.json')
         for f in weekly_files:
-            mtime = os.path.getctime(f)
+            ts = parse_timestamp_from_filename(f)
             reports.append({
                 'id': os.path.basename(f).replace('analysis_', '').replace('.json', ''),
                 'type': 'weekly',
                 'title': 'Weekly Analysis' if lang == 'en' else '周度分析',
-                'timestamp': datetime.fromtimestamp(mtime).isoformat(),
+                'timestamp': ts.isoformat(),
                 'file_path': f
             })
 
@@ -500,7 +498,7 @@ def api_report_detail(report_id):
                 return jsonify({
                     'content': content,
                     'parsed': parsed,
-                    'timestamp': datetime.fromtimestamp(os.path.getctime(filepath)).isoformat()
+                    'timestamp': parse_timestamp_from_filename(filepath).isoformat()
                 })
     except Exception as e:
         return jsonify({'error': str(e)}), 500

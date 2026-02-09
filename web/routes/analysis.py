@@ -15,6 +15,7 @@ from web.helpers import (
     get_realtime_collector,
     get_backtester,
     get_monthly_analyzer,
+    parse_timestamp_from_filename,
 )
 
 logger = logging.getLogger('web_app')
@@ -110,7 +111,7 @@ def api_monthly_analysis():
 
     # 获取所有月度分析文件
     monthly_files = glob.glob('data/monthly/analysis_*.json')
-    monthly_files.sort(key=os.path.getctime, reverse=True)
+    monthly_files.sort(key=lambda f: parse_timestamp_from_filename(f), reverse=True)
     file_names = [os.path.basename(f) for f in monthly_files]
 
     # 如果请求特定文件
@@ -205,12 +206,12 @@ def api_monthly_chat():
 def api_monthly_history():
     """获取月度分析历史列表"""
     monthly_files = glob.glob('data/monthly/analysis_*.json')
-    monthly_files.sort(key=os.path.getctime, reverse=True)
+    monthly_files.sort(key=lambda f: parse_timestamp_from_filename(f), reverse=True)
 
     history = []
     for f in monthly_files:
         try:
-            mtime = datetime.fromtimestamp(os.path.getctime(f))
+            mtime = parse_timestamp_from_filename(f)
             filename = os.path.basename(f)
 
             # 尝试读取摘要

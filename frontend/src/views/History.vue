@@ -22,7 +22,7 @@
             @click="selectReport(item)"
           >
             <div class="item-date">{{ formatDate(item.timestamp) }}</div>
-            <div class="item-title">{{ item.type === 'daily' ? (locale === 'zh' ? '每日总结' : 'Daily Summary') : (locale === 'zh' ? '深度报告' : 'Deep Report') }}</div>
+            <div class="item-title">{{ getReportTypeLabel(item.type) }}</div>
           </div>
         </div>
       </div>
@@ -73,6 +73,15 @@ watch(locale, () => {
 const formatDate = (ts) => {
   if (!ts) return ''
   return new Date(ts).toLocaleString()
+}
+
+const getReportTypeLabel = (type) => {
+  const labels = {
+    hourly: locale.value === 'zh' ? '每小时简报' : 'Hourly Brief',
+    daily: locale.value === 'zh' ? '每日总结' : 'Daily Summary',
+    weekly: locale.value === 'zh' ? '周度分析' : 'Weekly Analysis'
+  }
+  return labels[type] || (locale.value === 'zh' ? '深度报告' : 'Deep Report')
 }
 
 const formatContent = (text) => {
