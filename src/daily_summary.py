@@ -78,6 +78,8 @@ class DailySummary:
                             current_event['sentiment_cn'] = parts[1].replace('中国:', '').strip()
                         if len(parts) >= 3:
                             current_event['sentiment_us'] = parts[2].replace('美国:', '').strip()
+                    elif line.startswith('链接:') or line.startswith('链接：'):
+                        current_event['url'] = line.split(':', 1)[-1].strip() if ':' in line else ''
                 
                 if current_event:
                     news_items.append(current_event)
@@ -139,11 +141,12 @@ class DailySummary:
             if 'sentiment_cn' in item and 'sentiment_us' in item:
                 sentiment_info += f" | CN:{item['sentiment_cn']} US:{item['sentiment_us']}"
             
+            url_line = f"\n   链接: {item['url']}" if item.get('url') else ''
             summary += f"""
 {i}. [{item.get('source', '未知')}]
    {item.get('title', '无标题')}
    {item.get('summary', '无摘要')}
-   情绪: {sentiment_info}
+   情绪: {sentiment_info}{url_line}
 """
         
         summary += f"""

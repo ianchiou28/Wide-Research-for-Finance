@@ -163,7 +163,17 @@
                       <span class="event-source">{{ event.source }}</span>
                       <span class="event-type" :class="event.sentiment">{{ t(event.sentiment) }}</span>
                     </div>
-                    <div class="event-title">{{ event.title }}</div>
+                    <div class="event-title">
+                      <a v-if="event.url" :href="event.url" target="_blank" rel="noopener noreferrer" class="event-link">
+                        {{ event.title }}
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="link-icon">
+                          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                          <polyline points="15 3 21 3 21 9"></polyline>
+                          <line x1="10" y1="14" x2="21" y2="3"></line>
+                        </svg>
+                      </a>
+                      <span v-else>{{ event.title }}</span>
+                    </div>
                     <div class="event-summary">{{ event.summary }}</div>
                     <div class="event-impacts" v-if="event.chinaImpact || event.usImpact">
                       <span v-if="event.chinaImpact" class="impact-tag cn">CN {{ event.chinaImpact }}</span>
@@ -370,18 +380,29 @@ const parseSummary = (text) => {
 
   // Parse events
   const eventsSection = text.match(/【重点事件】[\s\S]*?(?=【|============|$)/)?.[0] || ''
-  const eventRegex = /(\d+)\.\s*\[([^\]]+)\]\s*\n\s*([^\n]+)\s*\n\s*([^\n]+)\s*\n\s*情绪:\s*(\S+)/g
+  const eventRegex = /(\d+)\.\s*\[([^\]]+)\]\s*\n\s*([^\n]+)\s*\n\s*([^\n]+)\s*\n\s*情绪:\s*([^\n]+)/g
   let eventMatch
   while ((eventMatch = eventRegex.exec(eventsSection)) !== null) {
-    const sentiment = eventMatch[5].includes('积极') ? 'positive' : 
-                     eventMatch[5].includes('消极') ? 'negative' : 'neutral'
+    const sentimentLine = eventMatch[5].trim()
+    const sentiment = sentimentLine.includes('积极') ? 'positive' : 
+                     sentimentLine.includes('消极') ? 'negative' : 'neutral'
+    
+    // 提取 CN/US 影响
+    const cnImpact = sentimentLine.match(/(?:🇨🇳|CN[:\s]*)(\S+)/)?.[1] || ''
+    const usImpact = sentimentLine.match(/(?:🇺🇸|US[:\s]*)(\S+)/)?.[1] || ''
+
+    // 尝试提取链接（在情绪行之后）
+    const afterSentiment = eventsSection.substring(eventMatch.index + eventMatch[0].length)
+    const urlMatch = afterSentiment.match(/^\s*\n?\s*链接:\s*(https?:\/\/[^\s\n]+)/)
+    
     data.events.push({
       source: eventMatch[2],
       title: eventMatch[3],
       summary: eventMatch[4],
       sentiment: sentiment,
-      chinaImpact: '',
-      usImpact: ''
+      chinaImpact: cnImpact,
+      usImpact: usImpact,
+      url: urlMatch?.[1] || ''
     })
   }
 
@@ -514,9 +535,22 @@ onMounted(() => {
   padding: 0.5rem 1rem;
   border: 2px solid var(--c-border);
   background: var(--c-paper);
+  color: var(--c-ink);
   font-family: var(--font-mono);
   font-size: 0.85rem;
   cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.file-selector:hover,
+.file-selector:focus {
+  border-color: var(--c-amber, #FF9800);
+}
+
+.file-selector option {
+  background: var(--c-paper);
+  color: var(--c-ink);
 }
 
 .refresh-btn {
@@ -788,6 +822,32 @@ onMounted(() => {
 .event-title {
   font-weight: 700;
   margin-bottom: 0.5rem;
+}
+
+.event-link {
+  color: var(--c-ink);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  transition: color 0.15s;
+}
+
+.event-link:hover {
+  color: var(--c-amber, #FF9800);
+  text-decoration: underline;
+}
+
+.event-link .link-icon {
+  flex-shrink: 0;
+  opacity: 0.5;
+  vertical-align: baseline;
+  position: relative;
+  top: 1px;
+}
+
+.event-link:hover .link-icon {
+  opacity: 1;
 }
 
 .event-summary {
