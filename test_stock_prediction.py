@@ -5,9 +5,9 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'config'))
 
-from src.collector import NewsCollector
-from src.processor import NLPProcessor
-from src.report_generator_v2 import ReportGeneratorV2
+from collector import DataCollector
+from processor import NLPProcessor
+from report_generator_v2 import ReportGeneratorV2
 
 print("=" * 60)
 print("个股预测功能测试")
@@ -15,8 +15,8 @@ print("=" * 60)
 
 # 采集新闻
 print("\n[1/3] 采集新闻...")
-collector = NewsCollector()
-raw = collector.collect_all()
+collector = DataCollector()
+raw = collector.fetch_latest(hours=24, max_per_source=15)
 print(f"  采集到 {len(raw)} 条原始新闻")
 
 if not raw:
