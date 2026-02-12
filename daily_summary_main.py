@@ -3,7 +3,6 @@ import os
 import sys
 import io
 from dotenv import load_dotenv
-import schedule
 import time
 from datetime import datetime
 
@@ -61,6 +60,12 @@ def main():
     if choice == '1':
         generate_and_send_summary()
     elif choice == '2':
+        try:
+            import schedule
+        except ImportError:
+            print("❌ 需要安装 schedule 模块: pip install schedule")
+            print("   或者使用 main.py 的 Docker 模式（已内置 APScheduler）")
+            return
         schedule.every().day.at("08:00").do(generate_and_send_summary)
         schedule.every().day.at("20:00").do(generate_and_send_summary)
         

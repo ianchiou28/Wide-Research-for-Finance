@@ -169,8 +169,8 @@ def main():
             from daily_summary_main import generate_and_send_summary
             scheduler.add_job(generate_and_send_summary, 'cron', hour='8,20', id='daily_summary',
                               name='每日摘要')
-        except ImportError:
-            logger.warning("无法导入 daily_summary_main，跳过摘要生成任务")
+        except ImportError as e:
+            logger.warning(f"无法导入 daily_summary_main，跳过摘要生成任务: {e}")
 
         # 3. 周报
         scheduler.add_job(run_weekly_report_script, 'cron', hour='8,20', id='weekly_report',
