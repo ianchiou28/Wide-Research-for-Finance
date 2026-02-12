@@ -195,8 +195,18 @@ class ReportGeneratorV2:
             if not impacts or not isinstance(impacts, list):
                 continue
             
+            news_sentiment = news.get('sentiment', 0)
+            if isinstance(news_sentiment, dict):
+                news_sentiment = news_sentiment.get('overall', 0)
+            
             for impact in impacts:
-                if not isinstance(impact, dict):
+                # 兼容纯字符串格式（如 "AAPL"）和字典格式
+                if isinstance(impact, str):
+                    symbol = impact.strip()
+                    if not symbol:
+                        continue
+                    impact = {'symbol': symbol, 'name': symbol}
+                elif not isinstance(impact, dict):
                     continue
                 
                 symbol = impact.get('symbol', '')
@@ -213,7 +223,24 @@ class ReportGeneratorV2:
                         'related_news': []
                     }
                 
+                # 优先用 direction 字段，其次从 impact 字段推断，最后用新闻情绪
                 direction = impact.get('direction', '')
+                if not direction:
+                    imp = impact.get('impact', '')
+                    if imp in ('利好', '正面'):
+                        direction = '上涨'
+                    elif imp in ('利空', '负面'):
+                        direction = '下跌'
+                    elif isinstance(news_sentiment, (int, float)):
+                        if news_sentiment >= 0.2:
+                            direction = '上涨'
+                        elif news_sentiment <= -0.2:
+                            direction = '下跌'
+                        else:
+                            direction = '中性'
+                    else:
+                        direction = '中性'
+                
                 if direction == '上涨':
                     stock_data[symbol]['up_count'] += 1
                 elif direction == '下跌':
@@ -222,7 +249,7 @@ class ReportGeneratorV2:
                     stock_data[symbol]['neutral_count'] += 1
                 
                 stock_data[symbol]['related_news'].append({
-                    'ref_id': news['ref_id'],
+                    'ref_id': news.get('ref_id', 0),
                     'title': news.get('title', ''),
                     'direction': direction
                 })
@@ -231,6 +258,9 @@ class ReportGeneratorV2:
         results = []
         for symbol, data in stock_data.items():
             total_mentions = data['up_count'] + data['down_count'] + data['neutral_count']
+            if total_mentions == 0:
+                continue
+            
             if data['up_count'] > data['down_count']:
                 prediction = '看涨'
                 confidence = data['up_count'] / total_mentions
@@ -238,8 +268,9 @@ class ReportGeneratorV2:
                 prediction = '看跌'
                 confidence = data['down_count'] / total_mentions
             else:
+                # 中性: 根据中性票占比调整置信度
                 prediction = '中性'
-                confidence = 0.5
+                confidence = max(0.4, data['neutral_count'] / total_mentions) if data['neutral_count'] > 0 else 0.4
             
             results.append({
                 **data,

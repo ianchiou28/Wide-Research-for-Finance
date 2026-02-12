@@ -187,7 +187,7 @@ class NLPProcessor:
   "key_entities": ["贵州茅台", "白酒"],
   "event_type": "财报",
   "impact_level": "中",
-  "stock_impact": [{{"symbol": "600519", "name": "贵州茅台", "impact": "利好", "reason": "业绩超预期"}}]
+  "stock_impact": [{{"symbol": "600519", "name": "贵州茅台", "direction": "上涨", "impact": "利好", "reason": "业绩超预期"}}]
 }}
 
 ## 待分析文章
@@ -201,7 +201,7 @@ class NLPProcessor:
   · 纯中性（真正无方向、无影响的信息）：-0.1 ~ +0.1
 - **关键原则**：绝大多数财经新闻都有方向性倾向，真正的「中性」极少（如日程预告、人事任命等）。如果有任何利好/利空信号，即使微弱，也应给出 ±0.15 以上的分数，不要轻易给接近 0 的值。
 - impact_level: 高（影响大盘或行业龙头）/ 中（影响个股或子行业）/ 低（边际消息）
-- stock_impact: 最多3个相关股票；无直接个股关联时为 []
+- stock_impact: 最多3个直接相关的股票，每个必须是对象格式：{{"symbol": "代码", "name": "名称", "direction": "上涨/下跌/中性", "impact": "利好/利空/中性", "reason": "简要原因"}}。direction 字段必填（上涨/下跌/中性）。无直接个股关联时为 []。不要返回纯字符串数组。
 
 返回纯JSON数组，必须包含所有{len(articles)}篇文章。"""
 

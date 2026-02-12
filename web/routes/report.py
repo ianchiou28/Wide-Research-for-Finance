@@ -346,27 +346,38 @@ def api_report_structured():
         events_data.append(event)
 
     # 翻译股票影响
-    def get_prediction(direction):
-        if lang == 'en':
-            if direction == '上涨': return 'Bullish'
-            if direction == '下跌': return 'Bearish'
-            return 'Neutral'
-        else:
-            if direction == '上涨': return '看涨'
-            if direction == '下跌': return '看跌'
-            return '中性'
+    def get_prediction(direction, impact=''):
+        """从direction或impact字段推断预测方向"""
+        # 优先用 direction
+        if direction in ('上涨',):
+            return 'Bullish' if lang == 'en' else '看涨'
+        if direction in ('下跌',):
+            return 'Bearish' if lang == 'en' else '看跌'
+        # 回退到 impact
+        if impact in ('利好', '正面'):
+            return 'Bullish' if lang == 'en' else '看涨'
+        if impact in ('利空', '负面'):
+            return 'Bearish' if lang == 'en' else '看跌'
+        return 'Neutral' if lang == 'en' else '中性'
 
     stock_impacts = []
     for s in parsed.get('stocks', [])[:6]:
+        direction = s.get('direction', '')
+        impact = s.get('impact', '')
+        prediction = get_prediction(direction, impact)
+        
+        is_up = prediction in ('看涨', 'Bullish')
+        is_down = prediction in ('看跌', 'Bearish')
+        
         stock = {
             'symbol': s.get('symbol', ''),
             'name': s.get('name', ''),
-            'prediction': get_prediction(s.get('direction', '')),
-            'confidence': 0.6,
+            'prediction': prediction,
+            'confidence': 0.75 if is_up or is_down else 0.5,
             'total_mentions': 1,
-            'up_count': 1 if s.get('direction') == '上涨' else 0,
-            'down_count': 1 if s.get('direction') == '下跌' else 0,
-            'neutral_count': 0
+            'up_count': 1 if is_up else 0,
+            'down_count': 1 if is_down else 0,
+            'neutral_count': 0 if (is_up or is_down) else 1
         }
         if lang == 'en':
             stock['name'] = translator['translate_response'](stock['name'], lang)
