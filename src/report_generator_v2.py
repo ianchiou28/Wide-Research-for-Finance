@@ -254,23 +254,49 @@ class ReportGeneratorV2:
                     'direction': direction
                 })
         
-        # 计算综合预测
+        # 计算综合预测（贝叶斯平滑 + 情绪强度加权）
         results = []
         for symbol, data in stock_data.items():
             total_mentions = data['up_count'] + data['down_count'] + data['neutral_count']
             if total_mentions == 0:
                 continue
             
+            # 计算相关新闻的平均情绪强度 (0~1)
+            avg_sentiment_strength = 0.5
+            if data['related_news']:
+                strengths = []
+                for rn in data['related_news']:
+                    # 从原始新闻列表中查找情绪值
+                    for news in news_list:
+                        if news.get('ref_id') == rn.get('ref_id'):
+                            s = news.get('sentiment', 0)
+                            if isinstance(s, dict):
+                                s = s.get('overall', 0)
+                            strengths.append(abs(float(s)) if isinstance(s, (int, float)) else 0.3)
+                            break
+                if strengths:
+                    avg_sentiment_strength = sum(strengths) / len(strengths)
+            
+            # 贝叶斯平滑：prior=1 → 小样本不会轻易给出极端置信度
+            # 1条→67%, 2条同向→75%, 3条→80%, 5条→86%, 10条→92%
+            prior = 1.0
+            
             if data['up_count'] > data['down_count']:
                 prediction = '看涨'
-                confidence = data['up_count'] / total_mentions
+                direction_conf = (data['up_count'] + prior) / (total_mentions + 2 * prior)
             elif data['down_count'] > data['up_count']:
                 prediction = '看跌'
-                confidence = data['down_count'] / total_mentions
+                direction_conf = (data['down_count'] + prior) / (total_mentions + 2 * prior)
             else:
-                # 中性: 根据中性票占比调整置信度
                 prediction = '中性'
-                confidence = max(0.4, data['neutral_count'] / total_mentions) if data['neutral_count'] > 0 else 0.4
+                direction_conf = 0.5
+            
+            # 情绪强度调节: 强情绪(0.7+)不折扣, 弱情绪(0.1)折扣到80%
+            sentiment_factor = min(1.0, 0.75 + 0.25 * min(avg_sentiment_strength / 0.5, 1.0))
+            confidence = direction_conf * sentiment_factor
+            
+            # 置信度范围: 35%~92%
+            confidence = max(0.35, min(0.92, confidence))
             
             results.append({
                 **data,
